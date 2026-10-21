@@ -1,0 +1,45 @@
+name: resolveops
+services:
+  db:
+    image: pgvector/pgvector:pg17
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-resolveops}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-resolveops}
+      POSTGRES_DB: ${POSTGRES_DB:-resolveops}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  api:
+    build: ./backend
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-resolveops}:${POSTGRES_PASSWORD:-resolveops}@db:5432/${POSTGRES_DB:-resolveops}
+      AI_MODE: ${AI_MODE:-demo}
+      SEED_ON_START: "true"
+      SEED_REVIEWER_EMAIL: ${SEED_REVIEWER_EMAIL:-reviewer@northstar.example}
+      SEED_REVIEWER_PASSWORD: ${SEED_REVIEWER_PASSWORD:-northstar-demo}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "${API_PORT:-8000}:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request;urllib.request.urlopen('http://localhost:8000/api/health')"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+
+  web:
+    build: ./frontend
+    depends_on:
+      - api
+    ports:
+      - "${WEB_PORT:-8080}:80"
+
+volumes:
+  pgdata:
