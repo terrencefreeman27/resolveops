@@ -370,6 +370,10 @@ class Execution(Base):
     attempts: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     last_error: Mapped[str | None] = mapped_column(Text)
     ticket_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True))
+    # External issue created by this execution (GitHub adapter); never chosen by the model.
+    external_id: Mapped[str | None] = mapped_column(String(120))
+    external_number: Mapped[int | None] = mapped_column(Integer)
+    external_url: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = created_at()
     finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
@@ -392,6 +396,7 @@ class Ticket(Base):
     adapter: Mapped[str] = mapped_column(String(32), default="internal", nullable=False)
     external_id: Mapped[str | None] = mapped_column(String(120))
     external_url: Mapped[str | None] = mapped_column(Text)
+    external_number: Mapped[int | None] = mapped_column(Integer)
     idempotency_key: Mapped[str | None] = mapped_column(String(64), unique=True)
     notes: Mapped[list] = mapped_column(JSONB, default=list, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)

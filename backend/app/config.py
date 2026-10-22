@@ -2,6 +2,7 @@
 from functools import lru_cache
 from typing import Literal
 
+from pydantic import SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -55,6 +56,19 @@ class Settings(BaseSettings):
     max_upload_bytes: int = 200_000  # per imported document (.md / .txt)
     max_documents_per_workspace: int = 40
     max_workspaces_per_reviewer: int = 10
+
+    # --- optional GitHub Issues adapter (M4). See docs/DECISIONS.md D28-D30 and README. ---
+    # The destination is server config only: the base URL is fixed in adapters/github.py and the
+    # repository must be both GITHUB_ISSUES_REPO and listed in GITHUB_ALLOWED_REPOS.
+    github_adapter_enabled: bool = False
+    github_token: SecretStr = SecretStr("")  # never logged, returned, prompted or sent to the frontend
+    github_issues_repo: str = ""  # owner/name
+    github_allowed_repos: str = ""  # comma-separated owner/name list
+    github_labels: str = ""  # optional, comma-separated; needs push access or GitHub silently drops them
+    github_timeout_s: float = 10.0  # per HTTP request
+    github_max_attempts: int = 3  # per HTTP call (create or lookup), including the first
+    github_retry_base_delay_s: float = 1.0
+    github_max_wait_s: float = 10.0  # longest Retry-After / rate-limit wait honoured inline
 
 
 @lru_cache
