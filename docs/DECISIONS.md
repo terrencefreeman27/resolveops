@@ -152,3 +152,72 @@ Live mode's "real embeddings" are the same local `fastembed` `BAAI/bge-small-en-
 (D2): ingestion (`retrieval.ingest_document`) and search (`retrieval.search`, called by the
 `search_knowledge_base` tool) are one shared code path for both modes. There is no second paid
 embeddings provider (Anthropic has no embeddings API). **Revisit:** same trigger as D2.
+
+## D22 — Workspace-scoped simulated fixtures (no company branches in code)
+- **Decision:** demo-mode outputs live in `sim_fixtures` rows per workspace (seeded from
+  `app/seed/<company>_fixtures.py`). `providers/simulated.py` is a generic template renderer: variants
+  chosen by a small fixed set of data predicates (`plan_lacks_feature`, `no_users_with_role`, …), text
+  rendered from tool results, citations emitted only for passages retrieval returned. Admin roles and the
+  reply signature are workspace settings/profile. `grep -i northstar backend/app` outside `app/seed/` finds
+  only the default seed reviewer email in `config.py`.
+- **Why:** SPEC §2 — the app must be configurable, not built around one company; the same wording in two
+  workspaces must produce two evidence-based answers.
+- **Revisit:** if fixtures need logic beyond the predicates (prefer adding a predicate over code branches).
+
+## D23 — Document lifecycle: import status separate from lifecycle status; soft delete
+- `document_versions.import_status` (pending → processing → ready | failed + error) is the import pipeline;
+  `status` (active | superseded | deleted | failed) is the lifecycle. Import runs as a FastAPI background task
+  after the request commits the pending version, so the UI can watch the transitions; the seed and tests use
+  the same `index_version` synchronously.
+- Activation, superseding the previous version, deactivating its chunks and staling dependent proposals are
+  one transaction (`documents.index_version` + `staleness`). Delete is a soft delete for the same reason and so
+  that citations keep resolving to the exact cited version.
+- Uploads are JSON `{filename, content}` (browser reads the file as text). Avoids adding `python-multipart`;
+  type (`.md/.markdown/.txt`), UTF-8 byte size (`MAX_UPLOAD_BYTES`), NUL bytes and per-workspace count are
+  enforced server-side. Identical re-uploads are refused.
+- **Revisit:** large files or binary formats (would need multipart + a parser; PDF is deliberately unsupported).
+
+## D24 — Stale proposals: what is covered, and Reprocess = next version of the same proposal
+- **Pending** = request `awaiting_review`, or `failed` (approved, execution not completed). `executing` is
+  inside one request holding the request row lock, so it can't interleave with invalidation.
+- **Triggers covered:** a document version that the proposal's evidence *retrieved or cited* is superseded or
+  deleted; escalation rules change so the set of matching rules (or a matching rule's effect) differs from what
+  the proposal recorded (re-evaluated per pending proposal). Not covered: company-profile edits, retrieval
+  threshold changes, and new documents that *would* now be retrieved (a new doc can't invalidate evidence that
+  was used, only add evidence; reprocess manually if needed).
+- Stale marking invalidates active approvals, locks request rows (`FOR UPDATE`) like approve/retry do, and is
+  audited (`proposal.stale`). Approve/edit/reject/retry refuse stale requests with the reason; execution
+  re-checks defensively.
+- **Reprocess** re-runs the workflow on current documents/rules and appends version N+1 to the same proposal
+  with an edit note naming why vN was stale (`proposal.reprocessed`), so history shows both.
+
+## D25 — Insufficient / conflicting evidence is decided by code, with declared policy facts
+- **Insufficient:** best retrieved cosine similarity below `RETRIEVAL_MIN_SCORE` (0.72; workspace override
+  `settings.retrieval_min_score`). Calibrated on seeded data: answered scenarios' best scores 0.79–0.89, the
+  undocumented Peppol question 0.69. The workflow keeps the best score per chunk across searches.
+- **Conflicting:** documents declare facts with `<!-- policy key: value -->` inside the section stating them;
+  parsed per chunk at import. A conflict counts only if two *relevant retrieved* chunks declare different
+  values for the same key — so it is about the deciding fact of this request, not any contradiction anywhere.
+  Lumen's `plan-changes` vs `billing-faq` downgrade timing is the deliberate seeded conflict.
+- **Effect:** a drafted `resolve` becomes `escalate` to the workspace's `evidence_review_group` with a neutral
+  holding reply; clarify/escalate drafts are kept. The check is stored on the proposal and shown; reviewer
+  edits cannot switch such a proposal to `resolve`. The provider's *own* drafted ticket action is validated
+  before any server rewrite, so an invalid draft (e.g. a foreign ticket id) is still an error.
+- The two Lumen edge-case fixtures deliberately draft a confident `resolve` to stand in for an over-confident
+  model and show the code guard working. Not an AI judgement; no model decides sufficiency.
+- **Revisit:** M5 eval recall/threshold results; prose contradictions without markers are not detected.
+
+## D26 — Per-workspace reviewer access; private reviewer-created workspaces
+- Reviewer rights come from `memberships` per workspace (existing table). The demo reviewer belongs to both
+  demo workspaces; `reviewer@lumenledger.example` to Lumen only. A signed-in non-member is treated as a visitor
+  (sandbox) in demo-enabled workspaces and gets 401/403 elsewhere.
+- Workspaces created in onboarding are not demo-enabled and are listed in `/api/meta` only to their members.
+- Visitor reset deletes the caller's sandbox rows across all workspaces (sandboxes are per session, and rows
+  are per workspace).
+
+## D27 — Onboarding "test a request" is a dry run in demo mode
+- Step 6 runs retrieval, the evidence check and escalation rules against the workspace and reports the allowed
+  outcome; it calls no model and stores nothing. A full simulated proposal for arbitrary text would mean
+  pretending a model read it (SPEC §8); full runs need live mode or a seeded fixture.
+- Onboarding does not import customers/subscriptions (seed only), so new workspaces cannot run full requests
+  yet. **Revisit:** if a pilot needs CSV/API customer import.

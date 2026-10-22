@@ -6,10 +6,13 @@ embedding search, and drafts a structured, cited proposal. A human then reviews 
 approve, or reject. Only approved ticket actions are executed, and every one is idempotent.
 Every step lands in an audit log.
 
-The default workspace is **Northstar Analytics**, a fictional B2B analytics company. All
-customers and people are synthetic.
+Two fictional companies are preloaded as separate workspaces: **Northstar Analytics** (B2B
+analytics, the default) and **Lumen Ledger** (B2B invoicing, different plans and policies). All
+customers and people are synthetic. Reviewers can create further workspaces through an
+onboarding flow and import their own Markdown or plain-text documentation.
 
-> Status: **Milestone 1** (vertical slice, demo mode). See `docs/PLAN.md` for the milestones,
+> Status: **Milestone 3** (configurable workspaces, document lifecycle, second company; demo mode
+> verified, live mode built but not yet run against the real API). See `docs/PLAN.md` for the milestones,
 > `docs/DECISIONS.md` for design decisions, and `docs/SPEC.md` for the full specification.
 
 ## Quick start
@@ -21,14 +24,14 @@ cp .env.example .env        # optional; defaults work without it
 docker compose up -d --build   # or: make up
 ```
 
-Open **http://localhost:8080**. The first start runs migrations and seeds Northstar
-automatically. The API is also published on http://localhost:8000 (`/api/docs` for OpenAPI).
+Open **http://localhost:8080**. The first start runs migrations and seeds both demo workspaces
+automatically (an existing database gets any missing demo workspace on the next start). The API is also published on http://localhost:8000 (`/api/docs` for OpenAPI).
 
 | Task | Command |
 |---|---|
 | Start / rebuild | `make up` (`docker compose up -d --build`) |
 | Stop (keep data) | `make down` (`docker compose down`) |
-| Re-seed Northstar (wipes workspace data) | `make seed` (`docker compose exec api python -m app.seed --reset`) |
+| Re-seed the demo workspaces (wipes Northstar + Lumen data; reviewer-created workspaces untouched) | `make seed` (`docker compose exec api python -m app.seed --reset`) |
 | Full reset (drop the DB volume) | `make reset` (`docker compose down -v && docker compose up -d --build`) |
 | Backend tests (real Postgres, in container) | `make test` (`docker compose exec api pytest -q`) |
 | Frontend typecheck + build | `make test-web` (`cd frontend && npm ci && npm run typecheck && npm run build`) |
@@ -50,14 +53,84 @@ cache (`npx playwright install chromium` if you don't have one). It writes scree
   3. **Escalate product issue**: Snowflake connector failing with NS-CONN-504. An escalation
      rule and the known-issue doc produce a high-priority engineering ticket on approval.
 - **Reset my demo** deletes only your sandbox's rows. Other visitors are unaffected.
-- **Reviewer sign-in**: `reviewer@northstar.example` / `northstar-demo` (local demo
-  credentials, set in `.env`). Reviewers work on the workspace queue rather than a sandbox
-  and can open the reviewer-only admin endpoints.
+- **Switch company** with the workspace selector under the ResolveOps name. Lumen Ledger's
+  inbox contains the *same* access-after-upgrade and "charged twice" wording as Northstar; the
+  answers differ because they come from Lumen's account data and documents (see below).
+- **Reviewer sign-in**: `reviewer@northstar.example` / `northstar-demo` is a reviewer of both
+  demo workspaces. `reviewer@lumenledger.example` / `lumen-demo` is a reviewer of Lumen Ledger
+  only (in Northstar they are just a sandboxed visitor). Local demo credentials; the first is
+  set in `.env`. Reviewers work on the workspace queue rather than a sandbox.
 - **New request** submits as a server-issued synthetic customer session. In demo mode only the
   seeded scenario messages are processed. Anything else is recorded as *not processed*, and
   the app does not pretend a model read it.
 
-## How it works (M1)
+## Same request, two companies
+
+| | Northstar Analytics | Lumen Ledger |
+|---|---|---|
+| "We upgraded yesterday, but two employees still can't access the reporting feature…" | Pro includes Reporting, but the upgrade didn't change roles: 7 users are still Viewers. An Admin should change the two employees to **Analyst**. Cites *Roles and Permissions*, *Troubleshooting Reporting*, *Plans and Features*. | The customer moved Essentials → Growth, and **Growth does not include Insights reporting at all; Scale is required**. Cites *Plans and Pricing* and *Team Roles and Permissions*. |
+| "We were charged twice this month…" | **Clarify**: lists the renewal and the *prorated* seat add-on invoice and asks the customer to confirm amounts. | **Resolve**: Lumen doesn't prorate upgrades; the full Growth price was charged on an upgrade invoice and unused Essentials time comes back as **account credit on the next invoice**. |
+| Refund for 2 unused seats | Escalates to **Billing**, normal priority. | Escalates to **Accounts Receivable**, high priority (credits only, no card refunds). |
+
+Lumen also seeds the two evidence edge cases: a downgrade question where two current documents
+disagree (escalated as *conflicting evidence*) and a Peppol e-invoicing question that no document
+covers (escalated as *insufficient evidence*).
+
+## Reviewer onboarding (Workspace setup)
+
+Signed-in reviewers open **Workspace setup** in the header. Visitors see a sign-in prompt, and
+the server refuses every setup endpoint for them (403). Reviewer access is per workspace: a
+reviewer of workspace A cannot read or change workspace B.
+
+1. **Company details**: create a workspace (name, description, support hours, reply signature,
+   allowed ticket groups). The creator becomes its first reviewer. New workspaces are private:
+   they are not demo-enabled and are invisible to visitors and to other reviewers.
+2. **Import documents**: **Markdown (`.md`, `.markdown`) and plain text (`.txt`) only.** PDF,
+   Word, HTML and anything else is rejected with a message saying so. Limits: `MAX_UPLOAD_BYTES`
+   (default 200 KB per file) and `MAX_DOCUMENTS_PER_WORKSPACE` (default 40). Markdown is split
+   into sections at `##` headings; plain text into paragraph groups.
+3. **Review documents**: import status (`pending → processing → ready`, or `failed` with the
+   error), every version, and the sections exactly as they are indexed. Replace and Delete live
+   here.
+4. **Escalation rules**: category, keyword and plan conditions → escalate to an allowed group at
+   a priority. Evaluated by code, not by the model.
+5. **Ticket adapter**: Internal tickets. GitHub Issues is listed as *Not configured* until
+   Milestone 4.
+6. **Test a sample request**: a dry run of retrieval, the evidence check and the escalation rules
+   against this workspace. It calls no AI model and stores nothing. In demo mode, full proposals
+   exist only for the seeded scenarios, which are workspace data (`sim_fixtures`).
+
+### Document lifecycle
+
+- Documents have stable ids. Every import or replacement is a numbered **version**, and each
+  version is split into sections (chunks) with embeddings.
+- **Replace** activates the new version, marks the old one *superseded* and removes its chunks
+  from retrieval. **Delete** is a soft delete: the document leaves retrieval but stays in the
+  database, so old citations still resolve.
+- Each proposal records which document versions it retrieved and cited. When a version is
+  superseded or deleted, every **pending** proposal that used it (awaiting review, or approved
+  but execution failed) is marked **stale** in the same database transaction. Approve, edit and
+  retry are refused for stale proposals. **Reprocess** re-runs the workflow against current
+  documents and adds a new version of the same proposal. Both events are audited.
+- Changing escalation rules re-checks pending proposals, and those whose matching rules changed
+  are marked stale the same way.
+- Citations always open the exact version they cite, labelled "superseded by vN" or "deleted"
+  when that version is no longer current.
+
+### Insufficient or conflicting evidence
+
+Application code checks every proposal's retrieved passages (`app/evidence.py`):
+- **Insufficient**: no passage reaches the relevance threshold (`RETRIEVAL_MIN_SCORE`, default
+  0.72 cosine similarity, which can be overridden per workspace).
+- **Conflicting**: two relevant passages from current documents state different values for the
+  same policy key. Documents declare such facts inside the section that states them:
+  `<!-- policy plan_change.downgrade_effective: end of term -->`.
+
+In either case a drafted "resolve" becomes an escalation with a holding reply, and a reviewer edit
+cannot turn it back into a resolve. The UI shows the check, the disagreeing passages and what was
+changed.
+
+## How it works
 
 ```
 browser ─► web (nginx + React build) ─/api─► api (FastAPI, Python 3.12) ─► Postgres 17 + pgvector
@@ -118,14 +191,25 @@ Limits (size, rate, budget, concurrency) return 413/429 with an explanation; not
 Each proposal shows which provider produced it and, for live runs, model, tokens, tool calls and
 latency. Details: `docs/DECISIONS.md` D16–D21.
 
-## Known limitations (M1–M2)
+## Known limitations (M1–M3)
 
 - The live provider has been tested only against a fake Anthropic client and recorded-format
   fixtures; the live smoke test (`pytest -m live`) has not been run against the real API yet.
 - The live concurrency limit is per API process (single-instance deployment assumed).
-- Onboarding, document import/replace UI, stale
-  proposal invalidation, second workspace, GitHub adapter, evaluation dataset and dashboard
-  are later milestones (see `docs/PLAN.md`).
+- GitHub adapter (M4), evaluation dataset and dashboard (M5) are later milestones.
+- Onboarding imports documents, rules and company details. It does not import customers or
+  subscriptions, so a new workspace can test retrieval and rules (step 6) but has no customers
+  to run full requests against until data is loaded by other means. Demo-mode proposals exist
+  only for seeded scenarios (`sim_fixtures`). Other text is labelled as not processed.
+- Documents are uploaded as text in a JSON body (the browser reads the file). There is no
+  multipart parser, which avoids a new dependency. The server enforces type, byte size and count.
+- Conflict detection only sees facts that documents declare with policy markers. It does not
+  infer contradictions from prose. The relevance threshold was calibrated on the seeded data
+  (answered scenarios score 0.79–0.89, the undocumented Peppol question 0.69), so the margin is
+  modest and should be re-checked in the M5 evaluation.
+- Stale invalidation covers document versions a proposal *retrieved or cited* and rule changes.
+  Changes to company details or ticket groups do not stale proposals (removing a ticket group
+  that escalation rules still route to is refused).
 - Escalation-rule matching is simple keyword/category/plan matching.
 - No login rate limiting yet. Session cookies are `Secure` only when `COOKIE_SECURE=true`
   (needed behind HTTPS).

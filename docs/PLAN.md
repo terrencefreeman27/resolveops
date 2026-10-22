@@ -151,7 +151,8 @@ POST /api/w/{ws}/customer-session            (issue synthetic customer session)
    DECISIONS D16–D21.)* Load `claude-api` skill; `providers/live.py` with Claude tool
    use + structured output, same tools/validation; live config errors surfaced; rate limit,
    token/output caps, usage budget, concurrency limit; live disabled for visitors.
-3. **Configurable workspaces + doc lifecycle.** Onboarding flow (create workspace, import
+3. **Configurable workspaces + doc lifecycle.** *(Built 2026-10-22 — see README "Reviewer onboarding",
+   DECISIONS D22–D27.)* Onboarding flow (create workspace, import
    .md/.txt, review import status, escalation rules, adapter choice, test request);
    replace/delete docs → deactivate chunks → mark dependent pending proposals `stale` and
    block their execution; reprocess path; second company with different policies.
