@@ -41,6 +41,14 @@ WORKSPACE = {
         "roles": ROLE_PERMISSIONS,
         "ticket_groups": TICKET_GROUPS,
         "supported_categories": ["access", "billing", "product_issue"],
+        "demo_scenarios": [
+            {"key": "access_reporting_after_upgrade", "label": "Access issue",
+             "description": "Upgraded yesterday, two employees still can't open Reporting."},
+            {"key": "billing_charged_twice", "label": "Billing clarification",
+             "description": "Customer was \"charged twice\" — which charges do they mean?"},
+            {"key": "connector_outage", "label": "Escalate product issue",
+             "description": "Snowflake connector failing with NS-CONN-504 → engineering ticket."},
+        ],
     },
 }
 
