@@ -6,6 +6,7 @@ import { EvidencePane } from "./components/EvidencePane";
 import { Inbox, type Filters } from "./components/Inbox";
 import { PassageModal } from "./components/PassageModal";
 import { RequestPane } from "./components/RequestPane";
+import { SetupView } from "./components/setup/SetupView";
 import { Button } from "./components/ui";
 
 export default function App() {
@@ -21,9 +22,21 @@ export default function App() {
   const [notice, setNotice] = useState<string | null>(null);
   const [dialog, setDialog] = useState<"login" | "new" | "ai" | null>(null);
   const [fatal, setFatal] = useState<string | null>(null);
+  const [wsSlug, setWsSlug] = useState<string>(() => localStorage.getItem("ro_ws") ?? "");
+  const [view, setView] = useState<"inbox" | "setup">(() => (location.hash === "#setup" ? "setup" : "inbox"));
 
-  const ws = meta?.workspaces[0];
+  const ws = meta?.workspaces.find((w) => w.slug === wsSlug) ?? meta?.workspaces[0];
   const slug = ws?.slug ?? "";
+
+  useEffect(() => {
+    const onHash = () => setView(location.hash === "#setup" ? "setup" : "inbox");
+    window.addEventListener("hashchange", onHash);
+    return () => window.removeEventListener("hashchange", onHash);
+  }, []);
+  const go = (v: "inbox" | "setup") => { location.hash = v === "setup" ? "setup" : ""; setView(v); };
+  const switchWorkspace = (next: string) => {
+    localStorage.setItem("ro_ws", next); setWsSlug(next); setSelectedId(null); setDetail(null); setError(null); setNotice(null);
+  };
 
   const loadMeta = useCallback(async () => {
     try {
@@ -77,7 +90,8 @@ export default function App() {
     return <main className="grid min-h-[100dvh] place-items-center p-6 text-center"><div><h1 className="text-lg font-semibold">ResolveOps is not reachable</h1><p className="mt-1 text-sm text-zinc-600">{fatal}</p><Button className="mt-4" onClick={() => { setFatal(null); loadMeta(); }}>Try again</Button></div></main>;
   }
 
-  const isReviewer = !!meta?.reviewer;
+  const signedIn = !!meta?.reviewer;
+  const isReviewer = signedIn && !!ws?.is_member; // reviewer access is per workspace
   return (
     <div className="flex flex-col xl:h-[100dvh]">
       <ModeBanner meta={meta} />
@@ -85,7 +99,13 @@ export default function App() {
       <header className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-zinc-200 bg-white px-4 py-2.5">
         <div className="mr-2">
           <p className="text-sm font-semibold tracking-tight">ResolveOps</p>
-          <p className="text-xs text-zinc-500">{ws?.name ?? ""} <span className="text-zinc-400">(fictional company)</span></p>
+          <label className="flex items-center gap-1 text-xs text-zinc-500">
+            <span className="sr-only">Workspace</span>
+            <select data-testid="workspace-switcher" value={slug} onChange={(e) => switchWorkspace(e.target.value)}
+              className="max-w-[14rem] truncate rounded border-0 bg-transparent py-0 pl-0 pr-6 text-xs font-medium text-zinc-700 ring-0 focus:ring-1 focus:ring-teal-600">
+              {meta?.workspaces.map((w) => <option key={w.slug} value={w.slug}>{w.name}{w.profile?.fictional ? " (fictional)" : ""}</option>)}
+            </select>
+          </label>
         </div>
         <div className="flex flex-wrap items-center gap-2" aria-label="Demo scenarios">
           {ws?.demo_scenarios.map((s) => (
@@ -105,9 +125,12 @@ export default function App() {
               catch (e) { setError((e as Error).message); } finally { setBusy(false); }
             }}>Reset my demo</Button>
           )}
+          {signedIn && (view === "setup"
+            ? <Button variant="ghost" data-testid="open-inbox" onClick={() => go("inbox")}>Support inbox</Button>
+            : <Button variant="ghost" data-testid="open-setup" onClick={() => go("setup")}>Workspace setup</Button>)}
           {isReviewer && <Button variant="ghost" data-testid="ai-status-open" onClick={() => setDialog("ai")}>AI status</Button>}
-          {isReviewer
-            ? <Button onClick={async () => { await api.logout(); setSelectedId(null); await loadMeta(); }}>Sign out</Button>
+          {signedIn
+            ? <Button onClick={async () => { await api.logout(); setSelectedId(null); go("inbox"); await loadMeta(); }}>Sign out</Button>
             : <Button onClick={() => setDialog("login")}>Reviewer sign-in</Button>}
         </div>
       </header>
@@ -119,6 +142,11 @@ export default function App() {
         </div>
       )}
 
+      {view === "setup" ? (
+        <SetupView meta={meta} ws={ws ?? null} signedIn={signedIn} onSignIn={() => setDialog("login")}
+          onWorkspaceCreated={async (newSlug) => { await loadMeta(); switchWorkspace(newSlug); }}
+          onMetaChanged={loadMeta} onOpenInbox={() => go("inbox")} />
+      ) : (
       <main className="grid flex-1 grid-cols-1 lg:grid-cols-[19rem_minmax(0,1fr)] xl:min-h-0 xl:grid-cols-[19rem_minmax(0,1fr)_21rem]">
         <div className="max-h-[45dvh] min-h-0 overflow-hidden lg:max-h-none [&>aside]:h-full">
           <Inbox requests={requests} selectedId={selectedId} onSelect={setSelectedId} filters={filters} setFilters={setFilters}
@@ -148,6 +176,7 @@ export default function App() {
           <EvidencePane detail={detail} onCite={async (id) => { try { setPassage(await api.passage(slug, id)); } catch (e) { setError((e as Error).message); } }} />
         </div>
       </main>
+      )}
 
       {passage && <PassageModal passage={passage} onClose={() => setPassage(null)} />}
       {dialog === "login" && <LoginDialog onClose={() => setDialog(null)} onDone={async () => { setSelectedId(null); await loadMeta(); await loadRequests(); }} />}

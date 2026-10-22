@@ -157,5 +157,6 @@ def customer_session(body: CustomerSessionIn, response: Response, actor: Actor =
 @router.get("/w/{ws}/admin/settings")
 def admin_settings(actor: Actor = Depends(require_reviewer), db: Session = Depends(get_db)):
     """Reviewer-only. Workspace configuration (no credentials are stored in settings)."""
-    w = db.get(Workspace, actor.workspace_id)
-    return {"slug": w.slug, "name": w.name, "profile": w.profile, "settings": w.settings}
+    from .admin import _settings_dict
+
+    return _settings_dict(db.get(Workspace, actor.workspace_id))

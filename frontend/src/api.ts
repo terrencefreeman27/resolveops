@@ -23,7 +23,16 @@ export type ProposalContent = {
   missing_info: string[]; escalation_reason: string | null;
   rule_hits: { key: string; name: string; effect: string }[];
   risk_flags: string[]; provider_label: string; simulated: boolean;
+  evidence_check?: EvidenceCheck | null;
 };
+
+export type EvidenceCheck = {
+  status: "sufficient" | "insufficient" | "conflicting"; threshold: number; best_score: number | null;
+  relevant_passages: number; effect: string | null;
+  conflicts: { key: string; values: { value: string; doc_title: string; version: number; section: string; chunk_id: string }[] }[];
+};
+
+export type CitationVersion = { status: string; document_status: string; current_version: number | null };
 
 export type Customer = { id: string; company_name: string; account_ref: string; is_synthetic: boolean };
 
@@ -61,6 +70,7 @@ export type RequestDetail = RequestSummary & {
   ai_runs: AiRun[];
   proposal: null | {
     id: string; provider: string; status: string; current_version: number; usage: ProposalUsage;
+    stale_reason: string | null; stale_at: string | null; citation_versions: Record<string, CitationVersion>;
     version: { id: string; version: number; content: ProposalContent; action_hash: string; author: string;
                edit_note: string | null; created_at: string };
     versions: { id: string; version: number; author: string; edit_note: string | null; created_at: string }[];
@@ -79,12 +89,51 @@ export type Meta = {
   mode: "demo" | "live"; effective_mode: "demo" | "live"; provider_label: string; live_model: string | null;
   live_configured: boolean; live_for_visitors: boolean;
   reviewer: { email: string; name: string } | null;
-  workspaces: { slug: string; name: string; profile: Record<string, unknown>; demo_scenarios: Scenario[]; ticket_groups: string[] }[];
+  workspaces: Workspace[];
+};
+
+export type Workspace = {
+  slug: string; name: string; profile: Record<string, unknown>; demo_scenarios: Scenario[]; ticket_groups: string[];
+  is_member: boolean; demo_enabled: boolean;
 };
 
 export type Passage = {
   chunk_id: string; doc_slug: string; doc_title: string; version: number; version_status: string;
   section: string; text: string; active: boolean; document_content: string;
+  document_status: string; current_version: number | null;
+};
+
+export type DocVersion = {
+  id: string; version: number; status: string; import_status: "pending" | "processing" | "ready" | "failed";
+  import_error: string | null; format: string; filename: string | null; size_bytes: number | null;
+  policy_facts: Record<string, string>; created_by: string | null; created_at: string | null; retired_at: string | null;
+};
+export type Doc = { id: string; slug: string; title: string; status: string; current_version_id: string | null; versions: DocVersion[] };
+export type DocDetail = Doc & {
+  version: DocVersion; content: string;
+  sections: { chunk_id: string; ordinal: number; section: string; text: string; active: boolean; policy_facts: Record<string, string> }[];
+};
+export type DocLimits = { max_upload_bytes: number; max_documents: number; formats: string[]; note: string };
+export type Rule = {
+  id: string; key: string; name: string; description: string; enabled: boolean;
+  condition: { categories?: string[]; keywords_any?: string[]; plans_any?: string[] };
+  outcome: { next_action?: string; group?: string; priority?: string; note?: string };
+};
+export type RuleIn = {
+  name: string; description?: string; categories: string[]; keywords_any: string[]; plans_any: string[];
+  action: "escalate" | "note"; group?: string | null; priority: string; note?: string | null;
+};
+export type Adapter = { name: string; label: string; available: boolean; configured: boolean; detail: string };
+export type CompanyIn = {
+  name: string; slug?: string; tagline: string; industry: string; support_hours: string; support_signature: string; ticket_groups: string[];
+};
+export type WorkspaceSettings = {
+  slug: string; name: string; profile: Record<string, string>; retrieval_min_score: number;
+  settings: { ticket_adapter: string; ticket_groups: string[]; evidence_review_group: string; demo_enabled: boolean };
+};
+export type TestResult = {
+  passages: { chunk_id: string; doc_title: string; version: number; section: string; score: number; relevant: boolean; excerpt: string }[];
+  evidence_check: EvidenceCheck; rule_hits: { key: string; name: string; effect: string }[]; allowed_outcome: string; note: string;
 };
 
 type UsageTotals = { runs: number; errors: number; input_tokens: number; output_tokens: number; total_tokens: number };
@@ -147,4 +196,26 @@ export const api = {
     call<RequestDetail>("POST", `${w(ws)}/requests`, { subject, body }),
   aiStatus: (ws: string) => call<AiStatus>("GET", `${w(ws)}/ai/status`),
   tickets: (ws: string) => call<{ tickets: Ticket[] }>("GET", `${w(ws)}/tickets`),
+  // --- reviewer onboarding / administration ---
+  createWorkspace: (body: CompanyIn) => call<WorkspaceSettings>("POST", "/api/workspaces", body),
+  settings: (ws: string) => call<WorkspaceSettings>("GET", `${w(ws)}/admin/settings`),
+  updateCompany: (ws: string, body: CompanyIn) => call<WorkspaceSettings>("PUT", `${w(ws)}/admin/company`, body),
+  documents: (ws: string) => call<{ documents: Doc[]; limits: DocLimits }>("GET", `${w(ws)}/admin/documents`),
+  document: (ws: string, id: string, version?: number) =>
+    call<DocDetail>("GET", `${w(ws)}/admin/documents/${id}${version ? `?version=${version}` : ""}`),
+  importDocument: (ws: string, filename: string, content: string) =>
+    call<Doc>("POST", `${w(ws)}/admin/documents`, { filename, content }),
+  replaceDocument: (ws: string, id: string, filename: string, content: string) =>
+    call<Doc>("POST", `${w(ws)}/admin/documents/${id}/versions`, { filename, content }),
+  deleteDocument: (ws: string, id: string) =>
+    call<Doc & { proposals_marked_stale: number }>("DELETE", `${w(ws)}/admin/documents/${id}`),
+  rules: (ws: string) => call<{ rules: Rule[]; ticket_groups: string[]; categories: string[] }>("GET", `${w(ws)}/admin/rules`),
+  createRule: (ws: string, body: RuleIn) => call<Rule & { proposals_marked_stale: number }>("POST", `${w(ws)}/admin/rules`, body),
+  updateRule: (ws: string, id: string, body: RuleIn & { enabled: boolean }) =>
+    call<Rule & { proposals_marked_stale: number }>("PUT", `${w(ws)}/admin/rules/${id}`, body),
+  deleteRule: (ws: string, id: string) => call<{ proposals_marked_stale: number }>("DELETE", `${w(ws)}/admin/rules/${id}`),
+  adapters: (ws: string) => call<{ selected: string; adapters: Adapter[] }>("GET", `${w(ws)}/admin/adapters`),
+  selectAdapter: (ws: string, adapter: string) => call<{ selected: string; adapters: Adapter[] }>("PUT", `${w(ws)}/admin/adapter`, { adapter }),
+  testRequest: (ws: string, text: string, category: string, plan?: string) =>
+    call<TestResult>("POST", `${w(ws)}/admin/test-request`, { text, category, plan: plan || null }),
 };
