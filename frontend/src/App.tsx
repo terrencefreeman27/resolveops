@@ -7,7 +7,11 @@ import { Inbox, type Filters } from "./components/Inbox";
 import { PassageModal } from "./components/PassageModal";
 import { RequestPane } from "./components/RequestPane";
 import { SetupView } from "./components/setup/SetupView";
+import { DashboardView } from "./components/DashboardView";
 import { Button } from "./components/ui";
+
+type View = "inbox" | "setup" | "dashboard";
+const viewFromHash = (): View => (location.hash === "#setup" ? "setup" : location.hash === "#dashboard" ? "dashboard" : "inbox");
 
 export default function App() {
   const [meta, setMeta] = useState<Meta | null>(null);
@@ -23,17 +27,17 @@ export default function App() {
   const [dialog, setDialog] = useState<"login" | "new" | "ai" | null>(null);
   const [fatal, setFatal] = useState<string | null>(null);
   const [wsSlug, setWsSlug] = useState<string>(() => localStorage.getItem("ro_ws") ?? "");
-  const [view, setView] = useState<"inbox" | "setup">(() => (location.hash === "#setup" ? "setup" : "inbox"));
+  const [view, setView] = useState<View>(viewFromHash);
 
   const ws = meta?.workspaces.find((w) => w.slug === wsSlug) ?? meta?.workspaces[0];
   const slug = ws?.slug ?? "";
 
   useEffect(() => {
-    const onHash = () => setView(location.hash === "#setup" ? "setup" : "inbox");
+    const onHash = () => setView(viewFromHash());
     window.addEventListener("hashchange", onHash);
     return () => window.removeEventListener("hashchange", onHash);
   }, []);
-  const go = (v: "inbox" | "setup") => { location.hash = v === "setup" ? "setup" : ""; setView(v); };
+  const go = (v: View) => { location.hash = v === "inbox" ? "" : v; setView(v); };
   const switchWorkspace = (next: string) => {
     localStorage.setItem("ro_ws", next); setWsSlug(next); setSelectedId(null); setDetail(null); setError(null); setNotice(null);
   };
@@ -126,9 +130,9 @@ export default function App() {
               catch (e) { setError((e as Error).message); } finally { setBusy(false); }
             }}>Reset my demo</Button>
           )}
-          {signedIn && (view === "setup"
-            ? <Button variant="ghost" data-testid="open-inbox" onClick={() => go("inbox")}>Support inbox</Button>
-            : <Button variant="ghost" data-testid="open-setup" onClick={() => go("setup")}>Workspace setup</Button>)}
+          {view !== "inbox" && <Button variant="ghost" data-testid="open-inbox" onClick={() => go("inbox")}>Support inbox</Button>}
+          {view !== "dashboard" && <Button variant="ghost" data-testid="open-dashboard" onClick={() => go("dashboard")}>Dashboard</Button>}
+          {signedIn && view !== "setup" && <Button variant="ghost" data-testid="open-setup" onClick={() => go("setup")}>Workspace setup</Button>}
           {isReviewer && <Button variant="ghost" data-testid="ai-status-open" onClick={() => setDialog("ai")}>AI status</Button>}
           {signedIn
             ? <Button onClick={async () => { await api.logout(); setSelectedId(null); go("inbox"); await loadMeta(); }}>Sign out</Button>
@@ -143,7 +147,9 @@ export default function App() {
         </div>
       )}
 
-      {view === "setup" ? (
+      {view === "dashboard" ? (
+        <DashboardView key={slug + (isReviewer ? ":r" : ":v")} ws={slug} onOpenInbox={() => go("inbox")} />
+      ) : view === "setup" ? (
         <SetupView meta={meta} ws={ws ?? null} signedIn={signedIn} onSignIn={() => setDialog("login")}
           onWorkspaceCreated={async (newSlug) => { await loadMeta(); switchWorkspace(newSlug); }}
           onMetaChanged={loadMeta} onOpenInbox={() => go("inbox")} />

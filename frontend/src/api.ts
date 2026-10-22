@@ -171,6 +171,33 @@ async function call<T>(method: string, path: string, body?: unknown): Promise<T>
 
 const w = (ws: string) => `/api/w/${ws}`;
 
+export type RateStat = { correct: number; total: number; rate: number | null };
+export type RunBlock = {
+  runs: number; succeeded: number; errors: number; latency_ms_median: number | null; latency_ms_p95: number | null;
+  note?: string; input_tokens?: number; output_tokens?: number; cache_read_input_tokens?: number;
+  cost?: { usd: number | null; note?: string; assumptions?: Record<string, string | number | null> };
+};
+export type EvalSuite = {
+  file: string; suite: string; mode: string; status: string; label: string | null; run_at: string;
+  git_commit: string; dataset_version?: string | null; command?: string | null; baseline?: string | null;
+  headline?: {
+    coverage?: Record<string, number>; next_action?: RateStat; classification?: RateStat;
+    recall_section_mean?: number | null; citations_valid?: string; citation_support_labels?: Record<string, number>;
+    clarify_when_expected?: RateStat; escalate_when_expected?: RateStat; must_not_failures?: number;
+    totals?: Record<string, number>; categories?: Record<string, string>;
+  };
+};
+export type Dashboard = {
+  scope: string;
+  requests: { total: number; by_category: Record<string, number>; by_state: Record<string, number> };
+  approval_outcomes: { approved_as_drafted: number; edited_then_approved: number; rejected: number;
+    approvals_invalidated: number; proposals_made_stale: number };
+  executions: { total: number; succeeded: number; failed: number; attempts_total: number;
+    recent_failures: { adapter: string; attempts: number; error: string; at: string }[] };
+  ai_runs: { simulated: RunBlock; live: RunBlock };
+  evaluation: { available: boolean; note?: string; suites?: EvalSuite[] };
+};
+
 export const api = {
   meta: () => call<Meta>("GET", "/api/meta"),
   startDemo: () => call<{ demo_session: string }>("POST", "/api/demo/session"),
@@ -199,6 +226,7 @@ export const api = {
   submit: (ws: string, subject: string, body: string) =>
     call<RequestDetail>("POST", `${w(ws)}/requests`, { subject, body }),
   aiStatus: (ws: string) => call<AiStatus>("GET", `${w(ws)}/ai/status`),
+  dashboard: (ws: string) => call<Dashboard>("GET", `${w(ws)}/dashboard`),
   tickets: (ws: string) => call<{ tickets: Ticket[] }>("GET", `${w(ws)}/tickets`),
   // --- reviewer onboarding / administration ---
   createWorkspace: (body: CompanyIn) => call<WorkspaceSettings>("POST", "/api/workspaces", body),
