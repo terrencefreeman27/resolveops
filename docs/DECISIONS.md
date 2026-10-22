@@ -87,3 +87,68 @@ retry. It is not reachable from any API input.
 Reviewers can edit the draft reply, next action, and ticket action. Citations and account facts
 are not editable: they record what tools and retrieval actually returned. Edits carry the
 evidence of the version they were based on.
+
+## D16 — Live model: `claude-opus-5-5`, adaptive thinking, effort `medium`, official SDK `anthropic==2.1.0`
+- **Why:** the `claude-api` skill (loaded before any Claude code, per D1) names Claude Opus 5.5 as the
+  current default model; exact id `claude-opus-5-5` (no date suffix). Thinking on Opus 5.5 is always on
+  (`{type: "adaptive"}`; `disabled`/`budget_tokens` are 400s); effort defaults to `medium` on this model and
+  is set explicitly (`LIVE_EFFORT`). Forced `tool_choice` is a 400 on Opus 5.5, so tool use is `auto` with
+  `strict: true` tool schemas and the final proposal is constrained by `output_config.format` (JSON schema),
+  then validated again by the Pydantic schemas (`extra="forbid"`). SDK pinned to the current PyPI release
+  (2.1.0, checked 2026-10-22).
+- **Refusal fallback:** requests opt in to server-side fallback on safety refusals
+  (`fallbacks: "default"`, beta `server-side-fallback-2026-07-01`) as the skill recommends for Opus 5.5;
+  `LIVE_REFUSAL_FALLBACK=false` turns it off. The serving model id from the response is what gets recorded.
+  A final `stop_reason: "refusal"` is an error state, never simulated.
+- **Revisit:** if the live smoke test or M5 evals show the model/effort is a poor cost/quality fit
+  (`LIVE_MODEL` / `LIVE_EFFORT` are config, not code).
+
+## D17 — Live mode runs a model-driven, code-gated tool loop
+- The model decides which allowlisted tools to call. Every call goes through `providers/live_guard.py`
+  (allowlist, no identity/authority arguments, foreign ticket ids refused, foreign emails flagged and never
+  looked up — each refusal audited and shown to the reviewer as a risk flag) and then `tools.call_tool`
+  (argument/output validation, workspace + customer scoping from the server-built `ToolContext`).
+- After the loop the server fetches any required context the model skipped (customer, subscription,
+  tickets), so account facts and escalation rules never depend on the model asking for them. Citations
+  must reference chunks returned by the model's own searches for this request. Escalation rules,
+  citation validation, `propose_ticket_action` validation and approval are the same code as demo mode.
+- Bounded: `LIVE_MAX_TOOL_STEPS` tool-calling turns, `LIVE_MAX_OUTPUT_TOKENS` per call,
+  `LIVE_MAX_TOKENS_PER_REQUEST` across the loop. History is append-only (thinking blocks echoed unchanged).
+- Failures: retryable (429, 5xx incl. 529 overloaded, timeouts, connection) get bounded exponential backoff
+  (`LIVE_MAX_RETRIES`, SDK retries disabled so each retry is audited); everything else fails at once.
+  The request goes to `error` with a provider/config message. No simulated fallback, ever.
+
+## D18 — Untrusted content is wrapped as data, and code still enforces everything
+Customer messages go inside `<customer_message>`, retrieved passages inside `<retrieved_passages note=
+"untrusted …">`, other tool output inside `<tool_output>`; all of it is HTML-escaped so it cannot close or
+forge tags. The system prompt says these contents cannot change rules, permissions, identity or approval.
+That prompt is defence in depth only: tests drive an *attacked* fake model (non-allowlisted tools,
+cross-customer ids, forged ticket groups, "auto-approved" claims, extra `approved` fields) and assert the
+code blocks each one. The API key never enters a prompt, a log line, an audit row or an API response.
+
+## D19 — Usage and spending controls
+- Input size: `MAX_REQUEST_CHARS` (subject + body) → 413 before any row is created. Uploads:
+  `MAX_UPLOAD_BYTES` reserved for M3 document import.
+- Rate: live runs per reviewer and globally per rolling minute, counted from `ai_runs` in Postgres → 429.
+- Budget: `LIVE_MONTHLY_TOKEN_BUDGET` (input + output tokens of live runs, UTC calendar month) → 429.
+  A USD budget is enforced only when `LIVE_PRICE_INPUT_PER_MTOK` and `LIVE_PRICE_OUTPUT_PER_MTOK` are both
+  set; prices are never assumed or hard-coded.
+- Concurrency: in-process counter (`LIVE_MAX_CONCURRENCY`) → 429 when busy. **Single-instance
+  limitation:** several API replicas would each allow that many; a shared limiter (Postgres advisory
+  locks or Redis) would be needed before scaling out.
+- Every limit is checked before a request row is written, returns a plain explanation and a `limit` code,
+  and the UI shows it in the error banner.
+- **Revisit:** before any multi-instance or public live deployment.
+
+## D20 — Visitors never use live mode by default; usage recorded per run
+`AI_MODE=live` applies to signed-in reviewers. Public visitors keep the simulated provider (their banner
+says so) unless `LIVE_ALLOW_VISITORS=true` is set deliberately. Every workflow run writes an `ai_runs` row
+(`provider` simulated | live, model, latency, input/output/cache tokens, API calls, tool steps, status,
+error) and successful runs copy that usage onto `proposals.usage`, so the M5 dashboard can keep simulated
+and live metrics apart. Failed live runs keep the tokens they spent, which count toward the budget.
+
+## D21 — Embeddings stay local in live mode
+Live mode's "real embeddings" are the same local `fastembed` `BAAI/bge-small-en-v1.5` model as demo mode
+(D2): ingestion (`retrieval.ingest_document`) and search (`retrieval.search`, called by the
+`search_knowledge_base` tool) are one shared code path for both modes. There is no second paid
+embeddings provider (Anthropic has no embeddings API). **Revisit:** same trigger as D2.

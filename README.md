@@ -63,7 +63,7 @@ cache (`npx playwright install chromium` if you don't have one). It writes scree
 browser ─► web (nginx + React build) ─/api─► api (FastAPI, Python 3.12) ─► Postgres 17 + pgvector
                                               ├─ workflow.py   explicit state machine
                                               ├─ tools.py      typed, context-scoped tools
-                                              ├─ providers/    Simulated (demo) │ Claude (M2)
+                                              ├─ providers/    Simulated (demo) │ Claude live (M2)
                                               ├─ retrieval.py  fastembed bge-small, 384-dim
                                               ├─ review.py     edit / approve / reject / retry
                                               └─ adapters/     internal tickets │ GitHub (M4)
@@ -81,13 +81,49 @@ browser ─► web (nginx + React build) ─/api─► api (FastAPI, Python 3.12
 
 ## Mode configuration
 
-`AI_MODE=demo` (default) needs no keys. `AI_MODE=live` is Milestone 2. Until then, selecting
-it puts requests into an explicit error state ("ANTHROPIC_API_KEY is not set" or "Live provider is
-not implemented yet") rather than silently falling back to simulated output.
+`AI_MODE=demo` (default) needs no keys: every caller gets deterministic simulated AI.
 
-## Known limitations (M1)
+### Live mode (Milestone 2) — enable deliberately
 
-- Live Claude provider, usage limits/budgets, onboarding, document import/replace UI, stale
+Live mode sends **signed-in reviewers'** requests to Claude (`claude-opus-5-5`, official `anthropic`
+SDK). Public visitors stay on simulated AI unless `LIVE_ALLOW_VISITORS=true`. Do not enable it on a
+public deployment without reviewing the limits below.
+
+1. Put these lines in `.env` (gitignored; never commit a key):
+   ```
+   AI_MODE=live
+   ANTHROPIC_API_KEY=<your key>
+   # optional, defaults shown
+   LIVE_MODEL=claude-opus-5-5
+   LIVE_EFFORT=medium
+   LIVE_MONTHLY_TOKEN_BUDGET=2000000
+   LIVE_RATE_PER_REVIEWER_PER_MIN=5
+   LIVE_RATE_GLOBAL_PER_MIN=20
+   LIVE_MAX_CONCURRENCY=2
+   LIVE_MAX_TOOL_STEPS=6
+   LIVE_MAX_OUTPUT_TOKENS=8000
+   # USD budget is enforced only if BOTH prices are set (no prices are assumed):
+   # LIVE_PRICE_INPUT_PER_MTOK=...
+   # LIVE_PRICE_OUTPUT_PER_MTOK=...
+   # LIVE_MONTHLY_USD_BUDGET=...
+   ```
+2. `docker compose up -d --force-recreate api`
+3. Sign in as the reviewer, open **AI status** (mode, model, key configured yes/no, budget, limits),
+   then run a scenario or submit a new request.
+4. Optional live smoke test (spends real tokens): `docker compose exec api pytest -m live -q`
+
+Without a key, live requests go to an `error` state with "Live mode: ANTHROPIC_API_KEY not
+configured" and the banner turns red. A failed live call is never replaced by simulated output.
+Limits (size, rate, budget, concurrency) return 413/429 with an explanation; nothing is created.
+Each proposal shows which provider produced it and, for live runs, model, tokens, tool calls and
+latency. Details: `docs/DECISIONS.md` D16–D21.
+
+## Known limitations (M1–M2)
+
+- The live provider has been tested only against a fake Anthropic client and recorded-format
+  fixtures; the live smoke test (`pytest -m live`) has not been run against the real API yet.
+- The live concurrency limit is per API process (single-instance deployment assumed).
+- Onboarding, document import/replace UI, stale
   proposal invalidation, second workspace, GitHub adapter, evaluation dataset and dashboard
   are later milestones (see `docs/PLAN.md`).
 - Escalation-rule matching is simple keyword/category/plan matching.
