@@ -35,7 +35,7 @@ class Settings(BaseSettings):
     live_max_output_tokens: int = 8000  # per model call (includes adaptive thinking)
     live_max_tool_steps: int = 6  # model turns that may call tools, per request
     live_max_tokens_per_request: int = 150_000  # input + output summed over the tool loop
-    live_call_timeout_s: float = 60.0
+    live_call_timeout_s: float = 120.0
     live_max_retries: int = 2  # retries for 429 / 5xx / overloaded / timeouts (non-retryable errors fail at once)
     live_retry_base_delay_s: float = 1.0
     live_retry_max_delay_s: float = 8.0

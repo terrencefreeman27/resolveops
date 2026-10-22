@@ -147,7 +147,8 @@ POST /api/w/{ws}/customer-session            (issue synthetic customer session)
    validation + citations, edit/approve/reject/retry, internal tickets with idempotency,
    audit log, reviewer login, visitor sessions + reset, support-workspace UI, pytest suite,
    tsc + build, browser check.
-2. **Live retrieval + model.** Load `claude-api` skill; `providers/live.py` with Claude tool
+2. **Live retrieval + model.** *(Built 2026-10-22; real-API smoke test not yet run — see README "Live mode",
+   DECISIONS D16–D21.)* Load `claude-api` skill; `providers/live.py` with Claude tool
    use + structured output, same tools/validation; live config errors surfaced; rate limit,
    token/output caps, usage budget, concurrency limit; live disabled for visitors.
 3. **Configurable workspaces + doc lifecycle.** Onboarding flow (create workspace, import
