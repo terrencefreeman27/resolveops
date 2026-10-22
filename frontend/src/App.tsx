@@ -100,7 +100,7 @@ export default function App() {
           <Button variant="ghost" onClick={() => setDialog("new")} disabled={!slug}>New request</Button>
         </div>
         <div className="ml-auto flex items-center gap-2 text-sm">
-          <span className="text-zinc-600" data-testid="scope">{isReviewer ? `${meta?.reviewer?.name}, reviewer` : "Visitor, private demo sandbox"}</span>
+          <span className="hidden text-zinc-600 sm:inline" data-testid="scope">{isReviewer ? `${meta?.reviewer?.name}, reviewer` : "Visitor, private demo sandbox"}</span>
           {!isReviewer && (
             <Button variant="ghost" disabled={busy} data-testid="reset-demo" onClick={async () => {
               setBusy(true);
