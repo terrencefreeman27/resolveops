@@ -40,7 +40,9 @@ export async function m5({ visitor, apiCall, check, OUT }) {
   check("dashboard eval results are labelled by mode (demo simulated, live not run, backend checks)",
     ev.includes("Simulated — not evidence of AI performance") && (await A.page.getByTestId("eval-ai-live").innerText()).includes("Not run")
     && (await A.page.getByTestId("eval-backend-deterministic").count()) === 1);
-  await snap(A.page, "30-dashboard-visitor-1440", true);
+  await snap(A.page, "30-dashboard-visitor-1440");
+  await A.page.getByTestId("dash-eval").scrollIntoViewIfNeeded();
+  await snap(A.page, "30b-dashboard-eval-1440");
 
   // B. A second visitor's dashboard does not see A's sandbox.
   const B = await visitor();

@@ -58,7 +58,8 @@ export function Timeline({ events, onCite }: { events: TimelineEvent[]; onCite: 
           <li key={e.id} className="grid grid-cols-[8.5rem_minmax(0,1fr)_auto] gap-3 text-xs">
             <span className={`min-w-0 font-medium ${e.error ? "text-red-700" : "text-zinc-700"}`}>
               {EVENT_LABEL[e.event] ?? e.event}
-              {e.tool_name && <span className="block font-mono font-normal text-zinc-500 [overflow-wrap:anywhere]">{e.tool_name}</span>}
+              {e.tool_name && <span className="block font-mono font-normal text-zinc-500 [overflow-wrap:anywhere]">
+                {e.tool_name.split("_").map((part, i) => <span key={i}>{i > 0 && <>_<wbr /></>}{part}</span>)}</span>}
             </span>
             <div className="min-w-0 text-zinc-700">
               <Summary e={e} onCite={onCite} />
