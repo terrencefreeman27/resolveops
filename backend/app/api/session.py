@@ -7,9 +7,10 @@ from sqlalchemy.orm import Session
 
 from ..config import get_settings
 from ..context import (CUSTOMER_COOKIE, DEMO_COOKIE, REVIEWER_COOKIE, Actor, actor_for_workspace,
-                       current_demo_session, current_reviewer)
+                       current_demo_session, current_reviewer, require_reviewer)
 from ..db import get_db
-from ..models import (AuditLog, AuthSession, Customer, CustomerSession, DemoSession, Execution, Membership,
+from ..models import (AuditLog, AuthSession, Customer, CustomerSession, DemoSession, Document, DocumentVersion,
+                      Execution, Membership,
                       Reviewer, Subscription, SupportRequest, Ticket, Workspace)
 from ..schemas import CustomerSessionIn, LoginIn
 from ..security import new_token, token_hash, verify_password
@@ -139,3 +140,25 @@ def customer_session(body: CustomerSessionIn, response: Response, actor: Actor =
     _set_cookie(response, CUSTOMER_COOKIE, token, 2)
     return {"customer": {"id": str(c.id), "company_name": c.company_name, "contact_name": c.contact_name,
                          "is_synthetic": True}}
+
+
+@router.get("/w/{ws}/admin/settings")
+def admin_settings(actor: Actor = Depends(require_reviewer), db: Session = Depends(get_db)):
+    """Reviewer-only. Workspace configuration (no credentials are stored in settings)."""
+    w = db.get(Workspace, actor.workspace_id)
+    return {"slug": w.slug, "name": w.name, "profile": w.profile, "settings": w.settings}
+
+
+@router.get("/w/{ws}/admin/documents")
+def admin_documents(actor: Actor = Depends(require_reviewer), db: Session = Depends(get_db)):
+    """Reviewer-only. Knowledge-base documents and their versions / import status."""
+    docs = db.scalars(select(Document).where(Document.workspace_id == actor.workspace_id).order_by(Document.title)).all()
+    out = []
+    for d in docs:
+        versions = db.scalars(select(DocumentVersion).where(DocumentVersion.document_id == d.id)
+                              .order_by(DocumentVersion.version.desc())).all()
+        out.append({"id": str(d.id), "slug": d.slug, "title": d.title, "status": d.status,
+                    "versions": [{"id": str(v.id), "version": v.version, "status": v.status,
+                                  "format": v.source_format, "import_error": v.import_error,
+                                  "created_at": v.created_at.isoformat()} for v in versions]})
+    return {"documents": out}
