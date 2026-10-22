@@ -1,10 +1,10 @@
 {
   "suite": "backend",
   "mode": "deterministic (no model, no keys)",
-  "git_commit": "885f57c",
-  "run_at": "2026-10-22T19:33:40+00:00",
+  "git_commit": "da484e2",
+  "run_at": "2026-10-22T19:39:42+00:00",
   "status": "run",
-  "pytest_summary": "...................................................................      [100%]\n67 passed in 5.77s",
+  "pytest_summary": "...................................................................      [100%]\n67 passed in 5.70s",
   "unique_tests": 64,
   "totals": {
     "passed": 64
