@@ -53,13 +53,13 @@ export function Inbox(props: {
         <label className="grid gap-1 text-xs font-medium text-zinc-600">
           State
           <select className={select} value={filters.state} onChange={(e) => setFilters({ ...filters, state: e.target.value })}>
-            {STATES.map((s) => <option key={s} value={s}>{s ? s.replace("_", " ") : "All states"}</option>)}
+            {STATES.map((s) => <option key={s} value={s}>{s ? s.replace("_", " ") : "All"}</option>)}
           </select>
         </label>
         <label className="grid gap-1 text-xs font-medium text-zinc-600">
           Category
           <select className={select} value={filters.category} onChange={(e) => setFilters({ ...filters, category: e.target.value })}>
-            {CATEGORIES.map((c) => <option key={c} value={c}>{c ? categoryLabel(c) : "All categories"}</option>)}
+            {CATEGORIES.map((c) => <option key={c} value={c}>{c ? categoryLabel(c) : "All"}</option>)}
           </select>
         </label>
       </div>
