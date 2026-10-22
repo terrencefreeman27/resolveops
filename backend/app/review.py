@@ -58,8 +58,19 @@ def _audit(db, req, actor, event, **kw):
                  demo_session_id=req.demo_session_id, **kw)
 
 
+def _refuse_if_stale(db: Session, req: SupportRequest, what: str) -> None:
+    if req.state != "stale":
+        return
+    p = db.scalar(select(Proposal).where(Proposal.request_id == req.id, Proposal.status == "stale")
+                  .order_by(Proposal.created_at.desc()).limit(1))
+    reason = p.stale_reason if p is not None else "its evidence changed"
+    raise ReviewError(f"Cannot {what}: this proposal is stale. {reason} Reprocess it against current "
+                      "documentation to get a new version; nothing was executed.")
+
+
 def edit(db: Session, req_id, actor: str, body: EditProposalIn) -> ProposalVersion:
     req = lock_request(db, req_id)
+    _refuse_if_stale(db, req, "edit")
     if req.state not in ("awaiting_review", "failed"):
         raise ReviewError(f"Proposals can only be edited while awaiting review or after a failed execution (state: {req.state}).")
     proposal, pv = current(db, req)
@@ -74,6 +85,10 @@ def edit(db: Session, req_id, actor: str, body: EditProposalIn) -> ProposalVersi
             changed.append(field)
     if not changed:
         raise ReviewError("No changes to save.", 422)
+    ec = content.evidence_check
+    if "next_action" in changed and content.next_action == "resolve" and ec is not None and ec.status != "sufficient":
+        raise ReviewError(f"Evidence for this request is {ec.status}; it cannot be resolved with a confident answer. "
+                          "Fix the documentation, then reprocess.", 422)
     try:
         checked = call_tool(tool_context(db, req, actor), "propose_ticket_action",
                             content.ticket_action.model_dump(mode="json"))
@@ -95,6 +110,7 @@ def edit(db: Session, req_id, actor: str, body: EditProposalIn) -> ProposalVersi
 
 def reject(db: Session, req_id, actor: str, body: RejectIn) -> SupportRequest:
     req = lock_request(db, req_id)
+    _refuse_if_stale(db, req, "reject")
     if req.state != "awaiting_review":
         raise ReviewError(f"Only proposals awaiting review can be rejected (state: {req.state}).")
     proposal, pv = current(db, req)
@@ -112,6 +128,7 @@ def reject(db: Session, req_id, actor: str, body: RejectIn) -> SupportRequest:
 
 def approve(db: Session, req_id, actor: str, body: ApproveIn) -> SupportRequest:
     req = lock_request(db, req_id)
+    _refuse_if_stale(db, req, "approve")
     if req.state != "awaiting_review":
         raise ReviewError(f"Request is not awaiting review (state: {req.state}); nothing was executed.")
     proposal, pv = current(db, req)
@@ -143,6 +160,7 @@ def approve(db: Session, req_id, actor: str, body: ApproveIn) -> SupportRequest:
 
 def retry(db: Session, req_id, actor: str) -> SupportRequest:
     req = lock_request(db, req_id)
+    _refuse_if_stale(db, req, "retry execution")
     if req.state != "failed":
         raise ReviewError(f"Only failed executions can be retried (state: {req.state}).")
     proposal, pv = current(db, req)
@@ -172,6 +190,8 @@ def _run_execution(db: Session, req_id, ex_id, actor: str) -> SupportRequest:
     ex = db.get(Execution, ex_id)
     pv = db.get(ProposalVersion, ex.proposal_version_id)
     proposal = db.get(Proposal, pv.proposal_id)
+    if proposal.status == "stale":  # defensive: invalidation and execution both lock the request row
+        raise ReviewError("Proposal became stale before execution; nothing was executed.")
     content = ProposalContent.model_validate(pv.content)
     action = content.ticket_action
     target = ExecutionTarget(req.workspace_id, req.demo_session_id, req.customer_id, req.id, content.category)

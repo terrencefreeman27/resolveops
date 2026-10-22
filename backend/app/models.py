@@ -26,6 +26,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 from .db import Base
 
 EMBED_DIM = 384
+_EMPTY_JSON = text("'{}'::jsonb")
 
 
 def _uuid() -> uuid.UUID:
@@ -248,7 +249,7 @@ class Chunk(Base):
     text: Mapped[str] = mapped_column(Text, nullable=False)
     embedding = mapped_column(Vector(EMBED_DIM), nullable=False)
     active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
-    policy_facts: Mapped[dict] = mapped_column(JSONB, default=dict, server_default=text("'{}'::jsonb"), nullable=False)
+    policy_facts: Mapped[dict] = mapped_column(JSONB, default=dict, server_default=_EMPTY_JSON, nullable=False)
 
 
 Index("ix_chunks_ws_active", Chunk.workspace_id, Chunk.active)

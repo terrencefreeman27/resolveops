@@ -3,8 +3,8 @@ import uuid
 
 from sqlalchemy import select
 
-from app.models import Chunk, ProposalEvidence, SupportRequest, Workspace
-from app.providers.simulated import FIXTURES, SimulatedProvider, normalize
+from app.models import Chunk, ProposalEvidence, SimFixture, SupportRequest, Workspace
+from app.providers.simulated import SimulatedProvider, normalize
 from app.retrieval import ingest_document, search
 from app.schemas import CitationRef, Passage, ProposalDraft, TicketAction
 from app.seed import northstar as N
@@ -13,10 +13,14 @@ from app.workflow import validate_citations
 from .conftest import WS, run_scenario
 
 
-def test_every_seeded_request_has_a_fixture():
-    fixtures = {normalize(f.text): f.key for f in FIXTURES}
-    for key, _ref, _subj, body, _ago in N.REQUESTS:
-        assert fixtures.get(normalize(body)) == key
+def test_every_seeded_request_has_a_workspace_fixture(db):
+    """Simulated fixtures are workspace-scoped rows, one per seeded scenario of that workspace."""
+    from app.seed import lumen as L
+    for mod in (N, L):
+        ws = db.scalar(select(Workspace).where(Workspace.slug == mod.WORKSPACE["slug"]))
+        fixtures = {f.match_text: f.key for f in db.scalars(select(SimFixture).where(SimFixture.workspace_id == ws.id))}
+        for key, _ref, _subj, body, _ago in mod.REQUESTS:
+            assert fixtures.get(normalize(body)) == key
 
 
 def test_citations_must_be_retrieved_for_this_request(db):

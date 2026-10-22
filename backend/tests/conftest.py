@@ -27,7 +27,7 @@ from fastapi.testclient import TestClient  # noqa: E402
 from app.adapters.internal import FAULTS  # noqa: E402
 from app.db import SessionLocal  # noqa: E402
 from app.main import app  # noqa: E402
-from app.seed.load import seed_northstar  # noqa: E402
+from app.seed.load import seed_all  # noqa: E402
 
 HDR = {"X-ResolveOps": "1"}
 WS = "/api/w/northstar"
@@ -40,7 +40,7 @@ def database():
     os.environ["ALEMBIC_DATABASE_URL"] = TEST_URL
     command.upgrade(cfg, "head")
     with SessionLocal() as db:
-        seed_northstar(db)
+        seed_all(db)
         db.commit()
     yield
 

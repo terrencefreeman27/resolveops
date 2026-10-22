@@ -7,11 +7,12 @@ Side exits: unsupported, error, rejected, stale. Reprocess returns to received.
 import time
 from dataclasses import dataclass
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from . import audit, rules
+from . import audit, evidence, rules
 from .config import get_settings
-from .models import AiRun, Proposal, ProposalEvidence, ProposalVersion, SupportRequest
+from .models import AiRun, Proposal, ProposalEvidence, ProposalVersion, SupportRequest, Workspace
 from .providers import ProviderError, SynthesisInput, UnsupportedInDemo, Usage, get_provider
 from .schemas import (
     AccountFact,
@@ -32,7 +33,7 @@ TRANSITIONS: dict[str, set[str]] = {
     "awaiting_review": {"awaiting_review", "approved", "rejected", "stale"},
     "approved": {"executing"},
     "executing": {"completed", "failed"},
-    "failed": {"executing", "awaiting_review"},  # retry, or edit → new version needs new approval
+    "failed": {"executing", "awaiting_review", "stale"},  # retry; edit → new approval; evidence changed
     "rejected": {"received"},
     "stale": {"received"},
     "error": {"received"},
@@ -303,7 +304,8 @@ def _finish_run(run: AiRun, status: str, usage: Usage | None, started: float, er
         run.api_calls, run.tool_steps = usage.api_calls, usage.tool_steps
 
 
-def run_request(db: Session, req: SupportRequest, actor: str, live: bool = False) -> SupportRequest:
+def run_request(db: Session, req: SupportRequest, actor: str, live: bool = False,
+                continue_proposal: Proposal | None = None) -> SupportRequest:
     """Drive a request from 'received' to 'awaiting_review' (or a side exit). Commits.
     `live` selects the live provider; callers decide it from the actor (providers.live_for)."""
     if req.state != "received":
@@ -318,7 +320,7 @@ def run_request(db: Session, req: SupportRequest, actor: str, live: bool = False
     if live:
         db.commit()  # make the in-flight live run visible to rate limiting right away
     try:
-        provider = get_provider(live)
+        provider = get_provider(live, db, req.workspace_id)
     except ProviderError as exc:
         _finish_run(run, "error", None, started, str(exc))
         transition(db, req, "error", actor, str(exc))
@@ -339,6 +341,15 @@ def run_request(db: Session, req: SupportRequest, actor: str, live: bool = False
             rule_hits=[h for _, h in hits], risk_flags=list(cls.risk_flags),
             provider_label=provider.label, simulated=provider.simulated,
         )
+        # Validate the provider's own drafted action before the server rewrites anything, so an invalid
+        # draft (e.g. a foreign ticket id) is an error even if a later rule/evidence override replaces it.
+        drafted = call_tool(tool_context(db, req, actor), "propose_ticket_action",
+                            g.draft.ticket_action.model_dump(mode="json"))
+        if not drafted.valid:
+            raise ToolError("Proposed ticket action failed validation: " + "; ".join(drafted.problems))
+        ws = db.get(Workspace, req.workspace_id)
+        check = evidence.assess(db, req.workspace_id, g.passages)
+        content = evidence.apply(content, check, ws, getattr(g.customer, "contact_name", None))
         if not citations and content.next_action == "resolve":
             content.next_action = "escalate"
             content.escalation_reason = "No supporting documentation was retrieved; a human must review."
@@ -350,16 +361,28 @@ def run_request(db: Session, req: SupportRequest, actor: str, live: bool = False
             raise ToolError("Proposed ticket action failed validation: " + "; ".join(checked.problems))
 
         _finish_run(run, "succeeded", g.usage, started)
-        proposal = Proposal(workspace_id=req.workspace_id, request_id=req.id, provider=provider.label, status="open",
-                            usage=_usage_dict(provider, g.usage, run.latency_ms))
-        db.add(proposal)
-        db.flush()
-        save_version(db, proposal, 1, content, ai, passages=g.passages)
-        transition(db, req, "awaiting_review", actor, f"Proposal v1: {content.next_action}")
-        audit.record(db, workspace_id=req.workspace_id, actor=ai, event="proposal.created", request_id=req.id,
-                     demo_session_id=req.demo_session_id,
-                     summary={"version": 1, "next_action": content.next_action, "citations": len(citations),
+        usage = _usage_dict(provider, g.usage, run.latency_ms)
+        if continue_proposal is not None:
+            # Reprocess of a stale proposal: same proposal, new version built from current documentation.
+            proposal, old_version = continue_proposal, continue_proposal.current_version
+            version = old_version + 1
+            note = f"Reprocessed against current documentation; v{old_version} was stale ({proposal.stale_reason})"
+            proposal.status, proposal.provider, proposal.usage = "open", provider.label, usage
+            save_version(db, proposal, version, content, ai, passages=g.passages, edit_note=note[:1000])
+        else:
+            proposal = Proposal(workspace_id=req.workspace_id, request_id=req.id, provider=provider.label,
+                                status="open", usage=usage)
+            db.add(proposal)
+            db.flush()
+            version = 1
+            save_version(db, proposal, 1, content, ai, passages=g.passages)
+        transition(db, req, "awaiting_review", actor, f"Proposal v{version}: {content.next_action}")
+        audit.record(db, workspace_id=req.workspace_id, actor=ai,
+                     event="proposal.reprocessed" if continue_proposal is not None else "proposal.created",
+                     request_id=req.id, demo_session_id=req.demo_session_id,
+                     summary={"version": version, "next_action": content.next_action, "citations": len(citations),
                               "ticket_action": content.ticket_action.type,
+                              "evidence": content.evidence_check.status if content.evidence_check else None,
                               "rule_hits": [h.key for _, h in hits]})
         db.commit()
     except _SideExit as exit_:
@@ -375,8 +398,18 @@ def run_request(db: Session, req: SupportRequest, actor: str, live: bool = False
 
 
 def reprocess(db: Session, req: SupportRequest, actor: str, live: bool = False) -> SupportRequest:
-    """Explicit re-run for rejected/stale/error/unsupported requests: closes old proposals, starts fresh."""
+    """Explicit re-run for rejected/stale/error/unsupported requests.
+
+    A stale proposal (its evidence or matching rules changed) is continued: the workflow re-runs against
+    current documents and rules and the result is saved as the *next version* of the same proposal, so
+    the history shows which version was stale and why. Other cases close old proposals and start fresh."""
+    stale = db.scalar(select(Proposal).where(Proposal.request_id == req.id, Proposal.status == "stale")
+                      .order_by(Proposal.created_at.desc()).limit(1))
     transition(db, req, "received", actor, "Reprocess requested")
+    if stale is not None:
+        audit.record(db, workspace_id=req.workspace_id, actor=actor, event="proposal.reprocess_requested",
+                     request_id=req.id, demo_session_id=req.demo_session_id,
+                     summary={"stale_version": stale.current_version, "reason": stale.stale_reason})
     db.query(Proposal).filter(Proposal.request_id == req.id, Proposal.status == "open").update({"status": "closed"})
     db.flush()
-    return run_request(db, req, actor, live=live)
+    return run_request(db, req, actor, live=live, continue_proposal=stale)
