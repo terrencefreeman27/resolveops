@@ -20,7 +20,9 @@ class Settings(BaseSettings):
     retrieval_top_k: int = 6
     # Evidence check (evidence.py): passages scoring below this cosine similarity are not treated as
     # supporting evidence. A workspace can override it with settings.retrieval_min_score.
-    retrieval_min_score: float = 0.6
+    # Calibrated on the seeded data (bge-small): answered scenarios score 0.79-0.89, the undocumented
+    # Peppol question 0.69. See docs/DECISIONS.md D25.
+    retrieval_min_score: float = 0.72
 
     max_request_chars: int = 4000
     session_ttl_hours: int = 12

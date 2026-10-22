@@ -233,13 +233,15 @@ def _run_stepwise(db: Session, req: SupportRequest, actor: str, provider) -> Gat
     sub = call_tool(ctx, "get_subscription", {})
     tickets = call_tool(ctx, "get_existing_tickets", {"include_closed": True, "limit": 10})
     transition(db, req, "context_resolved", actor)
-    passages, seen = [], set()
+    passages, seen = [], {}
     for q in cls.search_queries:
         res = call_tool(ctx, "search_knowledge_base", {"query": q, "top_k": default_top_k()})
         for p in res.passages:
             if p.chunk_id not in seen:
-                seen.add(p.chunk_id)
+                seen[p.chunk_id] = len(passages)
                 passages.append(p)
+            elif p.score > passages[seen[p.chunk_id]].score:  # keep the best score across searches
+                passages[seen[p.chunk_id]] = p
     transition(db, req, "retrieved", actor, f"{len(passages)} passages")
     hits = rules.evaluate(db, req.workspace_id, category=cls.category, text=f"{req.subject}\n{req.body}", plan=sub.plan)
     inp = SynthesisInput(subject=req.subject, body=req.body, classification=cls, customer=customer,
