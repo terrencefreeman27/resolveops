@@ -16,7 +16,7 @@ export function EvidencePane({ detail: d, onCite }: { detail: RequestDetail | nu
   return (
     <aside className="min-h-0 space-y-6 overflow-y-auto border-l border-zinc-200 bg-zinc-50 px-4 py-5" data-testid="evidence-pane">
       <section>
-        <PanelHeading aside={<span className="text-xs text-zinc-400">from tools, not the model</span>}>Account facts</PanelHeading>
+        <PanelHeading aside={<span className="text-xs text-zinc-500">from tools, not the model</span>}>Account facts</PanelHeading>
         {c ? (
           <dl className="space-y-2 text-sm">
             {c.account_facts.map((f) => (

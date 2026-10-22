@@ -1,10 +1,11 @@
-// Browser verification against the running compose stack (M1 slice, M2 live-mode guards, M3 in m3-checks.mjs, M4 in m4-checks.mjs).
+// Browser verification against the running compose stack (M1 slice, M2 live-mode guards, M3 in m3-checks.mjs, M4 in m4-checks.mjs, M5 in m5-checks.mjs).
 // Usage: npm run e2e   (BASE defaults to http://localhost:8080)
 import { chromium } from "playwright-core";
 import { mkdir } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { m3 } from "./m3-checks.mjs";
 import { m4 } from "./m4-checks.mjs";
+import { m5 } from "./m5-checks.mjs";
 
 const BASE = process.env.BASE ?? "http://localhost:8080";
 const OUT = fileURLToPath(new URL("../../docs/screenshots/", import.meta.url));
@@ -185,6 +186,9 @@ try {
 
   // 12. Milestone 4: GitHub Issues adapter visibility (not configured by default) and visitor isolation.
   await m4({ visitor, apiCall, check, OUT, expectedHttp });
+
+  // 13. Milestone 5: dashboard scoping/labels, layout widths, accessibility basics.
+  await m5({ visitor, apiCall, check, OUT, expectedHttp });
 } catch (e) {
   check("browser flow completed without exceptions", false, String(e).slice(0, 300));
 } finally {

@@ -78,7 +78,7 @@ export function RequestPane(props: {
           <p className="text-sm text-zinc-600">
             {d.from_name} &lt;{d.from_email}&gt; at {d.customer?.company_name}
             {d.customer?.is_synthetic && <span className="ml-1.5"><Tag>Synthetic customer</Tag></span>}
-            <span className="ml-1.5 text-zinc-400">{timeAgo(d.received_at)}</span>
+            <span className="ml-1.5 text-zinc-500">{timeAgo(d.received_at)}</span>
           </p>
         </header>
 

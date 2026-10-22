@@ -26,7 +26,7 @@ function Summary({ e, onCite }: { e: TimelineEvent; onCite: (id: string) => void
               <button className="text-left text-teal-800 hover:underline" onClick={() => onCite(p.chunk_id)}>
                 {p.doc} v{p.version}, {p.section}
               </button>
-              <span className="ml-1 text-zinc-400">score {p.score.toFixed(2)}</span>
+              <span className="ml-1 text-zinc-500">score {p.score.toFixed(2)}</span>
             </li>
           ))}
         </ul>
@@ -55,17 +55,17 @@ export function Timeline({ events, onCite }: { events: TimelineEvent[]; onCite: 
       </summary>
       <ol className="space-y-2 border-t border-zinc-200 px-4 py-3">
         {events.map((e) => (
-          <li key={e.id} className="grid grid-cols-[7.5rem_1fr_auto] gap-3 text-xs">
-            <span className={`font-medium ${e.error ? "text-red-700" : "text-zinc-700"}`}>
+          <li key={e.id} className="grid grid-cols-[8.5rem_minmax(0,1fr)_auto] gap-3 text-xs">
+            <span className={`min-w-0 font-medium ${e.error ? "text-red-700" : "text-zinc-700"}`}>
               {EVENT_LABEL[e.event] ?? e.event}
-              {e.tool_name && <span className="block font-mono font-normal text-zinc-500">{e.tool_name}</span>}
+              {e.tool_name && <span className="block font-mono font-normal text-zinc-500 [overflow-wrap:anywhere]">{e.tool_name}</span>}
             </span>
             <div className="min-w-0 text-zinc-700">
               <Summary e={e} onCite={onCite} />
               {e.error && <p className="mt-0.5 text-red-700">{e.error}</p>}
-              <p className="text-zinc-400">{e.actor}</p>
+              <p className="text-zinc-500">{e.actor}</p>
             </div>
-            <span className="font-mono text-zinc-400">{e.duration_ms !== null ? `${e.duration_ms} ms` : ""}</span>
+            <span className="font-mono text-zinc-500">{e.duration_ms !== null ? `${e.duration_ms} ms` : ""}</span>
           </li>
         ))}
       </ol>
