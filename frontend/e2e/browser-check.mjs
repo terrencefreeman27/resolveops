@@ -52,12 +52,24 @@ try {
   check("seeded inbox loads (6 requests)", seeded === 6, `${seeded}`);
   await shot(A.page, "01-seeded-inbox");
 
+  // 1b. Visitors can never trigger live mode (M2): the effective mode is demo, there is no opt-in field,
+  // and the reviewer-only AI status endpoint is refused.
+  const vMeta = (await apiCall(A.page, "GET", "/api/meta")).data;
+  const bannerMode = await A.page.getByTestId("mode-banner").getAttribute("data-mode");
+  expectedHttp.add("HTTP 422 POST /api/w/northstar/requests");
+  expectedHttp.add("HTTP 403 GET /api/w/northstar/ai/status");
+  const optIn = await apiCall(A.page, "POST", "/api/w/northstar/requests", { subject: "x", body: "y", mode: "live" });
+  const status = await apiCall(A.page, "GET", "/api/w/northstar/ai/status");
+  check("visitor cannot trigger live mode", vMeta.effective_mode === "demo" && bannerMode === "demo"
+    && optIn.status === 422 && status.status === 403, `effective=${vMeta.effective_mode} optIn=${optIn.status} status=${status.status}`);
+
   // 2. Scenario 1: access issue resolved with account facts + docs.
   await A.page.getByTestId("scenario-access_reporting_after_upgrade").click();
   await A.page.getByTestId("proposal").waitFor();
   const reply = await A.page.getByTestId("draft-reply").innerText();
   check("access reply uses account facts", reply.includes("Viewer") && reply.includes("Jordan Patel") && reply.includes("Analyst"));
-  check("simulated label on proposal", (await A.page.getByTestId("proposal").innerText()).includes("Simulated AI — demo mode"));
+  check("simulated label on proposal", (await A.page.getByTestId("provider-label").innerText()) === "Simulated AI — demo mode"
+    && (await A.page.getByTestId("proposal-usage").innerText()).includes("simulated fixtures · no model tokens"));
   await shot(A.page, "02-access-proposal");
   await A.page.getByTestId("citation").first().click();
   await A.page.getByTestId("passage-modal").waitFor();
@@ -151,6 +163,20 @@ try {
   await A.page.setViewportSize({ width: 1024, height: 800 });
   const overflowLg = await A.page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
   check("1024px has no horizontal overflow", overflowLg <= 0, `${overflowLg}px`);
+
+  // 10. Reviewer AI status panel: mode, model, key configured (yes/no only), budget, limits.
+  const R = await visitor();
+  const login = await apiCall(R.page, "POST", "/api/auth/login", { email: "reviewer@northstar.example", password: "northstar-demo" });
+  await R.page.reload();
+  await R.page.getByTestId("ai-status-open").click();
+  await R.page.getByTestId("ai-status-budget").waitFor();
+  const panel = await R.page.getByTestId("ai-status").innerText();
+  const rMeta = (await apiCall(R.page, "GET", "/api/meta")).data;
+  check("reviewer AI status panel shows mode, model, key state and budget", login.status === 200
+    && panel.includes("claude-opus-5-5") && panel.includes("API key configured") && panel.includes("Tokens used")
+    && !/sk-ant/.test(panel) && (await R.page.getByTestId("ai-status-mode").innerText()).includes(rMeta.mode === "live" ? "Live" : "Demo"),
+    `mode=${rMeta.mode}`);
+  await R.page.screenshot({ path: `${OUT}10-ai-status.png` });
 } catch (e) {
   check("browser flow completed without exceptions", false, String(e).slice(0, 300));
 } finally {
