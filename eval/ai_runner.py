@@ -15,14 +15,17 @@ import uuid
 from fastapi.testclient import TestClient
 from sqlalchemy import func, select
 
-from app import review, workflow
+from app import evidence, review, workflow
 from app.adapters.internal import FAULTS
 from app.db import SessionLocal
 from app.main import app
 from app.models import (AiRun, Approval, AuditLog, Chunk, Customer, Document, DocumentVersion, Execution,
                         Proposal, ProposalEvidence, Ticket, Workspace)
 from app.providers import ProviderError
+from app.retrieval import search
+from app.schemas import Passage
 from app.schemas import ApproveIn
+from app.config import get_settings
 
 from .harness import HDR
 
@@ -180,6 +183,19 @@ class Runner:
                     "input_tokens": run.input_tokens, "output_tokens": run.output_tokens, "api_calls": run.api_calls,
                     "tool_steps": run.tool_steps}
 
+    # ---------------------------------------------------------------- retrieval probe (no model)
+    def retrieval_probe(self, case: dict) -> dict:
+        """Retrieval + evidence check with the raw subject+message as the only query. Deterministic and
+        independent of fixtures, so it also covers cases demo mode cannot draft for."""
+        with SessionLocal() as db:
+            hits = search(db, self.ws[case["workspace"]], f"{case['subject']}\n{case['message']}",
+                          get_settings().retrieval_top_k)
+            passages = [Passage(**h.__dict__) for h in hits]
+            check = evidence.assess(db, self.ws[case["workspace"]], passages)
+            db.rollback()
+        return {"passages": [{"doc": p.doc_slug, "section": p.section, "score": round(p.score, 4)} for p in passages],
+                "evidence_status": check.status, "best_score": round(max((p.score for p in passages), default=0.0), 4)}
+
     # ---------------------------------------------------------------- one case
     def run_case(self, case: dict) -> dict:
         sc = case.get("scenario") or {}
@@ -192,6 +208,8 @@ class Runner:
             if "inject_document" in sc:
                 doc_id = self.inject(case["workspace"], sc["inject_document"])
                 cleanup.append(lambda: self.remove(case["workspace"], doc_id))
+            if case["actor"] in ("reviewer", "visitor_customer_session"):
+                obs["retrieval_probe"] = self.retrieval_probe(case)
             if sc.get("fault") == "provider_error":
                 def failing(*_a, **_k):
                     raise ProviderError("Eval fault injection: AI provider unavailable.")

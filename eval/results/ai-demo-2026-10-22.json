@@ -2,11 +2,11 @@
   "suite": "ai",
   "mode": "demo",
   "dataset_version": "v1",
-  "git_commit": "da484e2",
-  "run_at": "2026-10-22T19:39:34+00:00",
+  "git_commit": "unknown (set EVAL_GIT_COMMIT=$(git rev-parse --short HEAD))",
+  "run_at": "2026-10-22T19:41:14+00:00",
   "label": "Simulated — not evidence of AI performance",
   "status": "run",
-  "duration_s": 1.8,
+  "duration_s": 2.1,
   "provider": "simulated fixtures (SimulatedProvider)",
   "summary": {
     "coverage": {
@@ -37,6 +37,20 @@
       "doc_level_mean": 1.0,
       "section_level_mean": 1.0,
       "mean_passages_retrieved_k": 10.1
+    },
+    "retrieval_probe_raw_message": {
+      "definition": "retrieval with the raw subject+message as the single query (top_k), no model; covers every case submitted with a message, including those demo fixtures cannot draft for",
+      "cases_with_labels": 35,
+      "doc_recall_mean": 0.933,
+      "section_recall_mean": 0.729,
+      "evidence_check": {
+        "answerable_cases": 32,
+        "answerable_flagged_insufficient": 12,
+        "expected_insufficient": 3,
+        "flagged_insufficient": 3,
+        "expected_conflicting": 3,
+        "flagged_conflicting": 2
+      }
     },
     "citation_validity": {
       "citations": 67,
@@ -193,8 +207,8 @@
     },
     "latency_tokens": {
       "runs": 30,
-      "latency_ms_median": 19.0,
-      "latency_ms_max": 29,
+      "latency_ms_median": 13.0,
+      "latency_ms_max": 23,
       "input_tokens_total": 0,
       "output_tokens_total": 0
     }
@@ -215,12 +229,48 @@
         "state_reason": "Proposal v1: resolve",
         "category": "access",
         "next_action": "resolve",
-        "request_id": "8fb91a28-5783-489d-a5b1-b6ffcc0c4719",
+        "retrieval_probe": {
+          "passages": [
+            {
+              "doc": "reporting-troubleshooting",
+              "section": "User cannot see or open Reporting",
+              "score": 0.7795
+            },
+            {
+              "doc": "roles-and-permissions",
+              "section": "Roles after a plan upgrade",
+              "score": 0.7146
+            },
+            {
+              "doc": "reporting-troubleshooting",
+              "section": "Scheduled report did not arrive",
+              "score": 0.6868
+            },
+            {
+              "doc": "sso-and-access",
+              "section": "Access a user should not have",
+              "score": 0.6649
+            },
+            {
+              "doc": "plans-and-features",
+              "section": "Features by plan",
+              "score": 0.6531
+            },
+            {
+              "doc": "plans-and-features",
+              "section": "Plan features versus user permissions",
+              "score": 0.6408
+            }
+          ],
+          "evidence_status": "sufficient",
+          "best_score": 0.7795
+        },
+        "request_id": "54d93a67-2da1-4faf-83e4-92de3a33e117",
         "ai_run": {
           "provider": "simulated",
           "model": null,
           "status": "succeeded",
-          "latency_ms": 28,
+          "latency_ms": 23,
           "input_tokens": 0,
           "output_tokens": 0,
           "api_calls": 0,
@@ -228,7 +278,7 @@
         },
         "retrieved": [
           {
-            "chunk_id": "d51a2428-a5fa-46b7-bbad-51c821895dc8",
+            "chunk_id": "623dc596-7cf2-408f-b665-3ff7f6ac5176",
             "doc": "plans-and-features",
             "section": "Plan comparison",
             "version": 1,
@@ -237,7 +287,7 @@
             "cited": false
           },
           {
-            "chunk_id": "851b1c79-1195-4f10-b776-ce9879ec0620",
+            "chunk_id": "83483dbf-cfb1-4d8c-92d9-9ecdab249c80",
             "doc": "plans-and-features",
             "section": "Features by plan",
             "version": 1,
@@ -246,7 +296,7 @@
             "cited": true
           },
           {
-            "chunk_id": "0f4c662e-fe17-4d20-85fe-4d0801b2caee",
+            "chunk_id": "98306a64-a51b-4dc7-8e1c-19f910b5648c",
             "doc": "plans-and-features",
             "section": "Plan features versus user permissions",
             "version": 1,
@@ -255,7 +305,7 @@
             "cited": false
           },
           {
-            "chunk_id": "31103e4d-edf3-4107-bf51-8a2e2d8507fc",
+            "chunk_id": "ae45562e-1839-4daf-9e89-c7dbfafbcb38",
             "doc": "roles-and-permissions",
             "section": "Role permissions",
             "version": 1,
@@ -264,7 +314,7 @@
             "cited": false
           },
           {
-            "chunk_id": "71a93752-06cf-47b4-80a2-0f74c7bcf432",
+            "chunk_id": "523271df-f3d8-41aa-aaa0-8d4dacb84e07",
             "doc": "roles-and-permissions",
             "section": "Roles after a plan upgrade",
             "version": 1,
@@ -273,7 +323,7 @@
             "cited": true
           },
           {
-            "chunk_id": "f85b14ce-a162-4810-8609-0106a50556f2",
+            "chunk_id": "aff525c8-dfd1-4726-b33d-a014e5730baf",
             "doc": "roles-and-permissions",
             "section": "Changing a user's role",
             "version": 1,
@@ -282,7 +332,7 @@
             "cited": true
           },
           {
-            "chunk_id": "d0f08c4f-5430-4109-a7e0-8ca903385962",
+            "chunk_id": "0139c35d-9023-4cf0-a7de-98da6047266e",
             "doc": "sso-and-access",
             "section": "SCIM provisioning",
             "version": 1,
@@ -291,7 +341,7 @@
             "cited": false
           },
           {
-            "chunk_id": "c973e9cd-7447-4d02-8a41-b3192cea05b6",
+            "chunk_id": "28992450-536d-46f4-bb7b-72f562e8540c",
             "doc": "sso-and-access",
             "section": "Access a user should not have",
             "version": 1,
@@ -300,7 +350,7 @@
             "cited": false
           },
           {
-            "chunk_id": "76c59e57-a603-4a2f-b70a-1ce2f35b3fa8",
+            "chunk_id": "07d45100-0b22-480d-aca0-4e95a01936e5",
             "doc": "reporting-troubleshooting",
             "section": "User cannot see or open Reporting",
             "version": 1,
@@ -309,7 +359,7 @@
             "cited": true
           },
           {
-            "chunk_id": "36fd7ac7-86fd-47e8-b5e9-e58888d4ab5b",
+            "chunk_id": "6e72aa5f-f2be-49c0-a6fd-465b48a064fc",
             "doc": "reporting-troubleshooting",
             "section": "Scheduled report did not arrive",
             "version": 1,
@@ -400,12 +450,48 @@
         "state_reason": "Proposal v1: resolve",
         "category": "access",
         "next_action": "resolve",
-        "request_id": "8d066e34-5b99-4d6c-a649-9063e3aa4622",
+        "retrieval_probe": {
+          "passages": [
+            {
+              "doc": "reporting-troubleshooting",
+              "section": "User cannot see or open Reporting",
+              "score": 0.7775
+            },
+            {
+              "doc": "roles-and-permissions",
+              "section": "Roles after a plan upgrade",
+              "score": 0.6798
+            },
+            {
+              "doc": "reporting-troubleshooting",
+              "section": "Scheduled report did not arrive",
+              "score": 0.679
+            },
+            {
+              "doc": "sso-and-access",
+              "section": "Access a user should not have",
+              "score": 0.6601
+            },
+            {
+              "doc": "plans-and-features",
+              "section": "Features by plan",
+              "score": 0.65
+            },
+            {
+              "doc": "plans-and-features",
+              "section": "Plan features versus user permissions",
+              "score": 0.638
+            }
+          ],
+          "evidence_status": "sufficient",
+          "best_score": 0.7775
+        },
+        "request_id": "e131f2e6-634b-4d2a-a9d9-f6129ecc6ead",
         "ai_run": {
           "provider": "simulated",
           "model": null,
           "status": "succeeded",
-          "latency_ms": 26,
+          "latency_ms": 17,
           "input_tokens": 0,
           "output_tokens": 0,
           "api_calls": 0,
@@ -413,7 +499,7 @@
         },
         "retrieved": [
           {
-            "chunk_id": "d51a2428-a5fa-46b7-bbad-51c821895dc8",
+            "chunk_id": "623dc596-7cf2-408f-b665-3ff7f6ac5176",
             "doc": "plans-and-features",
             "section": "Plan comparison",
             "version": 1,
@@ -422,7 +508,7 @@
             "cited": false
           },
           {
-            "chunk_id": "851b1c79-1195-4f10-b776-ce9879ec0620",
+            "chunk_id": "83483dbf-cfb1-4d8c-92d9-9ecdab249c80",
             "doc": "plans-and-features",
             "section": "Features by plan",
             "version": 1,
@@ -431,7 +517,7 @@
             "cited": true
           },
           {
-            "chunk_id": "0f4c662e-fe17-4d20-85fe-4d0801b2caee",
+            "chunk_id": "98306a64-a51b-4dc7-8e1c-19f910b5648c",
             "doc": "plans-and-features",
             "section": "Plan features versus user permissions",
             "version": 1,
@@ -440,7 +526,7 @@
             "cited": false
           },
           {
-            "chunk_id": "31103e4d-edf3-4107-bf51-8a2e2d8507fc",
+            "chunk_id": "ae45562e-1839-4daf-9e89-c7dbfafbcb38",
             "doc": "roles-and-permissions",
             "section": "Role permissions",
             "version": 1,
@@ -449,7 +535,7 @@
             "cited": false
           },
           {
-            "chunk_id": "71a93752-06cf-47b4-80a2-0f74c7bcf432",
+            "chunk_id": "523271df-f3d8-41aa-aaa0-8d4dacb84e07",
             "doc": "roles-and-permissions",
             "section": "Roles after a plan upgrade",
             "version": 1,
@@ -458,7 +544,7 @@
             "cited": false
           },
           {
-            "chunk_id": "f85b14ce-a162-4810-8609-0106a50556f2",
+            "chunk_id": "aff525c8-dfd1-4726-b33d-a014e5730baf",
             "doc": "roles-and-permissions",
             "section": "Changing a user's role",
             "version": 1,
@@ -467,7 +553,7 @@
             "cited": false
           },
           {
-            "chunk_id": "d0f08c4f-5430-4109-a7e0-8ca903385962",
+            "chunk_id": "0139c35d-9023-4cf0-a7de-98da6047266e",
             "doc": "sso-and-access",
             "section": "SCIM provisioning",
             "version": 1,
@@ -476,7 +562,7 @@
             "cited": false
           },
           {
-            "chunk_id": "c973e9cd-7447-4d02-8a41-b3192cea05b6",
+            "chunk_id": "28992450-536d-46f4-bb7b-72f562e8540c",
             "doc": "sso-and-access",
             "section": "Access a user should not have",
             "version": 1,
@@ -485,7 +571,7 @@
             "cited": false
           },
           {
-            "chunk_id": "76c59e57-a603-4a2f-b70a-1ce2f35b3fa8",
+            "chunk_id": "07d45100-0b22-480d-aca0-4e95a01936e5",
             "doc": "reporting-troubleshooting",
             "section": "User cannot see or open Reporting",
             "version": 1,
@@ -494,7 +580,7 @@
             "cited": false
           },
           {
-            "chunk_id": "36fd7ac7-86fd-47e8-b5e9-e58888d4ab5b",
+            "chunk_id": "6e72aa5f-f2be-49c0-a6fd-465b48a064fc",
             "doc": "reporting-troubleshooting",
             "section": "Scheduled report did not arrive",
             "version": 1,
@@ -555,12 +641,48 @@
         "state_reason": "Proposal v1: clarify",
         "category": "billing",
         "next_action": "clarify",
-        "request_id": "30eeb66e-3aaa-487e-bfb4-363b27e6e89a",
+        "retrieval_probe": {
+          "passages": [
+            {
+              "doc": "billing-and-invoices",
+              "section": "Charges that look duplicated",
+              "score": 0.8028
+            },
+            {
+              "doc": "billing-and-invoices",
+              "section": "Invoice types",
+              "score": 0.6595
+            },
+            {
+              "doc": "billing-and-invoices",
+              "section": "Billing cycles",
+              "score": 0.6549
+            },
+            {
+              "doc": "proration-and-plan-changes",
+              "section": "Seat additions",
+              "score": 0.6293
+            },
+            {
+              "doc": "refund-policy",
+              "section": "How to handle a refund request",
+              "score": 0.6264
+            },
+            {
+              "doc": "proration-and-plan-changes",
+              "section": "Upgrades",
+              "score": 0.6183
+            }
+          ],
+          "evidence_status": "sufficient",
+          "best_score": 0.8028
+        },
+        "request_id": "1edb60e9-66b4-44dc-a3f7-75d639911c34",
         "ai_run": {
           "provider": "simulated",
           "model": null,
           "status": "succeeded",
-          "latency_ms": 15,
+          "latency_ms": 13,
           "input_tokens": 0,
           "output_tokens": 0,
           "api_calls": 0,
@@ -568,7 +690,7 @@
         },
         "retrieved": [
           {
-            "chunk_id": "d51a2428-a5fa-46b7-bbad-51c821895dc8",
+            "chunk_id": "623dc596-7cf2-408f-b665-3ff7f6ac5176",
             "doc": "plans-and-features",
             "section": "Plan comparison",
             "version": 1,
@@ -577,7 +699,7 @@
             "cited": false
           },
           {
-            "chunk_id": "23bd7121-b90b-4895-8864-57080e302498",
+            "chunk_id": "9c7f0a05-73a4-44fb-a415-2f144293ca28",
             "doc": "seat-management",
             "section": "Adding seats",
             "version": 1,
@@ -586,7 +708,7 @@
             "cited": false
           },
           {
-            "chunk_id": "37b8d66b-7aee-48b6-9803-da1362bb200d",
+            "chunk_id": "b6d94436-9ae3-4804-a0bd-b323fcd55c2f",
             "doc": "seat-management",
             "section": "Removing seats",
             "version": 1,
@@ -595,7 +717,7 @@
             "cited": false
           },
           {
-            "chunk_id": "694d16d7-7609-4b18-826c-882039453eff",
+            "chunk_id": "efe19de6-eefa-479a-b3be-566722b1fabb",
             "doc": "billing-and-invoices",
             "section": "Billing cycles",
             "version": 1,
@@ -604,7 +726,7 @@
             "cited": false
           },
           {
-            "chunk_id": "8b677adf-cbd0-4115-a448-d6b0bbabb093",
+            "chunk_id": "cdf4e3a3-7cc1-439d-ae55-87ebecf3aa0c",
             "doc": "billing-and-invoices",
             "section": "Invoice types",
             "version": 1,
@@ -613,7 +735,7 @@
             "cited": true
           },
           {
-            "chunk_id": "f4cbe9b1-465a-45f8-ae68-cc48d4708f22",
+            "chunk_id": "25e37afc-38ab-4fbc-be7e-f2db95754a98",
             "doc": "billing-and-invoices",
             "section": "Charges that look duplicated",
             "version": 1,
@@ -622,7 +744,7 @@
             "cited": true
           },
           {
-            "chunk_id": "dbb85d87-ef63-4678-b245-00ca71c5931a",
+            "chunk_id": "2249d695-95dd-49ee-b1ae-b6ba878750d0",
             "doc": "billing-and-invoices",
             "section": "Where to find invoices",
             "version": 1,
@@ -631,7 +753,7 @@
             "cited": false
           },
           {
-            "chunk_id": "9fcf005c-6131-4cd3-a820-42a35abd89da",
+            "chunk_id": "b0e550f2-7421-42fb-9ba5-ff823e24b698",
             "doc": "proration-and-plan-changes",
             "section": "Seat additions",
             "version": 1,
@@ -640,7 +762,7 @@
             "cited": true
           },
           {
-            "chunk_id": "1dd93e50-07d7-47be-8b90-164f4da6fa5c",
+            "chunk_id": "a8737adb-4140-4026-b3a4-a812d7d3ca1b",
             "doc": "proration-and-plan-changes",
             "section": "Downgrades and seat reductions",
             "version": 1,
@@ -649,7 +771,7 @@
             "cited": false
           },
           {
-            "chunk_id": "7198b536-a7f0-4546-9de4-5f1a85490c25",
+            "chunk_id": "43f7ed6c-6d36-4a45-9c81-87a82392fe3b",
             "doc": "refund-policy",
             "section": "How to handle a refund request",
             "version": 1,
@@ -729,12 +851,48 @@
         "state_reason": "Proposal v1: escalate",
         "category": "product_issue",
         "next_action": "escalate",
-        "request_id": "714960e3-62d6-4039-9429-4953c797a5dd",
+        "retrieval_probe": {
+          "passages": [
+            {
+              "doc": "known-issues",
+              "section": "KI-2031: Snowflake syncs time out with NS-CONN-504",
+              "score": 0.9037
+            },
+            {
+              "doc": "data-connectors-troubleshooting",
+              "section": "Stale dashboards",
+              "score": 0.8072
+            },
+            {
+              "doc": "data-connectors-troubleshooting",
+              "section": "Error codes",
+              "score": 0.7686
+            },
+            {
+              "doc": "dashboard-troubleshooting",
+              "section": "Numbers differ from the source system",
+              "score": 0.7259
+            },
+            {
+              "doc": "data-connectors-troubleshooting",
+              "section": "When to escalate a connector failure",
+              "score": 0.6994
+            },
+            {
+              "doc": "reporting-troubleshooting",
+              "section": "Scheduled report did not arrive",
+              "score": 0.6371
+            }
+          ],
+          "evidence_status": "sufficient",
+          "best_score": 0.9037
+        },
+        "request_id": "b6844c97-ec7e-4af5-90a3-a957d50bb49e",
         "ai_run": {
           "provider": "simulated",
           "model": null,
           "status": "succeeded",
-          "latency_ms": 27,
+          "latency_ms": 18,
           "input_tokens": 0,
           "output_tokens": 0,
           "api_calls": 0,
@@ -742,7 +900,7 @@
         },
         "retrieved": [
           {
-            "chunk_id": "36fd7ac7-86fd-47e8-b5e9-e58888d4ab5b",
+            "chunk_id": "6e72aa5f-f2be-49c0-a6fd-465b48a064fc",
             "doc": "reporting-troubleshooting",
             "section": "Scheduled report did not arrive",
             "version": 1,
@@ -751,7 +909,7 @@
             "cited": false
           },
           {
-            "chunk_id": "feeb7361-2c57-405a-bbba-a5b2d7072186",
+            "chunk_id": "83ba6957-cbb8-4a27-a696-081f0eef75c4",
             "doc": "data-connectors-troubleshooting",
             "section": "Error codes",
             "version": 1,
@@ -760,7 +918,7 @@
             "cited": true
           },
           {
-            "chunk_id": "1bb28922-ea65-4552-8192-d48215aec386",
+            "chunk_id": "1b2464ea-165f-4df9-96db-fdcf3088b827",
             "doc": "data-connectors-troubleshooting",
             "section": "When to escalate a connector failure",
             "version": 1,
@@ -769,7 +927,7 @@
             "cited": true
           },
           {
-            "chunk_id": "717cab9f-db9f-49d3-a6f6-f5710de6aabb",
+            "chunk_id": "30edd4d2-badb-410c-8b4e-df019c67d23e",
             "doc": "data-connectors-troubleshooting",
             "section": "Stale dashboards",
             "version": 1,
@@ -778,7 +936,7 @@
             "cited": false
           },
           {
-            "chunk_id": "899d0509-05df-40de-a45f-ddbdebd245e9",
+            "chunk_id": "2cb28f1e-0cce-4a85-a030-7b6d65a2c4b2",
             "doc": "known-issues",
             "section": "KI-2031: Snowflake syncs time out with NS-CONN-504",
             "version": 1,
@@ -787,7 +945,7 @@
             "cited": true
           },
           {
-            "chunk_id": "fed3412c-454b-48b3-a7bf-4208c7f40131",
+            "chunk_id": "3c176e44-e300-468f-9a27-f4078e393898",
             "doc": "escalation-policy",
             "section": "Always handled by a human",
             "version": 1,
@@ -796,7 +954,7 @@
             "cited": false
           },
           {
-            "chunk_id": "9fc79245-4724-4d61-83ba-052e55b6161e",
+            "chunk_id": "b39913d0-4165-402b-903d-971e3b2fa61d",
             "doc": "escalation-policy",
             "section": "Engineering escalation",
             "version": 1,
@@ -805,7 +963,7 @@
             "cited": false
           },
           {
-            "chunk_id": "c3c5a422-e568-45db-a2e9-8258758963e7",
+            "chunk_id": "f5eb1910-7313-44ce-9794-5a89d71f7076",
             "doc": "escalation-policy",
             "section": "Priority",
             "version": 1,
@@ -814,7 +972,7 @@
             "cited": true
           },
           {
-            "chunk_id": "73ba277e-0619-431e-ae65-683253b5a5db",
+            "chunk_id": "b6658613-3f6c-4a47-b64c-c80eee7136b8",
             "doc": "escalation-policy",
             "section": "Missing information",
             "version": 1,
@@ -823,7 +981,7 @@
             "cited": false
           },
           {
-            "chunk_id": "bb4ecede-ab90-4e43-892f-bd203cfb3101",
+            "chunk_id": "413a71d8-1127-4df9-9d90-aa0ceb334d6a",
             "doc": "dashboard-troubleshooting",
             "section": "Numbers differ from the source system",
             "version": 1,
@@ -915,12 +1073,48 @@
         "state_reason": "Proposal v1: escalate",
         "category": "billing",
         "next_action": "escalate",
-        "request_id": "52c22508-6eb7-4972-889b-a17ee2dd6d87",
+        "retrieval_probe": {
+          "passages": [
+            {
+              "doc": "proration-and-plan-changes",
+              "section": "Downgrades and seat reductions",
+              "score": 0.7183
+            },
+            {
+              "doc": "seat-management",
+              "section": "Removing seats",
+              "score": 0.7178
+            },
+            {
+              "doc": "seat-management",
+              "section": "Seat limit reached",
+              "score": 0.7057
+            },
+            {
+              "doc": "refund-policy",
+              "section": "Annual plans",
+              "score": 0.6678
+            },
+            {
+              "doc": "seat-management",
+              "section": "How seats work",
+              "score": 0.6676
+            },
+            {
+              "doc": "proration-and-plan-changes",
+              "section": "Seat additions",
+              "score": 0.6459
+            }
+          ],
+          "evidence_status": "insufficient",
+          "best_score": 0.7183
+        },
+        "request_id": "fc5380f6-a415-4a88-b0f8-edf1f256db13",
         "ai_run": {
           "provider": "simulated",
           "model": null,
           "status": "succeeded",
-          "latency_ms": 19,
+          "latency_ms": 12,
           "input_tokens": 0,
           "output_tokens": 0,
           "api_calls": 0,
@@ -928,7 +1122,7 @@
         },
         "retrieved": [
           {
-            "chunk_id": "601b0c0b-802e-4db2-8532-b2633ded4b97",
+            "chunk_id": "c471cd6b-a06f-4b14-8f43-cf1e5ffb90de",
             "doc": "seat-management",
             "section": "How seats work",
             "version": 1,
@@ -937,7 +1131,7 @@
             "cited": false
           },
           {
-            "chunk_id": "23bd7121-b90b-4895-8864-57080e302498",
+            "chunk_id": "9c7f0a05-73a4-44fb-a415-2f144293ca28",
             "doc": "seat-management",
             "section": "Adding seats",
             "version": 1,
@@ -946,7 +1140,7 @@
             "cited": false
           },
           {
-            "chunk_id": "37b8d66b-7aee-48b6-9803-da1362bb200d",
+            "chunk_id": "b6d94436-9ae3-4804-a0bd-b323fcd55c2f",
             "doc": "seat-management",
             "section": "Removing seats",
             "version": 1,
@@ -955,7 +1149,7 @@
             "cited": true
           },
           {
-            "chunk_id": "ef2cae44-10d6-49aa-88d7-68a303fff2ba",
+            "chunk_id": "9edc717a-c615-450d-b840-986770403c92",
             "doc": "seat-management",
             "section": "Seat limit reached",
             "version": 1,
@@ -964,7 +1158,7 @@
             "cited": false
           },
           {
-            "chunk_id": "f4cbe9b1-465a-45f8-ae68-cc48d4708f22",
+            "chunk_id": "25e37afc-38ab-4fbc-be7e-f2db95754a98",
             "doc": "billing-and-invoices",
             "section": "Charges that look duplicated",
             "version": 1,
@@ -973,7 +1167,7 @@
             "cited": false
           },
           {
-            "chunk_id": "9fcf005c-6131-4cd3-a820-42a35abd89da",
+            "chunk_id": "b0e550f2-7421-42fb-9ba5-ff823e24b698",
             "doc": "proration-and-plan-changes",
             "section": "Seat additions",
             "version": 1,
@@ -982,7 +1176,7 @@
             "cited": false
           },
           {
-            "chunk_id": "1dd93e50-07d7-47be-8b90-164f4da6fa5c",
+            "chunk_id": "a8737adb-4140-4026-b3a4-a812d7d3ca1b",
             "doc": "proration-and-plan-changes",
             "section": "Downgrades and seat reductions",
             "version": 1,
@@ -991,7 +1185,7 @@
             "cited": false
           },
           {
-            "chunk_id": "e1aec4cf-163e-4834-81f2-cebaa8395bca",
+            "chunk_id": "c425cfc7-7214-4224-87d4-d5c0b671adb4",
             "doc": "refund-policy",
             "section": "Refunds are decided by humans",
             "version": 1,
@@ -1000,7 +1194,7 @@
             "cited": true
           },
           {
-            "chunk_id": "7198b536-a7f0-4546-9de4-5f1a85490c25",
+            "chunk_id": "43f7ed6c-6d36-4a45-9c81-87a82392fe3b",
             "doc": "refund-policy",
             "section": "How to handle a refund request",
             "version": 1,
@@ -1009,7 +1203,7 @@
             "cited": true
           },
           {
-            "chunk_id": "900b3ffc-5881-42cc-8406-8ed7e8b35e0c",
+            "chunk_id": "e202cd61-e3ae-41d2-b6af-f0e02afee027",
             "doc": "refund-policy",
             "section": "Annual plans",
             "version": 1,
@@ -1018,7 +1212,7 @@
             "cited": false
           },
           {
-            "chunk_id": "fed3412c-454b-48b3-a7bf-4208c7f40131",
+            "chunk_id": "3c176e44-e300-468f-9a27-f4078e393898",
             "doc": "escalation-policy",
             "section": "Always handled by a human",
             "version": 1,
@@ -1027,7 +1221,7 @@
             "cited": false
           },
           {
-            "chunk_id": "73ba277e-0619-431e-ae65-683253b5a5db",
+            "chunk_id": "b6658613-3f6c-4a47-b64c-c80eee7136b8",
             "doc": "escalation-policy",
             "section": "Missing information",
             "version": 1,
@@ -1110,12 +1304,48 @@
         "state_reason": "Proposal v1: resolve",
         "category": "access",
         "next_action": "resolve",
-        "request_id": "08030d85-0d87-40bf-b850-e4fe3fec1297",
+        "retrieval_probe": {
+          "passages": [
+            {
+              "doc": "sso-and-access",
+              "section": "Password resets and lockouts",
+              "score": 0.6687
+            },
+            {
+              "doc": "sso-and-access",
+              "section": "Access a user should not have",
+              "score": 0.6412
+            },
+            {
+              "doc": "sso-and-access",
+              "section": "SAML SSO",
+              "score": 0.6172
+            },
+            {
+              "doc": "roles-and-permissions",
+              "section": "Roles after a plan upgrade",
+              "score": 0.6134
+            },
+            {
+              "doc": "dashboard-troubleshooting",
+              "section": "Shared link shows \"Access denied\"",
+              "score": 0.6076
+            },
+            {
+              "doc": "reporting-troubleshooting",
+              "section": "User cannot see or open Reporting",
+              "score": 0.5971
+            }
+          ],
+          "evidence_status": "insufficient",
+          "best_score": 0.6687
+        },
+        "request_id": "7b1ad20b-6836-4b6d-8da2-a98f91b54a36",
         "ai_run": {
           "provider": "simulated",
           "model": null,
           "status": "succeeded",
-          "latency_ms": 23,
+          "latency_ms": 11,
           "input_tokens": 0,
           "output_tokens": 0,
           "api_calls": 0,
@@ -1123,7 +1353,7 @@
         },
         "retrieved": [
           {
-            "chunk_id": "851b1c79-1195-4f10-b776-ce9879ec0620",
+            "chunk_id": "83483dbf-cfb1-4d8c-92d9-9ecdab249c80",
             "doc": "plans-and-features",
             "section": "Features by plan",
             "version": 1,
@@ -1132,7 +1362,7 @@
             "cited": false
           },
           {
-            "chunk_id": "71a93752-06cf-47b4-80a2-0f74c7bcf432",
+            "chunk_id": "523271df-f3d8-41aa-aaa0-8d4dacb84e07",
             "doc": "roles-and-permissions",
             "section": "Roles after a plan upgrade",
             "version": 1,
@@ -1141,7 +1371,7 @@
             "cited": false
           },
           {
-            "chunk_id": "f85b14ce-a162-4810-8609-0106a50556f2",
+            "chunk_id": "aff525c8-dfd1-4726-b33d-a014e5730baf",
             "doc": "roles-and-permissions",
             "section": "Changing a user's role",
             "version": 1,
@@ -1150,7 +1380,7 @@
             "cited": false
           },
           {
-            "chunk_id": "141275e6-b0d4-4812-9098-2d874a2715f3",
+            "chunk_id": "865bac70-9a1a-48a0-967b-42f616d265c7",
             "doc": "sso-and-access",
             "section": "SAML SSO",
             "version": 1,
@@ -1159,7 +1389,7 @@
             "cited": true
           },
           {
-            "chunk_id": "5a244b06-5291-4fd6-b6f9-10e90060f706",
+            "chunk_id": "5553bbd2-00d1-4840-b715-c87220503b7a",
             "doc": "sso-and-access",
             "section": "Password resets and lockouts",
             "version": 1,
@@ -1168,7 +1398,7 @@
             "cited": false
           },
           {
-            "chunk_id": "c973e9cd-7447-4d02-8a41-b3192cea05b6",
+            "chunk_id": "28992450-536d-46f4-bb7b-72f562e8540c",
             "doc": "sso-and-access",
             "section": "Access a user should not have",
             "version": 1,
@@ -1228,7 +1458,43 @@
         "state_reason": "Demo mode only handles the seeded scenarios. This message was not processed by any AI model. Run one of this workspace's demo scenarios, or have a signed-in reviewer process it in live mode.",
         "category": null,
         "next_action": null,
-        "request_id": "7a942bb4-8d01-4bce-afd8-37bdc18eeae2",
+        "retrieval_probe": {
+          "passages": [
+            {
+              "doc": "seat-management",
+              "section": "Adding seats",
+              "score": 0.8085
+            },
+            {
+              "doc": "proration-and-plan-changes",
+              "section": "Seat additions",
+              "score": 0.7677
+            },
+            {
+              "doc": "seat-management",
+              "section": "Seat limit reached",
+              "score": 0.7412
+            },
+            {
+              "doc": "seat-management",
+              "section": "Removing seats",
+              "score": 0.7197
+            },
+            {
+              "doc": "billing-and-invoices",
+              "section": "Invoice types",
+              "score": 0.7135
+            },
+            {
+              "doc": "plans-and-features",
+              "section": "Plan comparison",
+              "score": 0.7022
+            }
+          ],
+          "evidence_status": "sufficient",
+          "best_score": 0.8085
+        },
+        "request_id": "edd64d1c-a1ab-4aab-8d2e-be80ab737709",
         "ai_run": {
           "provider": "simulated",
           "model": null,
@@ -1257,7 +1523,43 @@
         "state_reason": "Demo mode only handles the seeded scenarios. This message was not processed by any AI model. Run one of this workspace's demo scenarios, or have a signed-in reviewer process it in live mode.",
         "category": null,
         "next_action": null,
-        "request_id": "c712452b-a780-441b-af5b-a2bd584e8bab",
+        "retrieval_probe": {
+          "passages": [
+            {
+              "doc": "reporting-troubleshooting",
+              "section": "Scheduled report did not arrive",
+              "score": 0.8332
+            },
+            {
+              "doc": "reporting-troubleshooting",
+              "section": "Export fails",
+              "score": 0.7557
+            },
+            {
+              "doc": "known-issues",
+              "section": "KI-1987: Scheduled reports skip one run after daylight-saving changes",
+              "score": 0.6493
+            },
+            {
+              "doc": "known-issues",
+              "section": "KI-2031: Snowflake syncs time out with NS-CONN-504",
+              "score": 0.5976
+            },
+            {
+              "doc": "plans-and-features",
+              "section": "Features by plan",
+              "score": 0.5874
+            },
+            {
+              "doc": "dashboard-troubleshooting",
+              "section": "Numbers differ from the source system",
+              "score": 0.5848
+            }
+          ],
+          "evidence_status": "sufficient",
+          "best_score": 0.8332
+        },
+        "request_id": "b8964eba-ecce-42d5-8f71-6ffb2b6d68d8",
         "ai_run": {
           "provider": "simulated",
           "model": null,
@@ -1286,12 +1588,48 @@
         "state_reason": "Proposal v1: resolve",
         "category": "access",
         "next_action": "resolve",
-        "request_id": "222b2c5d-b943-475f-bedb-1aa9883f70d0",
+        "retrieval_probe": {
+          "passages": [
+            {
+              "doc": "escalation-and-support",
+              "section": "Priorities",
+              "score": 0.6534
+            },
+            {
+              "doc": "plan-changes",
+              "section": "Who can change a plan",
+              "score": 0.6528
+            },
+            {
+              "doc": "integrations-troubleshooting",
+              "section": "Error codes",
+              "score": 0.6393
+            },
+            {
+              "doc": "escalation-and-support",
+              "section": "Teams",
+              "score": 0.6314
+            },
+            {
+              "doc": "plans-and-pricing",
+              "section": "Features by plan",
+              "score": 0.6109
+            },
+            {
+              "doc": "integrations-troubleshooting",
+              "section": "When to escalate",
+              "score": 0.6106
+            }
+          ],
+          "evidence_status": "insufficient",
+          "best_score": 0.6534
+        },
+        "request_id": "a7ec36d7-8b27-47ca-b0c3-5be9750ed751",
         "ai_run": {
           "provider": "simulated",
           "model": null,
           "status": "succeeded",
-          "latency_ms": 21,
+          "latency_ms": 17,
           "input_tokens": 0,
           "output_tokens": 0,
           "api_calls": 0,
@@ -1299,7 +1637,7 @@
         },
         "retrieved": [
           {
-            "chunk_id": "c10fe3ca-7721-490b-81a8-5cf8e344b177",
+            "chunk_id": "a9595f49-55af-4e72-9c26-a4f7c23dcc42",
             "doc": "plans-and-pricing",
             "section": "Plans at a glance",
             "version": 1,
@@ -1308,7 +1646,7 @@
             "cited": false
           },
           {
-            "chunk_id": "39699f9a-8d78-4692-b2f0-0d1ea945740c",
+            "chunk_id": "c6a39bc7-669a-4ab8-92f5-9e8a2543c3f1",
             "doc": "plans-and-pricing",
             "section": "Features by plan",
             "version": 1,
@@ -1317,7 +1655,7 @@
             "cited": true
           },
           {
-            "chunk_id": "f076e5df-9872-4a31-8a39-5d5892f74d13",
+            "chunk_id": "363acf7a-05ae-435b-b44f-14718a4ae09c",
             "doc": "plans-and-pricing",
             "section": "Upgrading to get Insights",
             "version": 1,
@@ -1326,7 +1664,7 @@
             "cited": true
           },
           {
-            "chunk_id": "0c079b74-18ae-4651-8033-1ee55e0cc0e3",
+            "chunk_id": "6d8a7a04-2627-47b5-9449-7cc327dbb509",
             "doc": "team-roles",
             "section": "Overview",
             "version": 1,
@@ -1335,7 +1673,7 @@
             "cited": false
           },
           {
-            "chunk_id": "989cf8d5-7343-4fa0-bb28-bfebb88ce0dd",
+            "chunk_id": "44b7f68e-57d3-4df5-8947-f7a625ebdefb",
             "doc": "team-roles",
             "section": "What each role can do",
             "version": 1,
@@ -1344,7 +1682,7 @@
             "cited": false
           },
           {
-            "chunk_id": "483495b4-5431-4c81-9277-9815275bf941",
+            "chunk_id": "5d9cfb26-5e33-42c7-a534-48cbede4ed9c",
             "doc": "team-roles",
             "section": "Roles after a plan change",
             "version": 1,
@@ -1353,7 +1691,7 @@
             "cited": true
           },
           {
-            "chunk_id": "b6e47d82-b36b-4b6f-b4c0-1aa501dc66e4",
+            "chunk_id": "4bc4f3ba-18e6-4d0d-8bfd-ba8c9589bdbc",
             "doc": "plan-changes",
             "section": "Overview",
             "version": 1,
@@ -1362,7 +1700,7 @@
             "cited": false
           },
           {
-            "chunk_id": "4bb7d8c6-8cdf-419b-9f31-ab98cc6e83a2",
+            "chunk_id": "b2029568-e32c-45b8-a861-7fd9cf768ad0",
             "doc": "plan-changes",
             "section": "Who can change a plan",
             "version": 1,
@@ -1371,7 +1709,7 @@
             "cited": false
           },
           {
-            "chunk_id": "4186c650-1599-49c5-bede-ea52481fd71e",
+            "chunk_id": "8d623756-5cb8-4d44-bcb7-adeac559f203",
             "doc": "integrations-troubleshooting",
             "section": "Error codes",
             "version": 1,
@@ -1380,7 +1718,7 @@
             "cited": false
           },
           {
-            "chunk_id": "184254bc-e789-4b89-b3df-3f78d8b7191d",
+            "chunk_id": "eb5cf28e-6a10-4a92-86b0-8e7d36e8f6d9",
             "doc": "escalation-and-support",
             "section": "Teams",
             "version": 1,
@@ -1389,7 +1727,7 @@
             "cited": false
           },
           {
-            "chunk_id": "b27c5bc0-0b45-4465-a6b6-61666ec44d38",
+            "chunk_id": "46798f16-81fc-470d-9a34-c325e9c78e02",
             "doc": "escalation-and-support",
             "section": "Priorities",
             "version": 1,
@@ -1398,7 +1736,7 @@
             "cited": false
           },
           {
-            "chunk_id": "699ebee0-de70-4e54-8000-d4441cef1761",
+            "chunk_id": "ba40fb91-06c7-4a9e-8bf8-703435b56f57",
             "doc": "escalation-and-support",
             "section": "Response targets",
             "version": 1,
@@ -1479,12 +1817,48 @@
         "state_reason": "Proposal v1: resolve",
         "category": "billing",
         "next_action": "resolve",
-        "request_id": "0addd07c-3c7f-4f59-b177-4af3c58d1eab",
+        "retrieval_probe": {
+          "passages": [
+            {
+              "doc": "billing-and-charges",
+              "section": "Two charges in one month",
+              "score": 0.7918
+            },
+            {
+              "doc": "billing-and-charges",
+              "section": "Upgrades are charged in full",
+              "score": 0.679
+            },
+            {
+              "doc": "plans-and-pricing",
+              "section": "Plans at a glance",
+              "score": 0.6618
+            },
+            {
+              "doc": "billing-and-charges",
+              "section": "How Lumen bills",
+              "score": 0.6517
+            },
+            {
+              "doc": "escalation-and-support",
+              "section": "Priorities",
+              "score": 0.6497
+            },
+            {
+              "doc": "billing-faq",
+              "section": "Overview",
+              "score": 0.6459
+            }
+          ],
+          "evidence_status": "sufficient",
+          "best_score": 0.7918
+        },
+        "request_id": "5af2ac39-c77a-45c6-b06e-cf843fd85009",
         "ai_run": {
           "provider": "simulated",
           "model": null,
           "status": "succeeded",
-          "latency_ms": 29,
+          "latency_ms": 13,
           "input_tokens": 0,
           "output_tokens": 0,
           "api_calls": 0,
@@ -1492,7 +1866,7 @@
         },
         "retrieved": [
           {
-            "chunk_id": "fa245aab-16ae-405c-bbcd-a84045d72ea2",
+            "chunk_id": "4df5dafb-8eb3-4083-8c10-d978e1a67031",
             "doc": "billing-faq",
             "section": "Can we downgrade in the middle of our term?",
             "version": 1,
@@ -1501,7 +1875,7 @@
             "cited": false
           },
           {
-            "chunk_id": "3bf8efbe-6cb9-4aa9-9b78-407f70ca6929",
+            "chunk_id": "52731483-5443-4c4a-af95-ccabb9a16111",
             "doc": "billing-and-charges",
             "section": "How Lumen bills",
             "version": 1,
@@ -1510,7 +1884,7 @@
             "cited": false
           },
           {
-            "chunk_id": "0476ee6e-b7fe-4f07-8c97-70b2db884592",
+            "chunk_id": "bdb7594f-faf1-442c-93c3-abcfd346925d",
             "doc": "billing-and-charges",
             "section": "Upgrades are charged in full",
             "version": 1,
@@ -1519,7 +1893,7 @@
             "cited": true
           },
           {
-            "chunk_id": "5a9574c9-b8e6-40a1-886a-0573b01afede",
+            "chunk_id": "a06ac2bd-342a-4775-8b13-e106103b9642",
             "doc": "billing-and-charges",
             "section": "Two charges in one month",
             "version": 1,
@@ -1528,7 +1902,7 @@
             "cited": true
           },
           {
-            "chunk_id": "89fa6f4d-748e-4546-afec-2c1dd1c89a33",
+            "chunk_id": "297c2abc-ffd4-4a72-9a3f-c370d10399a7",
             "doc": "billing-and-charges",
             "section": "Failed payments",
             "version": 1,
@@ -1537,7 +1911,7 @@
             "cited": false
           },
           {
-            "chunk_id": "807c0d29-3f4d-42a0-8e05-f795fa5cb4b6",
+            "chunk_id": "18d21cb8-494b-4f0f-9e5f-187f70956b5c",
             "doc": "plan-changes",
             "section": "Upgrades",
             "version": 1,
@@ -1546,7 +1920,7 @@
             "cited": false
           },
           {
-            "chunk_id": "b7681ef6-a434-4fb3-9df6-0bdd5b3d1dba",
+            "chunk_id": "3a980392-b5e9-4d41-aa57-073ec12c2311",
             "doc": "refunds-and-credits",
             "section": "Credits, not card refunds",
             "version": 1,
@@ -1555,7 +1929,7 @@
             "cited": false
           },
           {
-            "chunk_id": "b27c5bc0-0b45-4465-a6b6-61666ec44d38",
+            "chunk_id": "46798f16-81fc-470d-9a34-c325e9c78e02",
             "doc": "escalation-and-support",
             "section": "Priorities",
             "version": 1,
@@ -1564,7 +1938,7 @@
             "cited": false
           },
           {
-            "chunk_id": "699ebee0-de70-4e54-8000-d4441cef1761",
+            "chunk_id": "ba40fb91-06c7-4a9e-8bf8-703435b56f57",
             "doc": "escalation-and-support",
             "section": "Response targets",
             "version": 1,
@@ -1635,12 +2009,48 @@
         "state_reason": "Proposal v1: resolve",
         "category": "billing",
         "next_action": "resolve",
-        "request_id": "9748adda-a1f1-4d49-9163-cb54af147741",
+        "retrieval_probe": {
+          "passages": [
+            {
+              "doc": "billing-and-charges",
+              "section": "Two charges in one month",
+              "score": 0.8017
+            },
+            {
+              "doc": "billing-and-charges",
+              "section": "Upgrades are charged in full",
+              "score": 0.6817
+            },
+            {
+              "doc": "escalation-and-support",
+              "section": "Priorities",
+              "score": 0.6591
+            },
+            {
+              "doc": "plans-and-pricing",
+              "section": "Plans at a glance",
+              "score": 0.6558
+            },
+            {
+              "doc": "billing-and-charges",
+              "section": "How Lumen bills",
+              "score": 0.6511
+            },
+            {
+              "doc": "billing-faq",
+              "section": "Overview",
+              "score": 0.6501
+            }
+          ],
+          "evidence_status": "sufficient",
+          "best_score": 0.8017
+        },
+        "request_id": "b5587f5a-79ca-420d-bef8-5dc65ab0a45a",
         "ai_run": {
           "provider": "simulated",
           "model": null,
           "status": "succeeded",
-          "latency_ms": 28,
+          "latency_ms": 13,
           "input_tokens": 0,
           "output_tokens": 0,
           "api_calls": 0,
@@ -1648,7 +2058,7 @@
         },
         "retrieved": [
           {
-            "chunk_id": "fa245aab-16ae-405c-bbcd-a84045d72ea2",
+            "chunk_id": "4df5dafb-8eb3-4083-8c10-d978e1a67031",
             "doc": "billing-faq",
             "section": "Can we downgrade in the middle of our term?",
             "version": 1,
@@ -1657,7 +2067,7 @@
             "cited": false
           },
           {
-            "chunk_id": "3bf8efbe-6cb9-4aa9-9b78-407f70ca6929",
+            "chunk_id": "52731483-5443-4c4a-af95-ccabb9a16111",
             "doc": "billing-and-charges",
             "section": "How Lumen bills",
             "version": 1,
@@ -1666,7 +2076,7 @@
             "cited": false
           },
           {
-            "chunk_id": "0476ee6e-b7fe-4f07-8c97-70b2db884592",
+            "chunk_id": "bdb7594f-faf1-442c-93c3-abcfd346925d",
             "doc": "billing-and-charges",
             "section": "Upgrades are charged in full",
             "version": 1,
@@ -1675,7 +2085,7 @@
             "cited": true
           },
           {
-            "chunk_id": "5a9574c9-b8e6-40a1-886a-0573b01afede",
+            "chunk_id": "a06ac2bd-342a-4775-8b13-e106103b9642",
             "doc": "billing-and-charges",
             "section": "Two charges in one month",
             "version": 1,
@@ -1684,7 +2094,7 @@
             "cited": true
           },
           {
-            "chunk_id": "89fa6f4d-748e-4546-afec-2c1dd1c89a33",
+            "chunk_id": "297c2abc-ffd4-4a72-9a3f-c370d10399a7",
             "doc": "billing-and-charges",
             "section": "Failed payments",
             "version": 1,
@@ -1693,7 +2103,7 @@
             "cited": false
           },
           {
-            "chunk_id": "807c0d29-3f4d-42a0-8e05-f795fa5cb4b6",
+            "chunk_id": "18d21cb8-494b-4f0f-9e5f-187f70956b5c",
             "doc": "plan-changes",
             "section": "Upgrades",
             "version": 1,
@@ -1702,7 +2112,7 @@
             "cited": false
           },
           {
-            "chunk_id": "b7681ef6-a434-4fb3-9df6-0bdd5b3d1dba",
+            "chunk_id": "3a980392-b5e9-4d41-aa57-073ec12c2311",
             "doc": "refunds-and-credits",
             "section": "Credits, not card refunds",
             "version": 1,
@@ -1711,7 +2121,7 @@
             "cited": false
           },
           {
-            "chunk_id": "b27c5bc0-0b45-4465-a6b6-61666ec44d38",
+            "chunk_id": "46798f16-81fc-470d-9a34-c325e9c78e02",
             "doc": "escalation-and-support",
             "section": "Priorities",
             "version": 1,
@@ -1720,7 +2130,7 @@
             "cited": false
           },
           {
-            "chunk_id": "699ebee0-de70-4e54-8000-d4441cef1761",
+            "chunk_id": "ba40fb91-06c7-4a9e-8bf8-703435b56f57",
             "doc": "escalation-and-support",
             "section": "Response targets",
             "version": 1,
@@ -1791,12 +2201,48 @@
         "state_reason": "Proposal v1: escalate",
         "category": "billing",
         "next_action": "escalate",
-        "request_id": "f2f7efd1-7ec0-4744-8c50-ee93952dd8af",
+        "retrieval_probe": {
+          "passages": [
+            {
+              "doc": "refunds-and-credits",
+              "section": "How to handle a refund request",
+              "score": 0.6376
+            },
+            {
+              "doc": "plans-and-pricing",
+              "section": "Plans at a glance",
+              "score": 0.6127
+            },
+            {
+              "doc": "refunds-and-credits",
+              "section": "Exceptions are decided by Accounts Receivable",
+              "score": 0.606
+            },
+            {
+              "doc": "plans-and-pricing",
+              "section": "Overview",
+              "score": 0.5912
+            },
+            {
+              "doc": "billing-faq",
+              "section": "Overview",
+              "score": 0.5814
+            },
+            {
+              "doc": "billing-and-charges",
+              "section": "Upgrades are charged in full",
+              "score": 0.5736
+            }
+          ],
+          "evidence_status": "insufficient",
+          "best_score": 0.6376
+        },
+        "request_id": "88431522-f65f-4c13-909c-4b37d8cada23",
         "ai_run": {
           "provider": "simulated",
           "model": null,
           "status": "succeeded",
-          "latency_ms": 28,
+          "latency_ms": 12,
           "input_tokens": 0,
           "output_tokens": 0,
           "api_calls": 0,
@@ -1804,7 +2250,7 @@
         },
         "retrieved": [
           {
-            "chunk_id": "0476ee6e-b7fe-4f07-8c97-70b2db884592",
+            "chunk_id": "bdb7594f-faf1-442c-93c3-abcfd346925d",
             "doc": "billing-and-charges",
             "section": "Upgrades are charged in full",
             "version": 1,
@@ -1813,7 +2259,7 @@
             "cited": false
           },
           {
-            "chunk_id": "89fa6f4d-748e-4546-afec-2c1dd1c89a33",
+            "chunk_id": "297c2abc-ffd4-4a72-9a3f-c370d10399a7",
             "doc": "billing-and-charges",
             "section": "Failed payments",
             "version": 1,
@@ -1822,7 +2268,7 @@
             "cited": false
           },
           {
-            "chunk_id": "b7681ef6-a434-4fb3-9df6-0bdd5b3d1dba",
+            "chunk_id": "3a980392-b5e9-4d41-aa57-073ec12c2311",
             "doc": "refunds-and-credits",
             "section": "Credits, not card refunds",
             "version": 1,
@@ -1831,7 +2277,7 @@
             "cited": true
           },
           {
-            "chunk_id": "1b27c9a7-d163-43d9-bbe5-6503a2ffde52",
+            "chunk_id": "632f41d5-d39d-46b4-9eae-d3fb9242f73f",
             "doc": "refunds-and-credits",
             "section": "Exceptions are decided by Accounts Receivable",
             "version": 1,
@@ -1840,7 +2286,7 @@
             "cited": true
           },
           {
-            "chunk_id": "42553e23-6940-4eeb-b969-e1b02603dec3",
+            "chunk_id": "9d0be8f9-318d-4734-aeb2-5fd41898c817",
             "doc": "refunds-and-credits",
             "section": "How to handle a refund request",
             "version": 1,
@@ -1849,7 +2295,7 @@
             "cited": false
           },
           {
-            "chunk_id": "184254bc-e789-4b89-b3df-3f78d8b7191d",
+            "chunk_id": "eb5cf28e-6a10-4a92-86b0-8e7d36e8f6d9",
             "doc": "escalation-and-support",
             "section": "Teams",
             "version": 1,
@@ -1858,7 +2304,7 @@
             "cited": false
           },
           {
-            "chunk_id": "b27c5bc0-0b45-4465-a6b6-61666ec44d38",
+            "chunk_id": "46798f16-81fc-470d-9a34-c325e9c78e02",
             "doc": "escalation-and-support",
             "section": "Priorities",
             "version": 1,
@@ -1867,7 +2313,7 @@
             "cited": false
           },
           {
-            "chunk_id": "699ebee0-de70-4e54-8000-d4441cef1761",
+            "chunk_id": "ba40fb91-06c7-4a9e-8bf8-703435b56f57",
             "doc": "escalation-and-support",
             "section": "Response targets",
             "version": 1,
@@ -1940,7 +2386,43 @@
         "state_reason": "Demo mode only handles the seeded scenarios. This message was not processed by any AI model. Run one of this workspace's demo scenarios, or have a signed-in reviewer process it in live mode.",
         "category": null,
         "next_action": null,
-        "request_id": "145722c5-508c-481f-a190-89256121a11b",
+        "retrieval_probe": {
+          "passages": [
+            {
+              "doc": "integrations-troubleshooting",
+              "section": "Error codes",
+              "score": 0.8052
+            },
+            {
+              "doc": "integrations-troubleshooting",
+              "section": "Overview",
+              "score": 0.701
+            },
+            {
+              "doc": "integrations-troubleshooting",
+              "section": "When to escalate",
+              "score": 0.6315
+            },
+            {
+              "doc": "escalation-and-support",
+              "section": "Priorities",
+              "score": 0.6035
+            },
+            {
+              "doc": "billing-faq",
+              "section": "Which currencies can we invoice in?",
+              "score": 0.5834
+            },
+            {
+              "doc": "billing-faq",
+              "section": "Overview",
+              "score": 0.5809
+            }
+          ],
+          "evidence_status": "sufficient",
+          "best_score": 0.8052
+        },
+        "request_id": "f5513117-fd25-455e-8a59-eb8e2ea498d1",
         "ai_run": {
           "provider": "simulated",
           "model": null,
@@ -1969,12 +2451,48 @@
         "state_reason": "Proposal v1: clarify",
         "category": "access",
         "next_action": "clarify",
-        "request_id": "95af5216-f907-4517-bf53-500653d25cd0",
+        "retrieval_probe": {
+          "passages": [
+            {
+              "doc": "reporting-troubleshooting",
+              "section": "User cannot see or open Reporting",
+              "score": 0.7795
+            },
+            {
+              "doc": "roles-and-permissions",
+              "section": "Roles after a plan upgrade",
+              "score": 0.7146
+            },
+            {
+              "doc": "reporting-troubleshooting",
+              "section": "Scheduled report did not arrive",
+              "score": 0.6868
+            },
+            {
+              "doc": "sso-and-access",
+              "section": "Access a user should not have",
+              "score": 0.6649
+            },
+            {
+              "doc": "plans-and-features",
+              "section": "Features by plan",
+              "score": 0.6531
+            },
+            {
+              "doc": "plans-and-features",
+              "section": "Plan features versus user permissions",
+              "score": 0.6408
+            }
+          ],
+          "evidence_status": "sufficient",
+          "best_score": 0.7795
+        },
+        "request_id": "4364c1b5-9cbb-41fc-a368-d746de55692b",
         "ai_run": {
           "provider": "simulated",
           "model": null,
           "status": "succeeded",
-          "latency_ms": 19,
+          "latency_ms": 17,
           "input_tokens": 0,
           "output_tokens": 0,
           "api_calls": 0,
@@ -1982,7 +2500,7 @@
         },
         "retrieved": [
           {
-            "chunk_id": "d51a2428-a5fa-46b7-bbad-51c821895dc8",
+            "chunk_id": "623dc596-7cf2-408f-b665-3ff7f6ac5176",
             "doc": "plans-and-features",
             "section": "Plan comparison",
             "version": 1,
@@ -1991,7 +2509,7 @@
             "cited": false
           },
           {
-            "chunk_id": "851b1c79-1195-4f10-b776-ce9879ec0620",
+            "chunk_id": "83483dbf-cfb1-4d8c-92d9-9ecdab249c80",
             "doc": "plans-and-features",
             "section": "Features by plan",
             "version": 1,
@@ -2000,7 +2518,7 @@
             "cited": false
           },
           {
-            "chunk_id": "0f4c662e-fe17-4d20-85fe-4d0801b2caee",
+            "chunk_id": "98306a64-a51b-4dc7-8e1c-19f910b5648c",
             "doc": "plans-and-features",
             "section": "Plan features versus user permissions",
             "version": 1,
@@ -2009,7 +2527,7 @@
             "cited": false
           },
           {
-            "chunk_id": "31103e4d-edf3-4107-bf51-8a2e2d8507fc",
+            "chunk_id": "ae45562e-1839-4daf-9e89-c7dbfafbcb38",
             "doc": "roles-and-permissions",
             "section": "Role permissions",
             "version": 1,
@@ -2018,7 +2536,7 @@
             "cited": false
           },
           {
-            "chunk_id": "71a93752-06cf-47b4-80a2-0f74c7bcf432",
+            "chunk_id": "523271df-f3d8-41aa-aaa0-8d4dacb84e07",
             "doc": "roles-and-permissions",
             "section": "Roles after a plan upgrade",
             "version": 1,
@@ -2027,7 +2545,7 @@
             "cited": false
           },
           {
-            "chunk_id": "f85b14ce-a162-4810-8609-0106a50556f2",
+            "chunk_id": "aff525c8-dfd1-4726-b33d-a014e5730baf",
             "doc": "roles-and-permissions",
             "section": "Changing a user's role",
             "version": 1,
@@ -2036,7 +2554,7 @@
             "cited": false
           },
           {
-            "chunk_id": "d0f08c4f-5430-4109-a7e0-8ca903385962",
+            "chunk_id": "0139c35d-9023-4cf0-a7de-98da6047266e",
             "doc": "sso-and-access",
             "section": "SCIM provisioning",
             "version": 1,
@@ -2045,7 +2563,7 @@
             "cited": false
           },
           {
-            "chunk_id": "c973e9cd-7447-4d02-8a41-b3192cea05b6",
+            "chunk_id": "28992450-536d-46f4-bb7b-72f562e8540c",
             "doc": "sso-and-access",
             "section": "Access a user should not have",
             "version": 1,
@@ -2054,7 +2572,7 @@
             "cited": false
           },
           {
-            "chunk_id": "76c59e57-a603-4a2f-b70a-1ce2f35b3fa8",
+            "chunk_id": "07d45100-0b22-480d-aca0-4e95a01936e5",
             "doc": "reporting-troubleshooting",
             "section": "User cannot see or open Reporting",
             "version": 1,
@@ -2063,7 +2581,7 @@
             "cited": true
           },
           {
-            "chunk_id": "36fd7ac7-86fd-47e8-b5e9-e58888d4ab5b",
+            "chunk_id": "6e72aa5f-f2be-49c0-a6fd-465b48a064fc",
             "doc": "reporting-troubleshooting",
             "section": "Scheduled report did not arrive",
             "version": 1,
@@ -2123,12 +2641,48 @@
         "state_reason": "Proposal v1: resolve",
         "category": "access",
         "next_action": "resolve",
-        "request_id": "76503cf4-0582-4dca-a864-36022a52f7ae",
+        "retrieval_probe": {
+          "passages": [
+            {
+              "doc": "reporting-troubleshooting",
+              "section": "User cannot see or open Reporting",
+              "score": 0.7795
+            },
+            {
+              "doc": "roles-and-permissions",
+              "section": "Roles after a plan upgrade",
+              "score": 0.7146
+            },
+            {
+              "doc": "reporting-troubleshooting",
+              "section": "Scheduled report did not arrive",
+              "score": 0.6868
+            },
+            {
+              "doc": "sso-and-access",
+              "section": "Access a user should not have",
+              "score": 0.6649
+            },
+            {
+              "doc": "plans-and-features",
+              "section": "Features by plan",
+              "score": 0.6531
+            },
+            {
+              "doc": "plans-and-features",
+              "section": "Plan features versus user permissions",
+              "score": 0.6408
+            }
+          ],
+          "evidence_status": "sufficient",
+          "best_score": 0.7795
+        },
+        "request_id": "edd03e16-9350-4498-b3ad-74805b28b497",
         "ai_run": {
           "provider": "simulated",
           "model": null,
           "status": "succeeded",
-          "latency_ms": 18,
+          "latency_ms": 17,
           "input_tokens": 0,
           "output_tokens": 0,
           "api_calls": 0,
@@ -2136,7 +2690,7 @@
         },
         "retrieved": [
           {
-            "chunk_id": "d51a2428-a5fa-46b7-bbad-51c821895dc8",
+            "chunk_id": "623dc596-7cf2-408f-b665-3ff7f6ac5176",
             "doc": "plans-and-features",
             "section": "Plan comparison",
             "version": 1,
@@ -2145,7 +2699,7 @@
             "cited": false
           },
           {
-            "chunk_id": "851b1c79-1195-4f10-b776-ce9879ec0620",
+            "chunk_id": "83483dbf-cfb1-4d8c-92d9-9ecdab249c80",
             "doc": "plans-and-features",
             "section": "Features by plan",
             "version": 1,
@@ -2154,7 +2708,7 @@
             "cited": true
           },
           {
-            "chunk_id": "0f4c662e-fe17-4d20-85fe-4d0801b2caee",
+            "chunk_id": "98306a64-a51b-4dc7-8e1c-19f910b5648c",
             "doc": "plans-and-features",
             "section": "Plan features versus user permissions",
             "version": 1,
@@ -2163,7 +2717,7 @@
             "cited": false
           },
           {
-            "chunk_id": "31103e4d-edf3-4107-bf51-8a2e2d8507fc",
+            "chunk_id": "ae45562e-1839-4daf-9e89-c7dbfafbcb38",
             "doc": "roles-and-permissions",
             "section": "Role permissions",
             "version": 1,
@@ -2172,7 +2726,7 @@
             "cited": false
           },
           {
-            "chunk_id": "71a93752-06cf-47b4-80a2-0f74c7bcf432",
+            "chunk_id": "523271df-f3d8-41aa-aaa0-8d4dacb84e07",
             "doc": "roles-and-permissions",
             "section": "Roles after a plan upgrade",
             "version": 1,
@@ -2181,7 +2735,7 @@
             "cited": true
           },
           {
-            "chunk_id": "f85b14ce-a162-4810-8609-0106a50556f2",
+            "chunk_id": "aff525c8-dfd1-4726-b33d-a014e5730baf",
             "doc": "roles-and-permissions",
             "section": "Changing a user's role",
             "version": 1,
@@ -2190,7 +2744,7 @@
             "cited": true
           },
           {
-            "chunk_id": "d0f08c4f-5430-4109-a7e0-8ca903385962",
+            "chunk_id": "0139c35d-9023-4cf0-a7de-98da6047266e",
             "doc": "sso-and-access",
             "section": "SCIM provisioning",
             "version": 1,
@@ -2199,7 +2753,7 @@
             "cited": false
           },
           {
-            "chunk_id": "c973e9cd-7447-4d02-8a41-b3192cea05b6",
+            "chunk_id": "28992450-536d-46f4-bb7b-72f562e8540c",
             "doc": "sso-and-access",
             "section": "Access a user should not have",
             "version": 1,
@@ -2208,7 +2762,7 @@
             "cited": false
           },
           {
-            "chunk_id": "76c59e57-a603-4a2f-b70a-1ce2f35b3fa8",
+            "chunk_id": "07d45100-0b22-480d-aca0-4e95a01936e5",
             "doc": "reporting-troubleshooting",
             "section": "User cannot see or open Reporting",
             "version": 1,
@@ -2217,7 +2771,7 @@
             "cited": true
           },
           {
-            "chunk_id": "36fd7ac7-86fd-47e8-b5e9-e58888d4ab5b",
+            "chunk_id": "6e72aa5f-f2be-49c0-a6fd-465b48a064fc",
             "doc": "reporting-troubleshooting",
             "section": "Scheduled report did not arrive",
             "version": 1,
@@ -2307,12 +2861,48 @@
         "state_reason": "Demo mode only handles the seeded scenarios. This message was not processed by any AI model. Run one of this workspace's demo scenarios, or have a signed-in reviewer process it in live mode.",
         "category": null,
         "next_action": null,
-        "request_id": "81826e16-6f84-483e-8a8c-46d9d08675a4",
+        "retrieval_probe": {
+          "passages": [
+            {
+              "doc": "data-connectors-troubleshooting",
+              "section": "Stale dashboards",
+              "score": 0.6077
+            },
+            {
+              "doc": "known-issues",
+              "section": "KI-2031: Snowflake syncs time out with NS-CONN-504",
+              "score": 0.605
+            },
+            {
+              "doc": "data-connectors-troubleshooting",
+              "section": "When to escalate a connector failure",
+              "score": 0.5942
+            },
+            {
+              "doc": "escalation-policy",
+              "section": "Engineering escalation",
+              "score": 0.5895
+            },
+            {
+              "doc": "data-connectors-troubleshooting",
+              "section": "Error codes",
+              "score": 0.5829
+            },
+            {
+              "doc": "seat-management",
+              "section": "Seat limit reached",
+              "score": 0.5682
+            }
+          ],
+          "evidence_status": "insufficient",
+          "best_score": 0.6077
+        },
+        "request_id": "200d058f-bccc-4e62-b43e-eeab7945dd4a",
         "ai_run": {
           "provider": "simulated",
           "model": null,
           "status": "succeeded",
-          "latency_ms": 1,
+          "latency_ms": 0,
           "input_tokens": 0,
           "output_tokens": 0,
           "api_calls": 0,
@@ -2336,7 +2926,43 @@
         "state_reason": "Demo mode only handles the seeded scenarios. This message was not processed by any AI model. Run one of this workspace's demo scenarios, or have a signed-in reviewer process it in live mode.",
         "category": null,
         "next_action": null,
-        "request_id": "f28f4af9-1d33-4a68-88bc-a9951af917d5",
+        "retrieval_probe": {
+          "passages": [
+            {
+              "doc": "plans-and-features",
+              "section": "Overview",
+              "score": 0.7158
+            },
+            {
+              "doc": "refund-policy",
+              "section": "Refunds are decided by humans",
+              "score": 0.6909
+            },
+            {
+              "doc": "billing-and-invoices",
+              "section": "Charges that look duplicated",
+              "score": 0.6776
+            },
+            {
+              "doc": "escalation-policy",
+              "section": "Always handled by a human",
+              "score": 0.5888
+            },
+            {
+              "doc": "refund-policy",
+              "section": "Annual plans",
+              "score": 0.5847
+            },
+            {
+              "doc": "plans-and-features",
+              "section": "Plan comparison",
+              "score": 0.5815
+            }
+          ],
+          "evidence_status": "insufficient",
+          "best_score": 0.7158
+        },
+        "request_id": "603bc358-6dcb-465c-bf75-ec6fa7e41728",
         "ai_run": {
           "provider": "simulated",
           "model": null,
@@ -2365,12 +2991,48 @@
         "state_reason": "Proposal v1: resolve",
         "category": "access",
         "next_action": "resolve",
-        "request_id": "ed71c13a-5cce-4b30-b3ab-534ce08320d9",
+        "retrieval_probe": {
+          "passages": [
+            {
+              "doc": "escalation-and-support",
+              "section": "Priorities",
+              "score": 0.6534
+            },
+            {
+              "doc": "plan-changes",
+              "section": "Who can change a plan",
+              "score": 0.6528
+            },
+            {
+              "doc": "integrations-troubleshooting",
+              "section": "Error codes",
+              "score": 0.6393
+            },
+            {
+              "doc": "escalation-and-support",
+              "section": "Teams",
+              "score": 0.6314
+            },
+            {
+              "doc": "plans-and-pricing",
+              "section": "Features by plan",
+              "score": 0.6109
+            },
+            {
+              "doc": "integrations-troubleshooting",
+              "section": "When to escalate",
+              "score": 0.6106
+            }
+          ],
+          "evidence_status": "insufficient",
+          "best_score": 0.6534
+        },
+        "request_id": "b5df9956-883d-4ed1-998e-4e57f4aaa9a2",
         "ai_run": {
           "provider": "simulated",
           "model": null,
           "status": "succeeded",
-          "latency_ms": 20,
+          "latency_ms": 17,
           "input_tokens": 0,
           "output_tokens": 0,
           "api_calls": 0,
@@ -2378,7 +3040,7 @@
         },
         "retrieved": [
           {
-            "chunk_id": "c10fe3ca-7721-490b-81a8-5cf8e344b177",
+            "chunk_id": "a9595f49-55af-4e72-9c26-a4f7c23dcc42",
             "doc": "plans-and-pricing",
             "section": "Plans at a glance",
             "version": 1,
@@ -2387,7 +3049,7 @@
             "cited": false
           },
           {
-            "chunk_id": "39699f9a-8d78-4692-b2f0-0d1ea945740c",
+            "chunk_id": "c6a39bc7-669a-4ab8-92f5-9e8a2543c3f1",
             "doc": "plans-and-pricing",
             "section": "Features by plan",
             "version": 1,
@@ -2396,7 +3058,7 @@
             "cited": false
           },
           {
-            "chunk_id": "f076e5df-9872-4a31-8a39-5d5892f74d13",
+            "chunk_id": "363acf7a-05ae-435b-b44f-14718a4ae09c",
             "doc": "plans-and-pricing",
             "section": "Upgrading to get Insights",
             "version": 1,
@@ -2405,7 +3067,7 @@
             "cited": false
           },
           {
-            "chunk_id": "0c079b74-18ae-4651-8033-1ee55e0cc0e3",
+            "chunk_id": "6d8a7a04-2627-47b5-9449-7cc327dbb509",
             "doc": "team-roles",
             "section": "Overview",
             "version": 1,
@@ -2414,7 +3076,7 @@
             "cited": false
           },
           {
-            "chunk_id": "989cf8d5-7343-4fa0-bb28-bfebb88ce0dd",
+            "chunk_id": "44b7f68e-57d3-4df5-8947-f7a625ebdefb",
             "doc": "team-roles",
             "section": "What each role can do",
             "version": 1,
@@ -2423,7 +3085,7 @@
             "cited": false
           },
           {
-            "chunk_id": "483495b4-5431-4c81-9277-9815275bf941",
+            "chunk_id": "5d9cfb26-5e33-42c7-a534-48cbede4ed9c",
             "doc": "team-roles",
             "section": "Roles after a plan change",
             "version": 1,
@@ -2432,7 +3094,7 @@
             "cited": true
           },
           {
-            "chunk_id": "b6e47d82-b36b-4b6f-b4c0-1aa501dc66e4",
+            "chunk_id": "4bc4f3ba-18e6-4d0d-8bfd-ba8c9589bdbc",
             "doc": "plan-changes",
             "section": "Overview",
             "version": 1,
@@ -2441,7 +3103,7 @@
             "cited": false
           },
           {
-            "chunk_id": "4bb7d8c6-8cdf-419b-9f31-ab98cc6e83a2",
+            "chunk_id": "b2029568-e32c-45b8-a861-7fd9cf768ad0",
             "doc": "plan-changes",
             "section": "Who can change a plan",
             "version": 1,
@@ -2450,7 +3112,7 @@
             "cited": false
           },
           {
-            "chunk_id": "4186c650-1599-49c5-bede-ea52481fd71e",
+            "chunk_id": "8d623756-5cb8-4d44-bcb7-adeac559f203",
             "doc": "integrations-troubleshooting",
             "section": "Error codes",
             "version": 1,
@@ -2459,7 +3121,7 @@
             "cited": false
           },
           {
-            "chunk_id": "184254bc-e789-4b89-b3df-3f78d8b7191d",
+            "chunk_id": "eb5cf28e-6a10-4a92-86b0-8e7d36e8f6d9",
             "doc": "escalation-and-support",
             "section": "Teams",
             "version": 1,
@@ -2468,7 +3130,7 @@
             "cited": false
           },
           {
-            "chunk_id": "b27c5bc0-0b45-4465-a6b6-61666ec44d38",
+            "chunk_id": "46798f16-81fc-470d-9a34-c325e9c78e02",
             "doc": "escalation-and-support",
             "section": "Priorities",
             "version": 1,
@@ -2477,7 +3139,7 @@
             "cited": false
           },
           {
-            "chunk_id": "699ebee0-de70-4e54-8000-d4441cef1761",
+            "chunk_id": "ba40fb91-06c7-4a9e-8bf8-703435b56f57",
             "doc": "escalation-and-support",
             "section": "Response targets",
             "version": 1,
@@ -2537,12 +3199,48 @@
         "state_reason": "Proposal v1: resolve",
         "category": "billing",
         "next_action": "resolve",
-        "request_id": "6cab73a1-dc03-4de9-bf15-d23abae79ec8",
+        "retrieval_probe": {
+          "passages": [
+            {
+              "doc": "billing-and-charges",
+              "section": "Two charges in one month",
+              "score": 0.7918
+            },
+            {
+              "doc": "billing-and-charges",
+              "section": "Upgrades are charged in full",
+              "score": 0.679
+            },
+            {
+              "doc": "plans-and-pricing",
+              "section": "Plans at a glance",
+              "score": 0.6618
+            },
+            {
+              "doc": "billing-and-charges",
+              "section": "How Lumen bills",
+              "score": 0.6517
+            },
+            {
+              "doc": "escalation-and-support",
+              "section": "Priorities",
+              "score": 0.6497
+            },
+            {
+              "doc": "billing-faq",
+              "section": "Overview",
+              "score": 0.6459
+            }
+          ],
+          "evidence_status": "sufficient",
+          "best_score": 0.7918
+        },
+        "request_id": "68f12429-a2fd-47c9-8275-54bf92fe4cd0",
         "ai_run": {
           "provider": "simulated",
           "model": null,
           "status": "succeeded",
-          "latency_ms": 22,
+          "latency_ms": 13,
           "input_tokens": 0,
           "output_tokens": 0,
           "api_calls": 0,
@@ -2550,7 +3248,7 @@
         },
         "retrieved": [
           {
-            "chunk_id": "fa245aab-16ae-405c-bbcd-a84045d72ea2",
+            "chunk_id": "4df5dafb-8eb3-4083-8c10-d978e1a67031",
             "doc": "billing-faq",
             "section": "Can we downgrade in the middle of our term?",
             "version": 1,
@@ -2559,7 +3257,7 @@
             "cited": false
           },
           {
-            "chunk_id": "3bf8efbe-6cb9-4aa9-9b78-407f70ca6929",
+            "chunk_id": "52731483-5443-4c4a-af95-ccabb9a16111",
             "doc": "billing-and-charges",
             "section": "How Lumen bills",
             "version": 1,
@@ -2568,7 +3266,7 @@
             "cited": false
           },
           {
-            "chunk_id": "0476ee6e-b7fe-4f07-8c97-70b2db884592",
+            "chunk_id": "bdb7594f-faf1-442c-93c3-abcfd346925d",
             "doc": "billing-and-charges",
             "section": "Upgrades are charged in full",
             "version": 1,
@@ -2577,7 +3275,7 @@
             "cited": true
           },
           {
-            "chunk_id": "5a9574c9-b8e6-40a1-886a-0573b01afede",
+            "chunk_id": "a06ac2bd-342a-4775-8b13-e106103b9642",
             "doc": "billing-and-charges",
             "section": "Two charges in one month",
             "version": 1,
@@ -2586,7 +3284,7 @@
             "cited": true
           },
           {
-            "chunk_id": "89fa6f4d-748e-4546-afec-2c1dd1c89a33",
+            "chunk_id": "297c2abc-ffd4-4a72-9a3f-c370d10399a7",
             "doc": "billing-and-charges",
             "section": "Failed payments",
             "version": 1,
@@ -2595,7 +3293,7 @@
             "cited": false
           },
           {
-            "chunk_id": "807c0d29-3f4d-42a0-8e05-f795fa5cb4b6",
+            "chunk_id": "18d21cb8-494b-4f0f-9e5f-187f70956b5c",
             "doc": "plan-changes",
             "section": "Upgrades",
             "version": 1,
@@ -2604,7 +3302,7 @@
             "cited": false
           },
           {
-            "chunk_id": "b7681ef6-a434-4fb3-9df6-0bdd5b3d1dba",
+            "chunk_id": "3a980392-b5e9-4d41-aa57-073ec12c2311",
             "doc": "refunds-and-credits",
             "section": "Credits, not card refunds",
             "version": 1,
@@ -2613,7 +3311,7 @@
             "cited": false
           },
           {
-            "chunk_id": "b27c5bc0-0b45-4465-a6b6-61666ec44d38",
+            "chunk_id": "46798f16-81fc-470d-9a34-c325e9c78e02",
             "doc": "escalation-and-support",
             "section": "Priorities",
             "version": 1,
@@ -2622,7 +3320,7 @@
             "cited": false
           },
           {
-            "chunk_id": "699ebee0-de70-4e54-8000-d4441cef1761",
+            "chunk_id": "ba40fb91-06c7-4a9e-8bf8-703435b56f57",
             "doc": "escalation-and-support",
             "section": "Response targets",
             "version": 1,
@@ -2692,7 +3390,43 @@
         "state_reason": "Demo mode only handles the seeded scenarios. This message was not processed by any AI model. Run one of this workspace's demo scenarios, or have a signed-in reviewer process it in live mode.",
         "category": null,
         "next_action": null,
-        "request_id": "eef62f67-8488-4edb-8179-48f2f06514a9",
+        "retrieval_probe": {
+          "passages": [
+            {
+              "doc": "plan-changes",
+              "section": "Who can change a plan",
+              "score": 0.6788
+            },
+            {
+              "doc": "plans-and-pricing",
+              "section": "Upgrading to get Insights",
+              "score": 0.642
+            },
+            {
+              "doc": "plan-changes",
+              "section": "Overview",
+              "score": 0.6279
+            },
+            {
+              "doc": "plan-changes",
+              "section": "Upgrades",
+              "score": 0.6207
+            },
+            {
+              "doc": "billing-faq",
+              "section": "Can we downgrade in the middle of our term?",
+              "score": 0.605
+            },
+            {
+              "doc": "billing-and-charges",
+              "section": "Two charges in one month",
+              "score": 0.6007
+            }
+          ],
+          "evidence_status": "insufficient",
+          "best_score": 0.6788
+        },
+        "request_id": "6c4a7e51-8e71-46a2-b41f-5eca20b752f4",
         "ai_run": {
           "provider": "simulated",
           "model": null,
@@ -2721,7 +3455,43 @@
         "state_reason": "Demo mode only handles the seeded scenarios. This message was not processed by any AI model. Run one of this workspace's demo scenarios, or have a signed-in reviewer process it in live mode.",
         "category": null,
         "next_action": null,
-        "request_id": "9b18f902-b18a-44e1-8def-a8f8d1814e23",
+        "retrieval_probe": {
+          "passages": [
+            {
+              "doc": "plans-and-features",
+              "section": "Plan comparison",
+              "score": 0.5397
+            },
+            {
+              "doc": "reporting-troubleshooting",
+              "section": "Scheduled report did not arrive",
+              "score": 0.5346
+            },
+            {
+              "doc": "billing-and-invoices",
+              "section": "Where to find invoices",
+              "score": 0.5235
+            },
+            {
+              "doc": "plans-and-features",
+              "section": "Features by plan",
+              "score": 0.5225
+            },
+            {
+              "doc": "reporting-troubleshooting",
+              "section": "Export fails",
+              "score": 0.5109
+            },
+            {
+              "doc": "refund-policy",
+              "section": "Refunds are decided by humans",
+              "score": 0.507
+            }
+          ],
+          "evidence_status": "insufficient",
+          "best_score": 0.5397
+        },
+        "request_id": "6652f277-c8ba-40f9-8312-ed9d69698e26",
         "ai_run": {
           "provider": "simulated",
           "model": null,
@@ -2750,7 +3520,43 @@
         "state_reason": "Demo mode only handles the seeded scenarios. This message was not processed by any AI model. Run one of this workspace's demo scenarios, or have a signed-in reviewer process it in live mode.",
         "category": null,
         "next_action": null,
-        "request_id": "16e5d09b-5f08-4e7b-babb-f949b182cf22",
+        "retrieval_probe": {
+          "passages": [
+            {
+              "doc": "plans-and-features",
+              "section": "Overview",
+              "score": 0.6426
+            },
+            {
+              "doc": "plans-and-features",
+              "section": "Plan comparison",
+              "score": 0.6202
+            },
+            {
+              "doc": "known-issues",
+              "section": "KI-2031: Snowflake syncs time out with NS-CONN-504",
+              "score": 0.5962
+            },
+            {
+              "doc": "billing-and-invoices",
+              "section": "Billing cycles",
+              "score": 0.5741
+            },
+            {
+              "doc": "billing-and-invoices",
+              "section": "Charges that look duplicated",
+              "score": 0.5659
+            },
+            {
+              "doc": "proration-and-plan-changes",
+              "section": "Seat additions",
+              "score": 0.5628
+            }
+          ],
+          "evidence_status": "insufficient",
+          "best_score": 0.6426
+        },
+        "request_id": "68d3b775-f863-43c1-9d71-9bba6bf1ab44",
         "ai_run": {
           "provider": "simulated",
           "model": null,
@@ -2779,7 +3585,43 @@
         "state_reason": "Demo mode only handles the seeded scenarios. This message was not processed by any AI model. Run one of this workspace's demo scenarios, or have a signed-in reviewer process it in live mode.",
         "category": null,
         "next_action": null,
-        "request_id": "6f3b8a4d-5a31-46b4-9744-f3a0d59a2d0e",
+        "retrieval_probe": {
+          "passages": [
+            {
+              "doc": "billing-faq",
+              "section": "Which currencies can we invoice in?",
+              "score": 0.6212
+            },
+            {
+              "doc": "escalation-and-support",
+              "section": "Priorities",
+              "score": 0.5661
+            },
+            {
+              "doc": "plans-and-pricing",
+              "section": "Plans at a glance",
+              "score": 0.5591
+            },
+            {
+              "doc": "refunds-and-credits",
+              "section": "Exceptions are decided by Accounts Receivable",
+              "score": 0.5537
+            },
+            {
+              "doc": "integrations-troubleshooting",
+              "section": "Error codes",
+              "score": 0.5525
+            },
+            {
+              "doc": "plans-and-pricing",
+              "section": "Overview",
+              "score": 0.5372
+            }
+          ],
+          "evidence_status": "insufficient",
+          "best_score": 0.6212
+        },
+        "request_id": "5d604b19-afc9-4860-998b-2049024b48a7",
         "ai_run": {
           "provider": "simulated",
           "model": null,
@@ -2808,7 +3650,43 @@
         "state_reason": "Proposal v1: escalate",
         "category": "product_issue",
         "next_action": "escalate",
-        "request_id": "7c9953a0-defe-4590-b8be-d7f80b28a633",
+        "retrieval_probe": {
+          "passages": [
+            {
+              "doc": "billing-faq",
+              "section": "Where do we find our invoices?",
+              "score": 0.6996
+            },
+            {
+              "doc": "integrations-troubleshooting",
+              "section": "Overview",
+              "score": 0.6991
+            },
+            {
+              "doc": "refunds-and-credits",
+              "section": "Credits, not card refunds",
+              "score": 0.6787
+            },
+            {
+              "doc": "plans-and-pricing",
+              "section": "Overview",
+              "score": 0.651
+            },
+            {
+              "doc": "billing-and-charges",
+              "section": "Upgrades are charged in full",
+              "score": 0.6506
+            },
+            {
+              "doc": "billing-faq",
+              "section": "Which currencies can we invoice in?",
+              "score": 0.6422
+            }
+          ],
+          "evidence_status": "insufficient",
+          "best_score": 0.6996
+        },
+        "request_id": "72d69707-a2bd-4cef-8731-9c5ccc0615af",
         "ai_run": {
           "provider": "simulated",
           "model": null,
@@ -2821,7 +3699,7 @@
         },
         "retrieved": [
           {
-            "chunk_id": "3bf8efbe-6cb9-4aa9-9b78-407f70ca6929",
+            "chunk_id": "52731483-5443-4c4a-af95-ccabb9a16111",
             "doc": "billing-and-charges",
             "section": "How Lumen bills",
             "version": 1,
@@ -2830,7 +3708,7 @@
             "cited": false
           },
           {
-            "chunk_id": "2da2d72b-be2e-46e8-9947-69ee2a8e6155",
+            "chunk_id": "25256aca-fb09-42fe-86d5-5906aac47b0e",
             "doc": "billing-faq",
             "section": "Which currencies can we invoice in?",
             "version": 1,
@@ -2839,7 +3717,7 @@
             "cited": false
           },
           {
-            "chunk_id": "b71c6424-3d30-4b8d-a5dc-e0dec8769260",
+            "chunk_id": "a7072b2a-5477-4600-82c4-1b7b0d34e2b3",
             "doc": "billing-faq",
             "section": "Where do we find our invoices?",
             "version": 1,
@@ -2848,7 +3726,7 @@
             "cited": false
           },
           {
-            "chunk_id": "dbae5321-516f-4305-b704-55928f6fe37d",
+            "chunk_id": "e1fd7326-91fd-48c3-9682-5ebb3679cfe3",
             "doc": "integrations-troubleshooting",
             "section": "Overview",
             "version": 1,
@@ -2857,7 +3735,7 @@
             "cited": false
           },
           {
-            "chunk_id": "184254bc-e789-4b89-b3df-3f78d8b7191d",
+            "chunk_id": "eb5cf28e-6a10-4a92-86b0-8e7d36e8f6d9",
             "doc": "escalation-and-support",
             "section": "Teams",
             "version": 1,
@@ -2866,7 +3744,7 @@
             "cited": false
           },
           {
-            "chunk_id": "b27c5bc0-0b45-4465-a6b6-61666ec44d38",
+            "chunk_id": "46798f16-81fc-470d-9a34-c325e9c78e02",
             "doc": "escalation-and-support",
             "section": "Priorities",
             "version": 1,
@@ -2875,7 +3753,7 @@
             "cited": false
           },
           {
-            "chunk_id": "699ebee0-de70-4e54-8000-d4441cef1761",
+            "chunk_id": "ba40fb91-06c7-4a9e-8bf8-703435b56f57",
             "doc": "escalation-and-support",
             "section": "Response targets",
             "version": 1,
@@ -2925,12 +3803,48 @@
         "state_reason": "Proposal v1: escalate",
         "category": "product_issue",
         "next_action": "escalate",
-        "request_id": "09fd3f9c-ef2a-40b3-b4cc-e0a8ffd846ef",
+        "retrieval_probe": {
+          "passages": [
+            {
+              "doc": "billing-faq",
+              "section": "Where do we find our invoices?",
+              "score": 0.698
+            },
+            {
+              "doc": "integrations-troubleshooting",
+              "section": "Overview",
+              "score": 0.6958
+            },
+            {
+              "doc": "refunds-and-credits",
+              "section": "Credits, not card refunds",
+              "score": 0.6712
+            },
+            {
+              "doc": "plans-and-pricing",
+              "section": "Overview",
+              "score": 0.6448
+            },
+            {
+              "doc": "billing-faq",
+              "section": "Which currencies can we invoice in?",
+              "score": 0.6422
+            },
+            {
+              "doc": "billing-and-charges",
+              "section": "Upgrades are charged in full",
+              "score": 0.6422
+            }
+          ],
+          "evidence_status": "insufficient",
+          "best_score": 0.698
+        },
+        "request_id": "08228f61-d730-498d-95bf-dbe16a15577d",
         "ai_run": {
           "provider": "simulated",
           "model": null,
           "status": "succeeded",
-          "latency_ms": 17,
+          "latency_ms": 13,
           "input_tokens": 0,
           "output_tokens": 0,
           "api_calls": 0,
@@ -2938,7 +3852,7 @@
         },
         "retrieved": [
           {
-            "chunk_id": "3bf8efbe-6cb9-4aa9-9b78-407f70ca6929",
+            "chunk_id": "52731483-5443-4c4a-af95-ccabb9a16111",
             "doc": "billing-and-charges",
             "section": "How Lumen bills",
             "version": 1,
@@ -2947,7 +3861,7 @@
             "cited": false
           },
           {
-            "chunk_id": "2da2d72b-be2e-46e8-9947-69ee2a8e6155",
+            "chunk_id": "25256aca-fb09-42fe-86d5-5906aac47b0e",
             "doc": "billing-faq",
             "section": "Which currencies can we invoice in?",
             "version": 1,
@@ -2956,7 +3870,7 @@
             "cited": false
           },
           {
-            "chunk_id": "b71c6424-3d30-4b8d-a5dc-e0dec8769260",
+            "chunk_id": "a7072b2a-5477-4600-82c4-1b7b0d34e2b3",
             "doc": "billing-faq",
             "section": "Where do we find our invoices?",
             "version": 1,
@@ -2965,7 +3879,7 @@
             "cited": false
           },
           {
-            "chunk_id": "dbae5321-516f-4305-b704-55928f6fe37d",
+            "chunk_id": "e1fd7326-91fd-48c3-9682-5ebb3679cfe3",
             "doc": "integrations-troubleshooting",
             "section": "Overview",
             "version": 1,
@@ -2974,7 +3888,7 @@
             "cited": false
           },
           {
-            "chunk_id": "184254bc-e789-4b89-b3df-3f78d8b7191d",
+            "chunk_id": "eb5cf28e-6a10-4a92-86b0-8e7d36e8f6d9",
             "doc": "escalation-and-support",
             "section": "Teams",
             "version": 1,
@@ -2983,7 +3897,7 @@
             "cited": false
           },
           {
-            "chunk_id": "b27c5bc0-0b45-4465-a6b6-61666ec44d38",
+            "chunk_id": "46798f16-81fc-470d-9a34-c325e9c78e02",
             "doc": "escalation-and-support",
             "section": "Priorities",
             "version": 1,
@@ -2992,7 +3906,7 @@
             "cited": false
           },
           {
-            "chunk_id": "699ebee0-de70-4e54-8000-d4441cef1761",
+            "chunk_id": "ba40fb91-06c7-4a9e-8bf8-703435b56f57",
             "doc": "escalation-and-support",
             "section": "Response targets",
             "version": 1,
@@ -3042,7 +3956,43 @@
         "state_reason": "Demo mode only handles the seeded scenarios. This message was not processed by any AI model. Run one of this workspace's demo scenarios, or have a signed-in reviewer process it in live mode.",
         "category": null,
         "next_action": null,
-        "request_id": "3ad9a23e-abce-4834-bb0a-75055fe3d7a8",
+        "retrieval_probe": {
+          "passages": [
+            {
+              "doc": "known-issues",
+              "section": "KI-2031: Snowflake syncs time out with NS-CONN-504",
+              "score": 0.6269
+            },
+            {
+              "doc": "roles-and-permissions",
+              "section": "Overview",
+              "score": 0.622
+            },
+            {
+              "doc": "plans-and-features",
+              "section": "Overview",
+              "score": 0.6016
+            },
+            {
+              "doc": "data-connectors-troubleshooting",
+              "section": "Stale dashboards",
+              "score": 0.5985
+            },
+            {
+              "doc": "dashboard-troubleshooting",
+              "section": "Numbers differ from the source system",
+              "score": 0.5947
+            },
+            {
+              "doc": "data-connectors-troubleshooting",
+              "section": "When to escalate a connector failure",
+              "score": 0.5884
+            }
+          ],
+          "evidence_status": "insufficient",
+          "best_score": 0.6269
+        },
+        "request_id": "a2da7ff4-7580-495b-90c2-31d24f178a93",
         "ai_run": {
           "provider": "simulated",
           "model": null,
@@ -3071,12 +4021,48 @@
         "state_reason": "Proposal v1: escalate",
         "category": "billing",
         "next_action": "escalate",
-        "request_id": "e4f42322-6158-40fe-b69f-8bc821d91557",
+        "retrieval_probe": {
+          "passages": [
+            {
+              "doc": "billing-faq",
+              "section": "Can we downgrade in the middle of our term?",
+              "score": 0.7656
+            },
+            {
+              "doc": "plan-changes",
+              "section": "Downgrades",
+              "score": 0.761
+            },
+            {
+              "doc": "plan-changes",
+              "section": "Who can change a plan",
+              "score": 0.671
+            },
+            {
+              "doc": "plan-changes",
+              "section": "Upgrades",
+              "score": 0.6697
+            },
+            {
+              "doc": "plans-and-pricing",
+              "section": "Features by plan",
+              "score": 0.6678
+            },
+            {
+              "doc": "billing-and-charges",
+              "section": "Upgrades are charged in full",
+              "score": 0.6622
+            }
+          ],
+          "evidence_status": "conflicting",
+          "best_score": 0.7656
+        },
+        "request_id": "9c5797ff-6523-40f6-a289-f70a83fec5e3",
         "ai_run": {
           "provider": "simulated",
           "model": null,
           "status": "succeeded",
-          "latency_ms": 17,
+          "latency_ms": 13,
           "input_tokens": 0,
           "output_tokens": 0,
           "api_calls": 0,
@@ -3084,7 +4070,7 @@
         },
         "retrieved": [
           {
-            "chunk_id": "fa245aab-16ae-405c-bbcd-a84045d72ea2",
+            "chunk_id": "4df5dafb-8eb3-4083-8c10-d978e1a67031",
             "doc": "billing-faq",
             "section": "Can we downgrade in the middle of our term?",
             "version": 1,
@@ -3093,7 +4079,7 @@
             "cited": false
           },
           {
-            "chunk_id": "0476ee6e-b7fe-4f07-8c97-70b2db884592",
+            "chunk_id": "bdb7594f-faf1-442c-93c3-abcfd346925d",
             "doc": "billing-and-charges",
             "section": "Upgrades are charged in full",
             "version": 1,
@@ -3102,7 +4088,7 @@
             "cited": false
           },
           {
-            "chunk_id": "807c0d29-3f4d-42a0-8e05-f795fa5cb4b6",
+            "chunk_id": "18d21cb8-494b-4f0f-9e5f-187f70956b5c",
             "doc": "plan-changes",
             "section": "Upgrades",
             "version": 1,
@@ -3111,7 +4097,7 @@
             "cited": false
           },
           {
-            "chunk_id": "74e369d3-e235-488c-88bf-87ad3bce5332",
+            "chunk_id": "f996060e-1093-493a-af53-ec3ef23f91a6",
             "doc": "plan-changes",
             "section": "Downgrades",
             "version": 1,
@@ -3120,7 +4106,7 @@
             "cited": true
           },
           {
-            "chunk_id": "4bb7d8c6-8cdf-419b-9f31-ab98cc6e83a2",
+            "chunk_id": "b2029568-e32c-45b8-a861-7fd9cf768ad0",
             "doc": "plan-changes",
             "section": "Who can change a plan",
             "version": 1,
@@ -3129,7 +4115,7 @@
             "cited": false
           },
           {
-            "chunk_id": "1b27c9a7-d163-43d9-bbe5-6503a2ffde52",
+            "chunk_id": "632f41d5-d39d-46b4-9eae-d3fb9242f73f",
             "doc": "refunds-and-credits",
             "section": "Exceptions are decided by Accounts Receivable",
             "version": 1,
@@ -3138,7 +4124,7 @@
             "cited": false
           },
           {
-            "chunk_id": "4186c650-1599-49c5-bede-ea52481fd71e",
+            "chunk_id": "8d623756-5cb8-4d44-bcb7-adeac559f203",
             "doc": "integrations-troubleshooting",
             "section": "Error codes",
             "version": 1,
@@ -3147,7 +4133,7 @@
             "cited": false
           },
           {
-            "chunk_id": "89c9ec24-78d4-4891-97ae-e4818c7807f8",
+            "chunk_id": "76826e1b-f8d9-4ba5-a295-f4979a5fce5c",
             "doc": "integrations-troubleshooting",
             "section": "When to escalate",
             "version": 1,
@@ -3156,7 +4142,7 @@
             "cited": false
           },
           {
-            "chunk_id": "b27c5bc0-0b45-4465-a6b6-61666ec44d38",
+            "chunk_id": "46798f16-81fc-470d-9a34-c325e9c78e02",
             "doc": "escalation-and-support",
             "section": "Priorities",
             "version": 1,
@@ -3217,12 +4203,48 @@
         "state_reason": "Proposal v1: escalate",
         "category": "billing",
         "next_action": "escalate",
-        "request_id": "34669a9d-9a10-4f22-9b8c-6ff8f0d57c3f",
+        "retrieval_probe": {
+          "passages": [
+            {
+              "doc": "billing-faq",
+              "section": "Can we downgrade in the middle of our term?",
+              "score": 0.7567
+            },
+            {
+              "doc": "plan-changes",
+              "section": "Downgrades",
+              "score": 0.7519
+            },
+            {
+              "doc": "plan-changes",
+              "section": "Upgrades",
+              "score": 0.6623
+            },
+            {
+              "doc": "billing-and-charges",
+              "section": "Upgrades are charged in full",
+              "score": 0.6482
+            },
+            {
+              "doc": "plan-changes",
+              "section": "Who can change a plan",
+              "score": 0.646
+            },
+            {
+              "doc": "plans-and-pricing",
+              "section": "Features by plan",
+              "score": 0.644
+            }
+          ],
+          "evidence_status": "conflicting",
+          "best_score": 0.7567
+        },
+        "request_id": "e5cef01b-33aa-4125-a38b-ba4c82927fc5",
         "ai_run": {
           "provider": "simulated",
           "model": null,
           "status": "succeeded",
-          "latency_ms": 23,
+          "latency_ms": 13,
           "input_tokens": 0,
           "output_tokens": 0,
           "api_calls": 0,
@@ -3230,7 +4252,7 @@
         },
         "retrieved": [
           {
-            "chunk_id": "fa245aab-16ae-405c-bbcd-a84045d72ea2",
+            "chunk_id": "4df5dafb-8eb3-4083-8c10-d978e1a67031",
             "doc": "billing-faq",
             "section": "Can we downgrade in the middle of our term?",
             "version": 1,
@@ -3239,7 +4261,7 @@
             "cited": false
           },
           {
-            "chunk_id": "0476ee6e-b7fe-4f07-8c97-70b2db884592",
+            "chunk_id": "bdb7594f-faf1-442c-93c3-abcfd346925d",
             "doc": "billing-and-charges",
             "section": "Upgrades are charged in full",
             "version": 1,
@@ -3248,7 +4270,7 @@
             "cited": false
           },
           {
-            "chunk_id": "807c0d29-3f4d-42a0-8e05-f795fa5cb4b6",
+            "chunk_id": "18d21cb8-494b-4f0f-9e5f-187f70956b5c",
             "doc": "plan-changes",
             "section": "Upgrades",
             "version": 1,
@@ -3257,7 +4279,7 @@
             "cited": false
           },
           {
-            "chunk_id": "74e369d3-e235-488c-88bf-87ad3bce5332",
+            "chunk_id": "f996060e-1093-493a-af53-ec3ef23f91a6",
             "doc": "plan-changes",
             "section": "Downgrades",
             "version": 1,
@@ -3266,7 +4288,7 @@
             "cited": true
           },
           {
-            "chunk_id": "4bb7d8c6-8cdf-419b-9f31-ab98cc6e83a2",
+            "chunk_id": "b2029568-e32c-45b8-a861-7fd9cf768ad0",
             "doc": "plan-changes",
             "section": "Who can change a plan",
             "version": 1,
@@ -3275,7 +4297,7 @@
             "cited": false
           },
           {
-            "chunk_id": "1b27c9a7-d163-43d9-bbe5-6503a2ffde52",
+            "chunk_id": "632f41d5-d39d-46b4-9eae-d3fb9242f73f",
             "doc": "refunds-and-credits",
             "section": "Exceptions are decided by Accounts Receivable",
             "version": 1,
@@ -3284,7 +4306,7 @@
             "cited": false
           },
           {
-            "chunk_id": "4186c650-1599-49c5-bede-ea52481fd71e",
+            "chunk_id": "8d623756-5cb8-4d44-bcb7-adeac559f203",
             "doc": "integrations-troubleshooting",
             "section": "Error codes",
             "version": 1,
@@ -3293,7 +4315,7 @@
             "cited": false
           },
           {
-            "chunk_id": "89c9ec24-78d4-4891-97ae-e4818c7807f8",
+            "chunk_id": "76826e1b-f8d9-4ba5-a295-f4979a5fce5c",
             "doc": "integrations-troubleshooting",
             "section": "When to escalate",
             "version": 1,
@@ -3302,7 +4324,7 @@
             "cited": false
           },
           {
-            "chunk_id": "b27c5bc0-0b45-4465-a6b6-61666ec44d38",
+            "chunk_id": "46798f16-81fc-470d-9a34-c325e9c78e02",
             "doc": "escalation-and-support",
             "section": "Priorities",
             "version": 1,
@@ -3363,12 +4385,48 @@
         "state_reason": "Demo mode only handles the seeded scenarios. This message was not processed by any AI model. Run one of this workspace's demo scenarios, or have a signed-in reviewer process it in live mode.",
         "category": null,
         "next_action": null,
-        "request_id": "2d23447d-34c2-48b0-910a-a16086678b18",
+        "retrieval_probe": {
+          "passages": [
+            {
+              "doc": "billing-faq",
+              "section": "Can we downgrade in the middle of our term?",
+              "score": 0.7547
+            },
+            {
+              "doc": "plan-changes",
+              "section": "Downgrades",
+              "score": 0.7044
+            },
+            {
+              "doc": "billing-and-charges",
+              "section": "Two charges in one month",
+              "score": 0.6455
+            },
+            {
+              "doc": "billing-and-charges",
+              "section": "Upgrades are charged in full",
+              "score": 0.6373
+            },
+            {
+              "doc": "refunds-and-credits",
+              "section": "Credits, not card refunds",
+              "score": 0.628
+            },
+            {
+              "doc": "plan-changes",
+              "section": "Who can change a plan",
+              "score": 0.6261
+            }
+          ],
+          "evidence_status": "sufficient",
+          "best_score": 0.7547
+        },
+        "request_id": "5657d7c5-cb63-4997-b09c-ff0301b0baa0",
         "ai_run": {
           "provider": "simulated",
           "model": null,
           "status": "succeeded",
-          "latency_ms": 1,
+          "latency_ms": 0,
           "input_tokens": 0,
           "output_tokens": 0,
           "api_calls": 0,
@@ -3392,12 +4450,48 @@
         "state_reason": "Proposal v1: resolve",
         "category": "access",
         "next_action": "resolve",
-        "request_id": "5cf338d8-7623-4866-8cfe-df5b9d98cba0",
+        "retrieval_probe": {
+          "passages": [
+            {
+              "doc": "reporting-troubleshooting",
+              "section": "User cannot see or open Reporting",
+              "score": 0.7795
+            },
+            {
+              "doc": "roles-and-permissions",
+              "section": "Roles after a plan upgrade",
+              "score": 0.7146
+            },
+            {
+              "doc": "reporting-troubleshooting",
+              "section": "Scheduled report did not arrive",
+              "score": 0.6868
+            },
+            {
+              "doc": "sso-and-access",
+              "section": "Access a user should not have",
+              "score": 0.6649
+            },
+            {
+              "doc": "plans-and-features",
+              "section": "Features by plan",
+              "score": 0.6531
+            },
+            {
+              "doc": "plans-and-features",
+              "section": "Plan features versus user permissions",
+              "score": 0.6408
+            }
+          ],
+          "evidence_status": "sufficient",
+          "best_score": 0.7795
+        },
+        "request_id": "cc3ee129-c5cd-4e60-b3c3-ddf2a3a5f016",
         "ai_run": {
           "provider": "simulated",
           "model": null,
           "status": "succeeded",
-          "latency_ms": 28,
+          "latency_ms": 18,
           "input_tokens": 0,
           "output_tokens": 0,
           "api_calls": 0,
@@ -3405,7 +4499,7 @@
         },
         "retrieved": [
           {
-            "chunk_id": "d51a2428-a5fa-46b7-bbad-51c821895dc8",
+            "chunk_id": "623dc596-7cf2-408f-b665-3ff7f6ac5176",
             "doc": "plans-and-features",
             "section": "Plan comparison",
             "version": 1,
@@ -3414,7 +4508,7 @@
             "cited": false
           },
           {
-            "chunk_id": "851b1c79-1195-4f10-b776-ce9879ec0620",
+            "chunk_id": "83483dbf-cfb1-4d8c-92d9-9ecdab249c80",
             "doc": "plans-and-features",
             "section": "Features by plan",
             "version": 1,
@@ -3423,7 +4517,7 @@
             "cited": true
           },
           {
-            "chunk_id": "0f4c662e-fe17-4d20-85fe-4d0801b2caee",
+            "chunk_id": "98306a64-a51b-4dc7-8e1c-19f910b5648c",
             "doc": "plans-and-features",
             "section": "Plan features versus user permissions",
             "version": 1,
@@ -3432,7 +4526,7 @@
             "cited": false
           },
           {
-            "chunk_id": "31103e4d-edf3-4107-bf51-8a2e2d8507fc",
+            "chunk_id": "ae45562e-1839-4daf-9e89-c7dbfafbcb38",
             "doc": "roles-and-permissions",
             "section": "Role permissions",
             "version": 1,
@@ -3441,7 +4535,7 @@
             "cited": false
           },
           {
-            "chunk_id": "71a93752-06cf-47b4-80a2-0f74c7bcf432",
+            "chunk_id": "523271df-f3d8-41aa-aaa0-8d4dacb84e07",
             "doc": "roles-and-permissions",
             "section": "Roles after a plan upgrade",
             "version": 1,
@@ -3450,7 +4544,7 @@
             "cited": true
           },
           {
-            "chunk_id": "f85b14ce-a162-4810-8609-0106a50556f2",
+            "chunk_id": "aff525c8-dfd1-4726-b33d-a014e5730baf",
             "doc": "roles-and-permissions",
             "section": "Changing a user's role",
             "version": 1,
@@ -3459,7 +4553,7 @@
             "cited": true
           },
           {
-            "chunk_id": "d0f08c4f-5430-4109-a7e0-8ca903385962",
+            "chunk_id": "0139c35d-9023-4cf0-a7de-98da6047266e",
             "doc": "sso-and-access",
             "section": "SCIM provisioning",
             "version": 1,
@@ -3468,7 +4562,7 @@
             "cited": false
           },
           {
-            "chunk_id": "c973e9cd-7447-4d02-8a41-b3192cea05b6",
+            "chunk_id": "28992450-536d-46f4-bb7b-72f562e8540c",
             "doc": "sso-and-access",
             "section": "Access a user should not have",
             "version": 1,
@@ -3477,7 +4571,7 @@
             "cited": false
           },
           {
-            "chunk_id": "76c59e57-a603-4a2f-b70a-1ce2f35b3fa8",
+            "chunk_id": "07d45100-0b22-480d-aca0-4e95a01936e5",
             "doc": "reporting-troubleshooting",
             "section": "User cannot see or open Reporting",
             "version": 1,
@@ -3486,7 +4580,7 @@
             "cited": true
           },
           {
-            "chunk_id": "36fd7ac7-86fd-47e8-b5e9-e58888d4ab5b",
+            "chunk_id": "6e72aa5f-f2be-49c0-a6fd-465b48a064fc",
             "doc": "reporting-troubleshooting",
             "section": "Scheduled report did not arrive",
             "version": 1,
@@ -3578,12 +4672,48 @@
         "state_reason": "Proposal v1: resolve",
         "category": "billing",
         "next_action": "resolve",
-        "request_id": "8292bb3d-f13d-4b15-894b-a8fe9b8f2e6e",
+        "retrieval_probe": {
+          "passages": [
+            {
+              "doc": "billing-and-charges",
+              "section": "Two charges in one month",
+              "score": 0.7918
+            },
+            {
+              "doc": "billing-and-charges",
+              "section": "Upgrades are charged in full",
+              "score": 0.679
+            },
+            {
+              "doc": "plans-and-pricing",
+              "section": "Plans at a glance",
+              "score": 0.6618
+            },
+            {
+              "doc": "billing-and-charges",
+              "section": "How Lumen bills",
+              "score": 0.6517
+            },
+            {
+              "doc": "escalation-and-support",
+              "section": "Priorities",
+              "score": 0.6497
+            },
+            {
+              "doc": "billing-faq",
+              "section": "Overview",
+              "score": 0.6459
+            }
+          ],
+          "evidence_status": "sufficient",
+          "best_score": 0.7918
+        },
+        "request_id": "bfafadeb-cfa4-4456-9133-a2c041879a46",
         "ai_run": {
           "provider": "simulated",
           "model": null,
           "status": "succeeded",
-          "latency_ms": 14,
+          "latency_ms": 13,
           "input_tokens": 0,
           "output_tokens": 0,
           "api_calls": 0,
@@ -3591,7 +4721,7 @@
         },
         "retrieved": [
           {
-            "chunk_id": "fa245aab-16ae-405c-bbcd-a84045d72ea2",
+            "chunk_id": "4df5dafb-8eb3-4083-8c10-d978e1a67031",
             "doc": "billing-faq",
             "section": "Can we downgrade in the middle of our term?",
             "version": 1,
@@ -3600,7 +4730,7 @@
             "cited": false
           },
           {
-            "chunk_id": "3bf8efbe-6cb9-4aa9-9b78-407f70ca6929",
+            "chunk_id": "52731483-5443-4c4a-af95-ccabb9a16111",
             "doc": "billing-and-charges",
             "section": "How Lumen bills",
             "version": 1,
@@ -3609,7 +4739,7 @@
             "cited": false
           },
           {
-            "chunk_id": "0476ee6e-b7fe-4f07-8c97-70b2db884592",
+            "chunk_id": "bdb7594f-faf1-442c-93c3-abcfd346925d",
             "doc": "billing-and-charges",
             "section": "Upgrades are charged in full",
             "version": 1,
@@ -3618,7 +4748,7 @@
             "cited": true
           },
           {
-            "chunk_id": "5a9574c9-b8e6-40a1-886a-0573b01afede",
+            "chunk_id": "a06ac2bd-342a-4775-8b13-e106103b9642",
             "doc": "billing-and-charges",
             "section": "Two charges in one month",
             "version": 1,
@@ -3627,7 +4757,7 @@
             "cited": true
           },
           {
-            "chunk_id": "89fa6f4d-748e-4546-afec-2c1dd1c89a33",
+            "chunk_id": "297c2abc-ffd4-4a72-9a3f-c370d10399a7",
             "doc": "billing-and-charges",
             "section": "Failed payments",
             "version": 1,
@@ -3636,7 +4766,7 @@
             "cited": false
           },
           {
-            "chunk_id": "807c0d29-3f4d-42a0-8e05-f795fa5cb4b6",
+            "chunk_id": "18d21cb8-494b-4f0f-9e5f-187f70956b5c",
             "doc": "plan-changes",
             "section": "Upgrades",
             "version": 1,
@@ -3645,7 +4775,7 @@
             "cited": false
           },
           {
-            "chunk_id": "b7681ef6-a434-4fb3-9df6-0bdd5b3d1dba",
+            "chunk_id": "3a980392-b5e9-4d41-aa57-073ec12c2311",
             "doc": "refunds-and-credits",
             "section": "Credits, not card refunds",
             "version": 1,
@@ -3654,7 +4784,7 @@
             "cited": false
           },
           {
-            "chunk_id": "b27c5bc0-0b45-4465-a6b6-61666ec44d38",
+            "chunk_id": "46798f16-81fc-470d-9a34-c325e9c78e02",
             "doc": "escalation-and-support",
             "section": "Priorities",
             "version": 1,
@@ -3663,7 +4793,7 @@
             "cited": false
           },
           {
-            "chunk_id": "699ebee0-de70-4e54-8000-d4441cef1761",
+            "chunk_id": "ba40fb91-06c7-4a9e-8bf8-703435b56f57",
             "doc": "escalation-and-support",
             "section": "Response targets",
             "version": 1,
@@ -3735,12 +4865,48 @@
         "state_reason": "Proposal v1: escalate",
         "category": "billing",
         "next_action": "escalate",
-        "request_id": "daf320b5-4392-43c0-84bb-36c13df53466",
+        "retrieval_probe": {
+          "passages": [
+            {
+              "doc": "proration-and-plan-changes",
+              "section": "Downgrades and seat reductions",
+              "score": 0.7183
+            },
+            {
+              "doc": "seat-management",
+              "section": "Removing seats",
+              "score": 0.7178
+            },
+            {
+              "doc": "seat-management",
+              "section": "Seat limit reached",
+              "score": 0.7057
+            },
+            {
+              "doc": "refund-policy",
+              "section": "Annual plans",
+              "score": 0.6678
+            },
+            {
+              "doc": "seat-management",
+              "section": "How seats work",
+              "score": 0.6676
+            },
+            {
+              "doc": "proration-and-plan-changes",
+              "section": "Seat additions",
+              "score": 0.6459
+            }
+          ],
+          "evidence_status": "insufficient",
+          "best_score": 0.7183
+        },
+        "request_id": "60e4176c-7984-4f9e-84d2-b212f9d6cb01",
         "ai_run": {
           "provider": "simulated",
           "model": null,
           "status": "succeeded",
-          "latency_ms": 14,
+          "latency_ms": 13,
           "input_tokens": 0,
           "output_tokens": 0,
           "api_calls": 0,
@@ -3748,7 +4914,7 @@
         },
         "retrieved": [
           {
-            "chunk_id": "601b0c0b-802e-4db2-8532-b2633ded4b97",
+            "chunk_id": "c471cd6b-a06f-4b14-8f43-cf1e5ffb90de",
             "doc": "seat-management",
             "section": "How seats work",
             "version": 1,
@@ -3757,7 +4923,7 @@
             "cited": false
           },
           {
-            "chunk_id": "23bd7121-b90b-4895-8864-57080e302498",
+            "chunk_id": "9c7f0a05-73a4-44fb-a415-2f144293ca28",
             "doc": "seat-management",
             "section": "Adding seats",
             "version": 1,
@@ -3766,7 +4932,7 @@
             "cited": false
           },
           {
-            "chunk_id": "37b8d66b-7aee-48b6-9803-da1362bb200d",
+            "chunk_id": "b6d94436-9ae3-4804-a0bd-b323fcd55c2f",
             "doc": "seat-management",
             "section": "Removing seats",
             "version": 1,
@@ -3775,7 +4941,7 @@
             "cited": true
           },
           {
-            "chunk_id": "ef2cae44-10d6-49aa-88d7-68a303fff2ba",
+            "chunk_id": "9edc717a-c615-450d-b840-986770403c92",
             "doc": "seat-management",
             "section": "Seat limit reached",
             "version": 1,
@@ -3784,7 +4950,7 @@
             "cited": false
           },
           {
-            "chunk_id": "f4cbe9b1-465a-45f8-ae68-cc48d4708f22",
+            "chunk_id": "25e37afc-38ab-4fbc-be7e-f2db95754a98",
             "doc": "billing-and-invoices",
             "section": "Charges that look duplicated",
             "version": 1,
@@ -3793,7 +4959,7 @@
             "cited": false
           },
           {
-            "chunk_id": "9fcf005c-6131-4cd3-a820-42a35abd89da",
+            "chunk_id": "b0e550f2-7421-42fb-9ba5-ff823e24b698",
             "doc": "proration-and-plan-changes",
             "section": "Seat additions",
             "version": 1,
@@ -3802,7 +4968,7 @@
             "cited": false
           },
           {
-            "chunk_id": "1dd93e50-07d7-47be-8b90-164f4da6fa5c",
+            "chunk_id": "a8737adb-4140-4026-b3a4-a812d7d3ca1b",
             "doc": "proration-and-plan-changes",
             "section": "Downgrades and seat reductions",
             "version": 1,
@@ -3811,7 +4977,7 @@
             "cited": false
           },
           {
-            "chunk_id": "e1aec4cf-163e-4834-81f2-cebaa8395bca",
+            "chunk_id": "c425cfc7-7214-4224-87d4-d5c0b671adb4",
             "doc": "refund-policy",
             "section": "Refunds are decided by humans",
             "version": 1,
@@ -3820,7 +4986,7 @@
             "cited": true
           },
           {
-            "chunk_id": "7198b536-a7f0-4546-9de4-5f1a85490c25",
+            "chunk_id": "43f7ed6c-6d36-4a45-9c81-87a82392fe3b",
             "doc": "refund-policy",
             "section": "How to handle a refund request",
             "version": 1,
@@ -3829,7 +4995,7 @@
             "cited": true
           },
           {
-            "chunk_id": "900b3ffc-5881-42cc-8406-8ed7e8b35e0c",
+            "chunk_id": "e202cd61-e3ae-41d2-b6af-f0e02afee027",
             "doc": "refund-policy",
             "section": "Annual plans",
             "version": 1,
@@ -3838,7 +5004,7 @@
             "cited": false
           },
           {
-            "chunk_id": "fed3412c-454b-48b3-a7bf-4208c7f40131",
+            "chunk_id": "3c176e44-e300-468f-9a27-f4078e393898",
             "doc": "escalation-policy",
             "section": "Always handled by a human",
             "version": 1,
@@ -3847,7 +5013,7 @@
             "cited": false
           },
           {
-            "chunk_id": "73ba277e-0619-431e-ae65-683253b5a5db",
+            "chunk_id": "b6658613-3f6c-4a47-b64c-c80eee7136b8",
             "doc": "escalation-policy",
             "section": "Missing information",
             "version": 1,
@@ -3932,12 +5098,48 @@
         "state_reason": "Proposal v1: resolve",
         "category": "access",
         "next_action": "resolve",
-        "request_id": "89196cd8-9f51-47a1-aea6-f1575690be00",
+        "retrieval_probe": {
+          "passages": [
+            {
+              "doc": "reporting-troubleshooting",
+              "section": "User cannot see or open Reporting",
+              "score": 0.7292
+            },
+            {
+              "doc": "seat-management",
+              "section": "Adding seats",
+              "score": 0.7075
+            },
+            {
+              "doc": "seat-management",
+              "section": "Seat limit reached",
+              "score": 0.6993
+            },
+            {
+              "doc": "plans-and-features",
+              "section": "Plan comparison",
+              "score": 0.6889
+            },
+            {
+              "doc": "sso-and-access",
+              "section": "Access a user should not have",
+              "score": 0.6795
+            },
+            {
+              "doc": "reporting-troubleshooting",
+              "section": "Scheduled report did not arrive",
+              "score": 0.6649
+            }
+          ],
+          "evidence_status": "sufficient",
+          "best_score": 0.7292
+        },
+        "request_id": "b35e6880-979a-4964-afb7-cf9d7bca1219",
         "ai_run": {
           "provider": "simulated",
           "model": null,
           "status": "succeeded",
-          "latency_ms": 17,
+          "latency_ms": 16,
           "input_tokens": 0,
           "output_tokens": 0,
           "api_calls": 0,
@@ -3945,7 +5147,7 @@
         },
         "retrieved": [
           {
-            "chunk_id": "d51a2428-a5fa-46b7-bbad-51c821895dc8",
+            "chunk_id": "623dc596-7cf2-408f-b665-3ff7f6ac5176",
             "doc": "plans-and-features",
             "section": "Plan comparison",
             "version": 1,
@@ -3954,7 +5156,7 @@
             "cited": false
           },
           {
-            "chunk_id": "851b1c79-1195-4f10-b776-ce9879ec0620",
+            "chunk_id": "83483dbf-cfb1-4d8c-92d9-9ecdab249c80",
             "doc": "plans-and-features",
             "section": "Features by plan",
             "version": 1,
@@ -3963,7 +5165,7 @@
             "cited": true
           },
           {
-            "chunk_id": "0f4c662e-fe17-4d20-85fe-4d0801b2caee",
+            "chunk_id": "98306a64-a51b-4dc7-8e1c-19f910b5648c",
             "doc": "plans-and-features",
             "section": "Plan features versus user permissions",
             "version": 1,
@@ -3972,7 +5174,7 @@
             "cited": false
           },
           {
-            "chunk_id": "569e3cb9-ea44-4865-aebc-c31df5759175",
+            "chunk_id": "49439c8e-6a9c-4713-9b48-e8684703135e",
             "doc": "roles-and-permissions",
             "section": "Overview",
             "version": 1,
@@ -3981,7 +5183,7 @@
             "cited": false
           },
           {
-            "chunk_id": "31103e4d-edf3-4107-bf51-8a2e2d8507fc",
+            "chunk_id": "ae45562e-1839-4daf-9e89-c7dbfafbcb38",
             "doc": "roles-and-permissions",
             "section": "Role permissions",
             "version": 1,
@@ -3990,7 +5192,7 @@
             "cited": false
           },
           {
-            "chunk_id": "71a93752-06cf-47b4-80a2-0f74c7bcf432",
+            "chunk_id": "523271df-f3d8-41aa-aaa0-8d4dacb84e07",
             "doc": "roles-and-permissions",
             "section": "Roles after a plan upgrade",
             "version": 1,
@@ -3999,7 +5201,7 @@
             "cited": false
           },
           {
-            "chunk_id": "f85b14ce-a162-4810-8609-0106a50556f2",
+            "chunk_id": "aff525c8-dfd1-4726-b33d-a014e5730baf",
             "doc": "roles-and-permissions",
             "section": "Changing a user's role",
             "version": 1,
@@ -4008,7 +5210,7 @@
             "cited": true
           },
           {
-            "chunk_id": "d0f08c4f-5430-4109-a7e0-8ca903385962",
+            "chunk_id": "0139c35d-9023-4cf0-a7de-98da6047266e",
             "doc": "sso-and-access",
             "section": "SCIM provisioning",
             "version": 1,
@@ -4017,7 +5219,7 @@
             "cited": false
           },
           {
-            "chunk_id": "c973e9cd-7447-4d02-8a41-b3192cea05b6",
+            "chunk_id": "28992450-536d-46f4-bb7b-72f562e8540c",
             "doc": "sso-and-access",
             "section": "Access a user should not have",
             "version": 1,
@@ -4026,7 +5228,7 @@
             "cited": false
           },
           {
-            "chunk_id": "76c59e57-a603-4a2f-b70a-1ce2f35b3fa8",
+            "chunk_id": "07d45100-0b22-480d-aca0-4e95a01936e5",
             "doc": "reporting-troubleshooting",
             "section": "User cannot see or open Reporting",
             "version": 1,
@@ -4035,7 +5237,7 @@
             "cited": false
           },
           {
-            "chunk_id": "36fd7ac7-86fd-47e8-b5e9-e58888d4ab5b",
+            "chunk_id": "6e72aa5f-f2be-49c0-a6fd-465b48a064fc",
             "doc": "reporting-troubleshooting",
             "section": "Scheduled report did not arrive",
             "version": 1,
@@ -4044,7 +5246,7 @@
             "cited": false
           },
           {
-            "chunk_id": "17237987-64fd-4168-bff3-2771893d5dd4",
+            "chunk_id": "05c40ae0-9db1-45bb-a90e-bcd692ce0052",
             "doc": "proration-and-plan-changes",
             "section": "Upgrades",
             "version": 1,
@@ -4053,7 +5255,7 @@
             "cited": false
           },
           {
-            "chunk_id": "1dd93e50-07d7-47be-8b90-164f4da6fa5c",
+            "chunk_id": "a8737adb-4140-4026-b3a4-a812d7d3ca1b",
             "doc": "proration-and-plan-changes",
             "section": "Downgrades and seat reductions",
             "version": 1,
@@ -4062,7 +5264,7 @@
             "cited": false
           },
           {
-            "chunk_id": "096a963f-5bfb-415e-9078-26e0b2034d66",
+            "chunk_id": "1a9ce796-e9c7-4f11-a1d2-ec46a5643997",
             "doc": "proration-and-plan-changes",
             "section": "Who can change a plan",
             "version": 1,
@@ -4071,7 +5273,7 @@
             "cited": true
           },
           {
-            "chunk_id": "fed3412c-454b-48b3-a7bf-4208c7f40131",
+            "chunk_id": "3c176e44-e300-468f-9a27-f4078e393898",
             "doc": "escalation-policy",
             "section": "Always handled by a human",
             "version": 1,
@@ -4157,12 +5359,48 @@
         "state_reason": "Demo mode only handles the seeded scenarios. This message was not processed by any AI model. Run one of this workspace's demo scenarios, or have a signed-in reviewer process it in live mode.",
         "category": null,
         "next_action": null,
-        "request_id": "cc8157e7-2de9-4bf2-99e1-99c5fd7ea1ba",
+        "retrieval_probe": {
+          "passages": [
+            {
+              "doc": "refunds-and-credits",
+              "section": "Exceptions are decided by Accounts Receivable",
+              "score": 0.6856
+            },
+            {
+              "doc": "refunds-and-credits",
+              "section": "How to handle a refund request",
+              "score": 0.6846
+            },
+            {
+              "doc": "refunds-and-credits",
+              "section": "Credits, not card refunds",
+              "score": 0.6783
+            },
+            {
+              "doc": "billing-and-charges",
+              "section": "Upgrades are charged in full",
+              "score": 0.658
+            },
+            {
+              "doc": "billing-and-charges",
+              "section": "Two charges in one month",
+              "score": 0.6545
+            },
+            {
+              "doc": "escalation-and-support",
+              "section": "Teams",
+              "score": 0.6442
+            }
+          ],
+          "evidence_status": "insufficient",
+          "best_score": 0.6856
+        },
+        "request_id": "472a2c2f-72da-4b70-97aa-1e9141a6d61c",
         "ai_run": {
           "provider": "simulated",
           "model": null,
           "status": "succeeded",
-          "latency_ms": 1,
+          "latency_ms": 0,
           "input_tokens": 0,
           "output_tokens": 0,
           "api_calls": 0,
@@ -4186,7 +5424,43 @@
         "state_reason": "Demo mode only handles the seeded scenarios. This message was not processed by any AI model. Run one of this workspace's demo scenarios, or have a signed-in reviewer process it in live mode.",
         "category": null,
         "next_action": null,
-        "request_id": "2b9a80f3-4239-4361-bbd1-c3166d032736",
+        "retrieval_probe": {
+          "passages": [
+            {
+              "doc": "sso-and-access",
+              "section": "Password resets and lockouts",
+              "score": 0.7524
+            },
+            {
+              "doc": "seat-management",
+              "section": "Seat limit reached",
+              "score": 0.6674
+            },
+            {
+              "doc": "sso-and-access",
+              "section": "Access a user should not have",
+              "score": 0.644
+            },
+            {
+              "doc": "data-connectors-troubleshooting",
+              "section": "Error codes",
+              "score": 0.6334
+            },
+            {
+              "doc": "known-issues",
+              "section": "KI-2031: Snowflake syncs time out with NS-CONN-504",
+              "score": 0.629
+            },
+            {
+              "doc": "dashboard-troubleshooting",
+              "section": "Numbers differ from the source system",
+              "score": 0.6201
+            }
+          ],
+          "evidence_status": "sufficient",
+          "best_score": 0.7524
+        },
+        "request_id": "69614c6c-e057-4e97-b93b-efbfdf0d7924",
         "ai_run": {
           "provider": "simulated",
           "model": null,
@@ -4215,7 +5489,43 @@
         "state_reason": "Proposal v1: escalate",
         "category": "billing",
         "next_action": "escalate",
-        "request_id": "f9a73d54-240d-48c8-ac49-4ee5fb4b1295",
+        "retrieval_probe": {
+          "passages": [
+            {
+              "doc": "billing-operations-notes",
+              "section": "Refund handling for annual plans",
+              "score": 0.8024
+            },
+            {
+              "doc": "proration-and-plan-changes",
+              "section": "Downgrades and seat reductions",
+              "score": 0.7183
+            },
+            {
+              "doc": "seat-management",
+              "section": "Removing seats",
+              "score": 0.7178
+            },
+            {
+              "doc": "seat-management",
+              "section": "Seat limit reached",
+              "score": 0.7057
+            },
+            {
+              "doc": "refund-policy",
+              "section": "Annual plans",
+              "score": 0.6678
+            },
+            {
+              "doc": "seat-management",
+              "section": "How seats work",
+              "score": 0.6676
+            }
+          ],
+          "evidence_status": "sufficient",
+          "best_score": 0.8024
+        },
+        "request_id": "15c6033f-aaf7-4267-b13b-99b06c9eecd8",
         "ai_run": {
           "provider": "simulated",
           "model": null,
@@ -4228,7 +5538,7 @@
         },
         "retrieved": [
           {
-            "chunk_id": "23bd7121-b90b-4895-8864-57080e302498",
+            "chunk_id": "9c7f0a05-73a4-44fb-a415-2f144293ca28",
             "doc": "seat-management",
             "section": "Adding seats",
             "version": 1,
@@ -4237,7 +5547,7 @@
             "cited": false
           },
           {
-            "chunk_id": "ef2cae44-10d6-49aa-88d7-68a303fff2ba",
+            "chunk_id": "9edc717a-c615-450d-b840-986770403c92",
             "doc": "seat-management",
             "section": "Seat limit reached",
             "version": 1,
@@ -4246,7 +5556,7 @@
             "cited": false
           },
           {
-            "chunk_id": "601b0c0b-802e-4db2-8532-b2633ded4b97",
+            "chunk_id": "c471cd6b-a06f-4b14-8f43-cf1e5ffb90de",
             "doc": "seat-management",
             "section": "How seats work",
             "version": 1,
@@ -4255,7 +5565,7 @@
             "cited": false
           },
           {
-            "chunk_id": "37b8d66b-7aee-48b6-9803-da1362bb200d",
+            "chunk_id": "b6d94436-9ae3-4804-a0bd-b323fcd55c2f",
             "doc": "seat-management",
             "section": "Removing seats",
             "version": 1,
@@ -4264,7 +5574,7 @@
             "cited": true
           },
           {
-            "chunk_id": "9fcf005c-6131-4cd3-a820-42a35abd89da",
+            "chunk_id": "b0e550f2-7421-42fb-9ba5-ff823e24b698",
             "doc": "proration-and-plan-changes",
             "section": "Seat additions",
             "version": 1,
@@ -4273,7 +5583,7 @@
             "cited": false
           },
           {
-            "chunk_id": "1dd93e50-07d7-47be-8b90-164f4da6fa5c",
+            "chunk_id": "a8737adb-4140-4026-b3a4-a812d7d3ca1b",
             "doc": "proration-and-plan-changes",
             "section": "Downgrades and seat reductions",
             "version": 1,
@@ -4282,7 +5592,7 @@
             "cited": false
           },
           {
-            "chunk_id": "73ba277e-0619-431e-ae65-683253b5a5db",
+            "chunk_id": "b6658613-3f6c-4a47-b64c-c80eee7136b8",
             "doc": "escalation-policy",
             "section": "Missing information",
             "version": 1,
@@ -4291,7 +5601,7 @@
             "cited": false
           },
           {
-            "chunk_id": "fed3412c-454b-48b3-a7bf-4208c7f40131",
+            "chunk_id": "3c176e44-e300-468f-9a27-f4078e393898",
             "doc": "escalation-policy",
             "section": "Always handled by a human",
             "version": 1,
@@ -4300,7 +5610,7 @@
             "cited": false
           },
           {
-            "chunk_id": "ed07fe3d-f681-4336-be3d-e279dbeba354",
+            "chunk_id": "467734e4-2911-43b6-951e-b9b20d07aa05",
             "doc": "refund-policy",
             "section": "Annual plans",
             "version": 3,
@@ -4309,7 +5619,7 @@
             "cited": false
           },
           {
-            "chunk_id": "69959955-2335-44e9-8ec3-45bca3df5f17",
+            "chunk_id": "6a3f63f9-8d99-4edf-80d7-98ca7d77197f",
             "doc": "refund-policy",
             "section": "Refunds are decided by humans",
             "version": 3,
@@ -4318,7 +5628,7 @@
             "cited": true
           },
           {
-            "chunk_id": "dc0be48c-64f0-491c-8984-05d647cf216b",
+            "chunk_id": "c1206496-cc2a-4a9a-a028-e71acd3e8486",
             "doc": "refund-policy",
             "section": "How to handle a refund request",
             "version": 3,
@@ -4327,7 +5637,7 @@
             "cited": true
           },
           {
-            "chunk_id": "d85e9ccc-3d38-4cb5-bb6f-f4fcce8922b8",
+            "chunk_id": "cd2ad258-dfdf-40b0-8003-f05d66ee77aa",
             "doc": "billing-operations-notes",
             "section": "Refund handling for annual plans",
             "version": 1,
@@ -4411,7 +5721,43 @@
         "state_reason": "Proposal v1: resolve",
         "category": "access",
         "next_action": "resolve",
-        "request_id": "977ac630-fce5-4413-ab02-cc186e328e13",
+        "retrieval_probe": {
+          "passages": [
+            {
+              "doc": "insights-notes",
+              "section": "Reporting after an upgrade",
+              "score": 0.7032
+            },
+            {
+              "doc": "escalation-and-support",
+              "section": "Priorities",
+              "score": 0.6534
+            },
+            {
+              "doc": "plan-changes",
+              "section": "Who can change a plan",
+              "score": 0.6528
+            },
+            {
+              "doc": "integrations-troubleshooting",
+              "section": "Error codes",
+              "score": 0.6393
+            },
+            {
+              "doc": "escalation-and-support",
+              "section": "Teams",
+              "score": 0.6314
+            },
+            {
+              "doc": "plans-and-pricing",
+              "section": "Features by plan",
+              "score": 0.6109
+            }
+          ],
+          "evidence_status": "insufficient",
+          "best_score": 0.7032
+        },
+        "request_id": "3e665b00-4476-4e59-95fe-41dd378b87e1",
         "ai_run": {
           "provider": "simulated",
           "model": null,
@@ -4424,7 +5770,7 @@
         },
         "retrieved": [
           {
-            "chunk_id": "c10fe3ca-7721-490b-81a8-5cf8e344b177",
+            "chunk_id": "a9595f49-55af-4e72-9c26-a4f7c23dcc42",
             "doc": "plans-and-pricing",
             "section": "Plans at a glance",
             "version": 1,
@@ -4433,7 +5779,7 @@
             "cited": false
           },
           {
-            "chunk_id": "39699f9a-8d78-4692-b2f0-0d1ea945740c",
+            "chunk_id": "c6a39bc7-669a-4ab8-92f5-9e8a2543c3f1",
             "doc": "plans-and-pricing",
             "section": "Features by plan",
             "version": 1,
@@ -4442,7 +5788,7 @@
             "cited": true
           },
           {
-            "chunk_id": "f076e5df-9872-4a31-8a39-5d5892f74d13",
+            "chunk_id": "363acf7a-05ae-435b-b44f-14718a4ae09c",
             "doc": "plans-and-pricing",
             "section": "Upgrading to get Insights",
             "version": 1,
@@ -4451,7 +5797,7 @@
             "cited": true
           },
           {
-            "chunk_id": "0c079b74-18ae-4651-8033-1ee55e0cc0e3",
+            "chunk_id": "6d8a7a04-2627-47b5-9449-7cc327dbb509",
             "doc": "team-roles",
             "section": "Overview",
             "version": 1,
@@ -4460,7 +5806,7 @@
             "cited": false
           },
           {
-            "chunk_id": "989cf8d5-7343-4fa0-bb28-bfebb88ce0dd",
+            "chunk_id": "44b7f68e-57d3-4df5-8947-f7a625ebdefb",
             "doc": "team-roles",
             "section": "What each role can do",
             "version": 1,
@@ -4469,7 +5815,7 @@
             "cited": false
           },
           {
-            "chunk_id": "483495b4-5431-4c81-9277-9815275bf941",
+            "chunk_id": "5d9cfb26-5e33-42c7-a534-48cbede4ed9c",
             "doc": "team-roles",
             "section": "Roles after a plan change",
             "version": 1,
@@ -4478,7 +5824,7 @@
             "cited": true
           },
           {
-            "chunk_id": "b6e47d82-b36b-4b6f-b4c0-1aa501dc66e4",
+            "chunk_id": "4bc4f3ba-18e6-4d0d-8bfd-ba8c9589bdbc",
             "doc": "plan-changes",
             "section": "Overview",
             "version": 1,
@@ -4487,7 +5833,7 @@
             "cited": false
           },
           {
-            "chunk_id": "4bb7d8c6-8cdf-419b-9f31-ab98cc6e83a2",
+            "chunk_id": "b2029568-e32c-45b8-a861-7fd9cf768ad0",
             "doc": "plan-changes",
             "section": "Who can change a plan",
             "version": 1,
@@ -4496,7 +5842,7 @@
             "cited": false
           },
           {
-            "chunk_id": "4186c650-1599-49c5-bede-ea52481fd71e",
+            "chunk_id": "8d623756-5cb8-4d44-bcb7-adeac559f203",
             "doc": "integrations-troubleshooting",
             "section": "Error codes",
             "version": 1,
@@ -4505,7 +5851,7 @@
             "cited": false
           },
           {
-            "chunk_id": "699ebee0-de70-4e54-8000-d4441cef1761",
+            "chunk_id": "ba40fb91-06c7-4a9e-8bf8-703435b56f57",
             "doc": "escalation-and-support",
             "section": "Response targets",
             "version": 1,
@@ -4514,7 +5860,7 @@
             "cited": false
           },
           {
-            "chunk_id": "b27c5bc0-0b45-4465-a6b6-61666ec44d38",
+            "chunk_id": "46798f16-81fc-470d-9a34-c325e9c78e02",
             "doc": "escalation-and-support",
             "section": "Priorities",
             "version": 1,
@@ -4523,7 +5869,7 @@
             "cited": false
           },
           {
-            "chunk_id": "bfafdeb0-af52-496a-aac2-9e86dc5861ff",
+            "chunk_id": "21f503e7-4fa7-40e7-b27c-3b96add92648",
             "doc": "insights-notes",
             "section": "Reporting after an upgrade",
             "version": 1,
@@ -4650,7 +5996,43 @@
         "state_reason": "Demo mode only handles the seeded scenarios. This message was not processed by any AI model. Run one of this workspace's demo scenarios, or have a signed-in reviewer process it in live mode.",
         "category": null,
         "next_action": null,
-        "request_id": "b57405fd-61f4-4c82-b099-2a975a2654ca",
+        "retrieval_probe": {
+          "passages": [
+            {
+              "doc": "escalation-and-support",
+              "section": "Teams",
+              "score": 0.6526
+            },
+            {
+              "doc": "plans-and-pricing",
+              "section": "Plans at a glance",
+              "score": 0.63
+            },
+            {
+              "doc": "escalation-and-support",
+              "section": "Priorities",
+              "score": 0.6296
+            },
+            {
+              "doc": "team-roles",
+              "section": "What each role can do",
+              "score": 0.6074
+            },
+            {
+              "doc": "plans-and-pricing",
+              "section": "Features by plan",
+              "score": 0.6008
+            },
+            {
+              "doc": "integrations-troubleshooting",
+              "section": "Overview",
+              "score": 0.5989
+            }
+          ],
+          "evidence_status": "insufficient",
+          "best_score": 0.6526
+        },
+        "request_id": "91be20ea-199b-409e-b541-0deb99141298",
         "ai_run": {
           "provider": "simulated",
           "model": null,
@@ -4702,7 +6084,43 @@
         "state_reason": "Demo mode only handles the seeded scenarios. This message was not processed by any AI model. Run one of this workspace's demo scenarios, or have a signed-in reviewer process it in live mode.",
         "category": null,
         "next_action": null,
-        "request_id": "abfe77d0-96ae-4ce2-9543-3d3002e67a61",
+        "retrieval_probe": {
+          "passages": [
+            {
+              "doc": "billing-and-invoices",
+              "section": "Where to find invoices",
+              "score": 0.6649
+            },
+            {
+              "doc": "billing-and-invoices",
+              "section": "Billing cycles",
+              "score": 0.6214
+            },
+            {
+              "doc": "refund-policy",
+              "section": "How to handle a refund request",
+              "score": 0.6089
+            },
+            {
+              "doc": "billing-and-invoices",
+              "section": "Invoice types",
+              "score": 0.6005
+            },
+            {
+              "doc": "plans-and-features",
+              "section": "Plan comparison",
+              "score": 0.5852
+            },
+            {
+              "doc": "escalation-policy",
+              "section": "Always handled by a human",
+              "score": 0.5846
+            }
+          ],
+          "evidence_status": "insufficient",
+          "best_score": 0.6649
+        },
+        "request_id": "e75cfdc7-4b10-42a1-8c3d-e9a3d55204b9",
         "ai_run": {
           "provider": "simulated",
           "model": null,
@@ -4775,7 +6193,43 @@
         "state_reason": "Eval fault injection: AI provider unavailable.",
         "category": null,
         "next_action": "error",
-        "request_id": "ce21b34b-b081-4b8d-9c55-da0bcb472c23",
+        "retrieval_probe": {
+          "passages": [
+            {
+              "doc": "known-issues",
+              "section": "KI-2031: Snowflake syncs time out with NS-CONN-504",
+              "score": 0.9089
+            },
+            {
+              "doc": "data-connectors-troubleshooting",
+              "section": "Error codes",
+              "score": 0.7816
+            },
+            {
+              "doc": "data-connectors-troubleshooting",
+              "section": "Stale dashboards",
+              "score": 0.7422
+            },
+            {
+              "doc": "data-connectors-troubleshooting",
+              "section": "When to escalate a connector failure",
+              "score": 0.6885
+            },
+            {
+              "doc": "dashboard-troubleshooting",
+              "section": "Numbers differ from the source system",
+              "score": 0.6782
+            },
+            {
+              "doc": "reporting-troubleshooting",
+              "section": "Scheduled report did not arrive",
+              "score": 0.6376
+            }
+          ],
+          "evidence_status": "sufficient",
+          "best_score": 0.9089
+        },
+        "request_id": "dccec249-70a7-4659-8a41-70952dea3d15",
         "ai_run": {
           "provider": "simulated",
           "model": null,
@@ -4809,7 +6263,43 @@
         "state_reason": "Eval fault injection: AI provider unavailable.",
         "category": null,
         "next_action": "error",
-        "request_id": "1a119085-9ead-4747-b332-65edcd457930",
+        "retrieval_probe": {
+          "passages": [
+            {
+              "doc": "billing-and-charges",
+              "section": "Two charges in one month",
+              "score": 0.7903
+            },
+            {
+              "doc": "billing-and-charges",
+              "section": "Upgrades are charged in full",
+              "score": 0.6812
+            },
+            {
+              "doc": "plans-and-pricing",
+              "section": "Plans at a glance",
+              "score": 0.6666
+            },
+            {
+              "doc": "escalation-and-support",
+              "section": "Priorities",
+              "score": 0.6635
+            },
+            {
+              "doc": "billing-and-charges",
+              "section": "How Lumen bills",
+              "score": 0.6544
+            },
+            {
+              "doc": "billing-faq",
+              "section": "Overview",
+              "score": 0.647
+            }
+          ],
+          "evidence_status": "sufficient",
+          "best_score": 0.7903
+        },
+        "request_id": "89fa6bec-9563-4976-b6b3-e1519a6eeea7",
         "ai_run": {
           "provider": "simulated",
           "model": null,
@@ -4843,7 +6333,43 @@
         "state_reason": "Proposal v1: escalate",
         "category": "product_issue",
         "next_action": "escalate",
-        "request_id": "d98ebdf3-bfe8-4272-8e40-909007ad4e7a",
+        "retrieval_probe": {
+          "passages": [
+            {
+              "doc": "known-issues",
+              "section": "KI-2031: Snowflake syncs time out with NS-CONN-504",
+              "score": 0.9089
+            },
+            {
+              "doc": "data-connectors-troubleshooting",
+              "section": "Error codes",
+              "score": 0.7816
+            },
+            {
+              "doc": "data-connectors-troubleshooting",
+              "section": "Stale dashboards",
+              "score": 0.7422
+            },
+            {
+              "doc": "data-connectors-troubleshooting",
+              "section": "When to escalate a connector failure",
+              "score": 0.6885
+            },
+            {
+              "doc": "dashboard-troubleshooting",
+              "section": "Numbers differ from the source system",
+              "score": 0.6782
+            },
+            {
+              "doc": "reporting-troubleshooting",
+              "section": "Scheduled report did not arrive",
+              "score": 0.6376
+            }
+          ],
+          "evidence_status": "sufficient",
+          "best_score": 0.9089
+        },
+        "request_id": "09e998c2-69aa-475f-b360-8cde0c8baaf2",
         "ai_run": {
           "provider": "simulated",
           "model": null,
@@ -4856,7 +6382,7 @@
         },
         "retrieved": [
           {
-            "chunk_id": "36fd7ac7-86fd-47e8-b5e9-e58888d4ab5b",
+            "chunk_id": "6e72aa5f-f2be-49c0-a6fd-465b48a064fc",
             "doc": "reporting-troubleshooting",
             "section": "Scheduled report did not arrive",
             "version": 1,
@@ -4865,7 +6391,7 @@
             "cited": false
           },
           {
-            "chunk_id": "feeb7361-2c57-405a-bbba-a5b2d7072186",
+            "chunk_id": "83ba6957-cbb8-4a27-a696-081f0eef75c4",
             "doc": "data-connectors-troubleshooting",
             "section": "Error codes",
             "version": 1,
@@ -4874,7 +6400,7 @@
             "cited": true
           },
           {
-            "chunk_id": "1bb28922-ea65-4552-8192-d48215aec386",
+            "chunk_id": "1b2464ea-165f-4df9-96db-fdcf3088b827",
             "doc": "data-connectors-troubleshooting",
             "section": "When to escalate a connector failure",
             "version": 1,
@@ -4883,7 +6409,7 @@
             "cited": true
           },
           {
-            "chunk_id": "717cab9f-db9f-49d3-a6f6-f5710de6aabb",
+            "chunk_id": "30edd4d2-badb-410c-8b4e-df019c67d23e",
             "doc": "data-connectors-troubleshooting",
             "section": "Stale dashboards",
             "version": 1,
@@ -4892,7 +6418,7 @@
             "cited": false
           },
           {
-            "chunk_id": "899d0509-05df-40de-a45f-ddbdebd245e9",
+            "chunk_id": "2cb28f1e-0cce-4a85-a030-7b6d65a2c4b2",
             "doc": "known-issues",
             "section": "KI-2031: Snowflake syncs time out with NS-CONN-504",
             "version": 1,
@@ -4901,7 +6427,7 @@
             "cited": true
           },
           {
-            "chunk_id": "fed3412c-454b-48b3-a7bf-4208c7f40131",
+            "chunk_id": "3c176e44-e300-468f-9a27-f4078e393898",
             "doc": "escalation-policy",
             "section": "Always handled by a human",
             "version": 1,
@@ -4910,7 +6436,7 @@
             "cited": false
           },
           {
-            "chunk_id": "9fc79245-4724-4d61-83ba-052e55b6161e",
+            "chunk_id": "b39913d0-4165-402b-903d-971e3b2fa61d",
             "doc": "escalation-policy",
             "section": "Engineering escalation",
             "version": 1,
@@ -4919,7 +6445,7 @@
             "cited": false
           },
           {
-            "chunk_id": "c3c5a422-e568-45db-a2e9-8258758963e7",
+            "chunk_id": "f5eb1910-7313-44ce-9794-5a89d71f7076",
             "doc": "escalation-policy",
             "section": "Priority",
             "version": 1,
@@ -4928,7 +6454,7 @@
             "cited": true
           },
           {
-            "chunk_id": "73ba277e-0619-431e-ae65-683253b5a5db",
+            "chunk_id": "b6658613-3f6c-4a47-b64c-c80eee7136b8",
             "doc": "escalation-policy",
             "section": "Missing information",
             "version": 1,
@@ -4937,7 +6463,7 @@
             "cited": false
           },
           {
-            "chunk_id": "bb4ecede-ab90-4e43-892f-bd203cfb3101",
+            "chunk_id": "413a71d8-1127-4df9-9d90-aa0ceb334d6a",
             "doc": "dashboard-troubleshooting",
             "section": "Numbers differ from the source system",
             "version": 1,
@@ -5035,12 +6561,48 @@
         "state_reason": "Proposal v1: resolve",
         "category": "access",
         "next_action": "resolve",
-        "request_id": "4a2f691f-72b7-4a51-a588-06552405573e",
+        "retrieval_probe": {
+          "passages": [
+            {
+              "doc": "reporting-troubleshooting",
+              "section": "User cannot see or open Reporting",
+              "score": 0.7795
+            },
+            {
+              "doc": "roles-and-permissions",
+              "section": "Roles after a plan upgrade",
+              "score": 0.7146
+            },
+            {
+              "doc": "reporting-troubleshooting",
+              "section": "Scheduled report did not arrive",
+              "score": 0.6868
+            },
+            {
+              "doc": "sso-and-access",
+              "section": "Access a user should not have",
+              "score": 0.6649
+            },
+            {
+              "doc": "plans-and-features",
+              "section": "Features by plan",
+              "score": 0.6531
+            },
+            {
+              "doc": "plans-and-features",
+              "section": "Plan features versus user permissions",
+              "score": 0.6408
+            }
+          ],
+          "evidence_status": "sufficient",
+          "best_score": 0.7795
+        },
+        "request_id": "8065f175-6651-453a-a366-493f72c6e6e0",
         "ai_run": {
           "provider": "simulated",
           "model": null,
           "status": "succeeded",
-          "latency_ms": 19,
+          "latency_ms": 18,
           "input_tokens": 0,
           "output_tokens": 0,
           "api_calls": 0,
@@ -5048,7 +6610,7 @@
         },
         "retrieved": [
           {
-            "chunk_id": "d51a2428-a5fa-46b7-bbad-51c821895dc8",
+            "chunk_id": "623dc596-7cf2-408f-b665-3ff7f6ac5176",
             "doc": "plans-and-features",
             "section": "Plan comparison",
             "version": 1,
@@ -5057,7 +6619,7 @@
             "cited": false
           },
           {
-            "chunk_id": "851b1c79-1195-4f10-b776-ce9879ec0620",
+            "chunk_id": "83483dbf-cfb1-4d8c-92d9-9ecdab249c80",
             "doc": "plans-and-features",
             "section": "Features by plan",
             "version": 1,
@@ -5066,7 +6628,7 @@
             "cited": true
           },
           {
-            "chunk_id": "0f4c662e-fe17-4d20-85fe-4d0801b2caee",
+            "chunk_id": "98306a64-a51b-4dc7-8e1c-19f910b5648c",
             "doc": "plans-and-features",
             "section": "Plan features versus user permissions",
             "version": 1,
@@ -5075,7 +6637,7 @@
             "cited": false
           },
           {
-            "chunk_id": "31103e4d-edf3-4107-bf51-8a2e2d8507fc",
+            "chunk_id": "ae45562e-1839-4daf-9e89-c7dbfafbcb38",
             "doc": "roles-and-permissions",
             "section": "Role permissions",
             "version": 1,
@@ -5084,7 +6646,7 @@
             "cited": false
           },
           {
-            "chunk_id": "71a93752-06cf-47b4-80a2-0f74c7bcf432",
+            "chunk_id": "523271df-f3d8-41aa-aaa0-8d4dacb84e07",
             "doc": "roles-and-permissions",
             "section": "Roles after a plan upgrade",
             "version": 1,
@@ -5093,7 +6655,7 @@
             "cited": true
           },
           {
-            "chunk_id": "f85b14ce-a162-4810-8609-0106a50556f2",
+            "chunk_id": "aff525c8-dfd1-4726-b33d-a014e5730baf",
             "doc": "roles-and-permissions",
             "section": "Changing a user's role",
             "version": 1,
@@ -5102,7 +6664,7 @@
             "cited": true
           },
           {
-            "chunk_id": "d0f08c4f-5430-4109-a7e0-8ca903385962",
+            "chunk_id": "0139c35d-9023-4cf0-a7de-98da6047266e",
             "doc": "sso-and-access",
             "section": "SCIM provisioning",
             "version": 1,
@@ -5111,7 +6673,7 @@
             "cited": false
           },
           {
-            "chunk_id": "c973e9cd-7447-4d02-8a41-b3192cea05b6",
+            "chunk_id": "28992450-536d-46f4-bb7b-72f562e8540c",
             "doc": "sso-and-access",
             "section": "Access a user should not have",
             "version": 1,
@@ -5120,7 +6682,7 @@
             "cited": false
           },
           {
-            "chunk_id": "76c59e57-a603-4a2f-b70a-1ce2f35b3fa8",
+            "chunk_id": "07d45100-0b22-480d-aca0-4e95a01936e5",
             "doc": "reporting-troubleshooting",
             "section": "User cannot see or open Reporting",
             "version": 1,
@@ -5129,7 +6691,7 @@
             "cited": true
           },
           {
-            "chunk_id": "36fd7ac7-86fd-47e8-b5e9-e58888d4ab5b",
+            "chunk_id": "6e72aa5f-f2be-49c0-a6fd-465b48a064fc",
             "doc": "reporting-troubleshooting",
             "section": "Scheduled report did not arrive",
             "version": 1,
@@ -5225,12 +6787,48 @@
         "state_reason": "Proposal v1: escalate",
         "category": "product_issue",
         "next_action": "escalate",
-        "request_id": "a052d334-5164-4d41-b7d4-57100d45df8f",
+        "retrieval_probe": {
+          "passages": [
+            {
+              "doc": "known-issues",
+              "section": "KI-2031: Snowflake syncs time out with NS-CONN-504",
+              "score": 0.9089
+            },
+            {
+              "doc": "data-connectors-troubleshooting",
+              "section": "Error codes",
+              "score": 0.7816
+            },
+            {
+              "doc": "data-connectors-troubleshooting",
+              "section": "Stale dashboards",
+              "score": 0.7422
+            },
+            {
+              "doc": "data-connectors-troubleshooting",
+              "section": "When to escalate a connector failure",
+              "score": 0.6885
+            },
+            {
+              "doc": "dashboard-troubleshooting",
+              "section": "Numbers differ from the source system",
+              "score": 0.6782
+            },
+            {
+              "doc": "reporting-troubleshooting",
+              "section": "Scheduled report did not arrive",
+              "score": 0.6376
+            }
+          ],
+          "evidence_status": "sufficient",
+          "best_score": 0.9089
+        },
+        "request_id": "3af971b5-fbcf-4eda-bf78-116328468ed9",
         "ai_run": {
           "provider": "simulated",
           "model": null,
           "status": "succeeded",
-          "latency_ms": 19,
+          "latency_ms": 20,
           "input_tokens": 0,
           "output_tokens": 0,
           "api_calls": 0,
@@ -5238,7 +6836,7 @@
         },
         "retrieved": [
           {
-            "chunk_id": "36fd7ac7-86fd-47e8-b5e9-e58888d4ab5b",
+            "chunk_id": "6e72aa5f-f2be-49c0-a6fd-465b48a064fc",
             "doc": "reporting-troubleshooting",
             "section": "Scheduled report did not arrive",
             "version": 1,
@@ -5247,7 +6845,7 @@
             "cited": false
           },
           {
-            "chunk_id": "feeb7361-2c57-405a-bbba-a5b2d7072186",
+            "chunk_id": "83ba6957-cbb8-4a27-a696-081f0eef75c4",
             "doc": "data-connectors-troubleshooting",
             "section": "Error codes",
             "version": 1,
@@ -5256,7 +6854,7 @@
             "cited": true
           },
           {
-            "chunk_id": "1bb28922-ea65-4552-8192-d48215aec386",
+            "chunk_id": "1b2464ea-165f-4df9-96db-fdcf3088b827",
             "doc": "data-connectors-troubleshooting",
             "section": "When to escalate a connector failure",
             "version": 1,
@@ -5265,7 +6863,7 @@
             "cited": true
           },
           {
-            "chunk_id": "717cab9f-db9f-49d3-a6f6-f5710de6aabb",
+            "chunk_id": "30edd4d2-badb-410c-8b4e-df019c67d23e",
             "doc": "data-connectors-troubleshooting",
             "section": "Stale dashboards",
             "version": 1,
@@ -5274,7 +6872,7 @@
             "cited": false
           },
           {
-            "chunk_id": "899d0509-05df-40de-a45f-ddbdebd245e9",
+            "chunk_id": "2cb28f1e-0cce-4a85-a030-7b6d65a2c4b2",
             "doc": "known-issues",
             "section": "KI-2031: Snowflake syncs time out with NS-CONN-504",
             "version": 1,
@@ -5283,7 +6881,7 @@
             "cited": true
           },
           {
-            "chunk_id": "fed3412c-454b-48b3-a7bf-4208c7f40131",
+            "chunk_id": "3c176e44-e300-468f-9a27-f4078e393898",
             "doc": "escalation-policy",
             "section": "Always handled by a human",
             "version": 1,
@@ -5292,7 +6890,7 @@
             "cited": false
           },
           {
-            "chunk_id": "9fc79245-4724-4d61-83ba-052e55b6161e",
+            "chunk_id": "b39913d0-4165-402b-903d-971e3b2fa61d",
             "doc": "escalation-policy",
             "section": "Engineering escalation",
             "version": 1,
@@ -5301,7 +6899,7 @@
             "cited": false
           },
           {
-            "chunk_id": "c3c5a422-e568-45db-a2e9-8258758963e7",
+            "chunk_id": "f5eb1910-7313-44ce-9794-5a89d71f7076",
             "doc": "escalation-policy",
             "section": "Priority",
             "version": 1,
@@ -5310,7 +6908,7 @@
             "cited": true
           },
           {
-            "chunk_id": "73ba277e-0619-431e-ae65-683253b5a5db",
+            "chunk_id": "b6658613-3f6c-4a47-b64c-c80eee7136b8",
             "doc": "escalation-policy",
             "section": "Missing information",
             "version": 1,
@@ -5319,7 +6917,7 @@
             "cited": false
           },
           {
-            "chunk_id": "bb4ecede-ab90-4e43-892f-bd203cfb3101",
+            "chunk_id": "413a71d8-1127-4df9-9d90-aa0ceb334d6a",
             "doc": "dashboard-troubleshooting",
             "section": "Numbers differ from the source system",
             "version": 1,
@@ -5420,7 +7018,43 @@
         "state_reason": "Proposal v1: escalate",
         "category": "billing",
         "next_action": "escalate",
-        "request_id": "b42231f9-c77a-4500-a1f3-26e8b3265ba8",
+        "retrieval_probe": {
+          "passages": [
+            {
+              "doc": "refunds-and-credits",
+              "section": "How to handle a refund request",
+              "score": 0.6376
+            },
+            {
+              "doc": "plans-and-pricing",
+              "section": "Plans at a glance",
+              "score": 0.6127
+            },
+            {
+              "doc": "refunds-and-credits",
+              "section": "Exceptions are decided by Accounts Receivable",
+              "score": 0.606
+            },
+            {
+              "doc": "plans-and-pricing",
+              "section": "Overview",
+              "score": 0.5912
+            },
+            {
+              "doc": "billing-faq",
+              "section": "Overview",
+              "score": 0.5814
+            },
+            {
+              "doc": "billing-and-charges",
+              "section": "Upgrades are charged in full",
+              "score": 0.5736
+            }
+          ],
+          "evidence_status": "insufficient",
+          "best_score": 0.6376
+        },
+        "request_id": "a3693a67-7c91-4244-bedd-04c279176544",
         "ai_run": {
           "provider": "simulated",
           "model": null,
@@ -5433,7 +7067,7 @@
         },
         "retrieved": [
           {
-            "chunk_id": "0476ee6e-b7fe-4f07-8c97-70b2db884592",
+            "chunk_id": "bdb7594f-faf1-442c-93c3-abcfd346925d",
             "doc": "billing-and-charges",
             "section": "Upgrades are charged in full",
             "version": 1,
@@ -5442,7 +7076,7 @@
             "cited": false
           },
           {
-            "chunk_id": "89fa6f4d-748e-4546-afec-2c1dd1c89a33",
+            "chunk_id": "297c2abc-ffd4-4a72-9a3f-c370d10399a7",
             "doc": "billing-and-charges",
             "section": "Failed payments",
             "version": 1,
@@ -5451,7 +7085,7 @@
             "cited": false
           },
           {
-            "chunk_id": "b7681ef6-a434-4fb3-9df6-0bdd5b3d1dba",
+            "chunk_id": "3a980392-b5e9-4d41-aa57-073ec12c2311",
             "doc": "refunds-and-credits",
             "section": "Credits, not card refunds",
             "version": 1,
@@ -5460,7 +7094,7 @@
             "cited": true
           },
           {
-            "chunk_id": "1b27c9a7-d163-43d9-bbe5-6503a2ffde52",
+            "chunk_id": "632f41d5-d39d-46b4-9eae-d3fb9242f73f",
             "doc": "refunds-and-credits",
             "section": "Exceptions are decided by Accounts Receivable",
             "version": 1,
@@ -5469,7 +7103,7 @@
             "cited": true
           },
           {
-            "chunk_id": "42553e23-6940-4eeb-b969-e1b02603dec3",
+            "chunk_id": "9d0be8f9-318d-4734-aeb2-5fd41898c817",
             "doc": "refunds-and-credits",
             "section": "How to handle a refund request",
             "version": 1,
@@ -5478,7 +7112,7 @@
             "cited": false
           },
           {
-            "chunk_id": "184254bc-e789-4b89-b3df-3f78d8b7191d",
+            "chunk_id": "eb5cf28e-6a10-4a92-86b0-8e7d36e8f6d9",
             "doc": "escalation-and-support",
             "section": "Teams",
             "version": 1,
@@ -5487,7 +7121,7 @@
             "cited": false
           },
           {
-            "chunk_id": "b27c5bc0-0b45-4465-a6b6-61666ec44d38",
+            "chunk_id": "46798f16-81fc-470d-9a34-c325e9c78e02",
             "doc": "escalation-and-support",
             "section": "Priorities",
             "version": 1,
@@ -5496,7 +7130,7 @@
             "cited": false
           },
           {
-            "chunk_id": "699ebee0-de70-4e54-8000-d4441cef1761",
+            "chunk_id": "ba40fb91-06c7-4a9e-8bf8-703435b56f57",
             "doc": "escalation-and-support",
             "section": "Response targets",
             "version": 1,

@@ -58,6 +58,27 @@ message); 042 (cross-customer by message). These are exactly the cases that need
 | Latency | median 19 ms, max 29 ms | **pipeline time with simulated AI** (retrieval, tools, DB). Not model latency |
 | Tokens | 0 | no model was called |
 
+**Retrieval probe: raw customer message as the query (no model, all 45 message cases).** This is deterministic and
+independent of the fixtures, so it also covers the 15 cases demo mode cannot draft for. Each case's subject and
+message is used as the single search query (top_k 6), then the evidence check runs:
+
+| Probe metric | Result |
+|---|---|
+| Doc-level recall (35 cases with labelled sources) | 0.93 |
+| Section-level recall | 0.73 |
+| Insufficient-evidence cases flagged insufficient | 3/3 |
+| Conflicting-evidence cases flagged conflicting | 2/3 (ev-029's differently worded downgrade question isn't flagged) |
+| **Answerable cases whose best score is below the 0.72 threshold** | **12/32** |
+
+The last row matters. The 0.72 relevance threshold (D25) was calibrated on the focused, fixture-written queries
+(those score 0.787–0.886 here, and Peppol 0.691). With raw customer wording, many answerable questions score
+0.64–0.72 (e.g. ev-009 Lumen access 0.65, ev-012 Lumen refund 0.64, ev-006 SSO 0.67). So the evidence guard
+would over-escalate them. In live mode the model writes its own search queries, which may or may not be as
+focused: **unverified**. The threshold needs re-calibrating on live query logs before a pilot. The guard fails
+safe (it escalates; it never resolves), but too many escalations would make it useless. Also visible: the
+injected "Billing Operations Notes" document ranks first for the refund question (ev-036). Retrieval does not
+filter instructions, and the protection is that document text is treated as data and every action needs approval.
+
 **The three mismatches are honest fixture failures.** The labels say clarify; the fixtures resolve:
 - **ev-015** (Cedar & Pine, no upgrade on record): the fixture's default variant renders "Your account moved
   from Pro to Pro", which is a template applied to the wrong account.

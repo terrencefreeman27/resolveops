@@ -55,6 +55,29 @@ def summarize(cases: list[dict], results: dict, version: str) -> dict:
         if exp_secs:
             sec_recalls.append(len(exp_secs & got_secs) / len(exp_secs))
 
+    # retrieval probe: raw message as the query, top_k passages, every message case (no model involved)
+    pr_doc, pr_sec, pr_ev = [], [], Counter()
+    for i, r in results.items():
+        pr = r["observed"].get("retrieval_probe")
+        if not pr:
+            continue
+        exp = by_id[i]["expected_relevant_doc_ids"]
+        got_docs = {g["doc"] for g in pr["passages"]}
+        got_secs = {(g["doc"], g["section"]) for g in pr["passages"]}
+        if exp:
+            pr_doc.append(len({e["doc"] for e in exp} & got_docs) / len({e["doc"] for e in exp}))
+            secs = {(e["doc"], e["section"]) for e in exp if e["section"]}
+            if secs:
+                pr_sec.append(len(secs & got_secs) / len(secs))
+        t = by_id[i]["case_type"]
+        if t in ("insufficient_evidence", "conflicting_evidence"):
+            want = "insufficient" if t == "insufficient_evidence" else "conflicting"
+            pr_ev["expected_" + want] += 1
+            pr_ev["flagged_" + want] += pr["evidence_status"] == want
+        elif exp:
+            pr_ev["answerable_cases"] += 1
+            pr_ev["answerable_flagged_insufficient"] += pr["evidence_status"] == "insufficient"
+
     # citation validity (existence / provenance / currency) — NOT support
     cits = [c for i in with_proposal for c in results[i]["observed"]["citations"]]
     valid = [c for c in cits if c["exists"] and c["in_retrieved_set"] and c["current_version"]]
@@ -118,6 +141,11 @@ def summarize(cases: list[dict], results: dict, version: str) -> dict:
             "cases": len(doc_recalls), "doc_level_mean": round(mean(doc_recalls), 3) if doc_recalls else None,
             "section_level_mean": round(mean(sec_recalls), 3) if sec_recalls else None,
             "mean_passages_retrieved_k": round(mean(k_sizes), 1) if k_sizes else None},
+        "retrieval_probe_raw_message": {
+            "definition": "retrieval with the raw subject+message as the single query (top_k), no model; covers every "
+                          "case submitted with a message, including those demo fixtures cannot draft for",
+            "cases_with_labels": len(pr_doc), "doc_recall_mean": round(mean(pr_doc), 3) if pr_doc else None,
+            "section_recall_mean": round(mean(pr_sec), 3) if pr_sec else None, "evidence_check": dict(pr_ev)},
         "citation_validity": {"citations": len(cits), "exist": sum(c["exists"] for c in cits),
                               "in_retrieved_set": sum(c["in_retrieved_set"] for c in cits),
                               "current_version": sum(c["current_version"] for c in cits),
