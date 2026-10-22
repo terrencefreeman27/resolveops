@@ -39,7 +39,11 @@ def health():
 def meta(request: Request, db: Session = Depends(get_db)):
     s = get_settings()
     reviewer = current_reviewer(request, db)
-    workspaces = db.scalars(select(Workspace).order_by(Workspace.name)).all()
+    # Visitors see the public demo workspaces; reviewers also see the workspaces they belong to.
+    member_of = set() if reviewer is None else set(db.scalars(
+        select(Membership.workspace_id).where(Membership.reviewer_id == reviewer.id)))
+    workspaces = [w for w in db.scalars(select(Workspace).order_by(Workspace.created_at)).all()
+                  if w.id in member_of or w.settings.get("demo_enabled", False)]
     live = live_for(reviewer is not None)
     return {
         "mode": s.ai_mode,  # server mode
@@ -49,7 +53,8 @@ def meta(request: Request, db: Session = Depends(get_db)):
         "live_configured": bool(s.anthropic_api_key),  # never the key itself
         "live_for_visitors": s.live_allow_visitors,
         "reviewer": None if reviewer is None else {"email": reviewer.email, "name": reviewer.name},
-        "workspaces": [{"slug": w.slug, "name": w.name, "profile": w.profile,
+        "workspaces": [{"slug": w.slug, "name": w.name, "profile": w.profile, "is_member": w.id in member_of,
+                        "demo_enabled": bool(w.settings.get("demo_enabled", False)),
                         "demo_scenarios": w.settings.get("demo_scenarios", []),
                         "ticket_groups": w.settings.get("ticket_groups", [])} for w in workspaces],
     }
@@ -154,18 +159,3 @@ def admin_settings(actor: Actor = Depends(require_reviewer), db: Session = Depen
     """Reviewer-only. Workspace configuration (no credentials are stored in settings)."""
     w = db.get(Workspace, actor.workspace_id)
     return {"slug": w.slug, "name": w.name, "profile": w.profile, "settings": w.settings}
-
-
-@router.get("/w/{ws}/admin/documents")
-def admin_documents(actor: Actor = Depends(require_reviewer), db: Session = Depends(get_db)):
-    """Reviewer-only. Knowledge-base documents and their versions / import status."""
-    docs = db.scalars(select(Document).where(Document.workspace_id == actor.workspace_id).order_by(Document.title)).all()
-    out = []
-    for d in docs:
-        versions = db.scalars(select(DocumentVersion).where(DocumentVersion.document_id == d.id)
-                              .order_by(DocumentVersion.version.desc())).all()
-        out.append({"id": str(d.id), "slug": d.slug, "title": d.title, "status": d.status,
-                    "versions": [{"id": str(v.id), "version": v.version, "status": v.status,
-                                  "format": v.source_format, "import_error": v.import_error,
-                                  "created_at": v.created_at.isoformat()} for v in versions]})
-    return {"documents": out}

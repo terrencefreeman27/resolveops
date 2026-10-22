@@ -1,14 +1,29 @@
 """Shape DB rows into API responses. Scoping is applied by the callers (see api/requests.py)."""
+import uuid
+
 from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from ..context import Actor, scope_clause
-from ..models import (AiRun, Approval, AuditLog, Customer, Execution, Proposal, ProposalVersion, SupportRequest,
-                      Ticket)
+from ..models import (AiRun, Approval, AuditLog, Customer, Document, DocumentVersion, Execution, Proposal,
+                      ProposalVersion, SupportRequest, Ticket)
 
 
 def iso(dt):
     return dt.isoformat() if dt else None
+
+
+def citation_status(db: Session, version_ids) -> dict:
+    """document_version_id -> {status, current_version, document_status} for cited versions."""
+    if not version_ids:
+        return {}
+    cur = DocumentVersion.__table__.alias("cur")
+    rows = db.execute(
+        select(DocumentVersion.id, DocumentVersion.status, Document.status, cur.c.version)
+        .join(Document, Document.id == DocumentVersion.document_id)
+        .outerjoin(cur, cur.c.id == Document.current_version_id)
+        .where(DocumentVersion.id.in_(list(version_ids)))).all()
+    return {vid: {"status": st, "document_status": dst, "current_version": cv} for vid, st, dst, cv in rows}
 
 
 def request_summary(r: SupportRequest, customer: Customer | None) -> dict:
@@ -51,8 +66,12 @@ def request_detail(db: Session, actor: Actor, r: SupportRequest) -> dict:
         versions = db.scalars(select(ProposalVersion).where(ProposalVersion.proposal_id == proposal.id)
                               .order_by(ProposalVersion.version)).all()
         cur = next(v for v in versions if v.version == proposal.current_version)
+        cited = {c["document_version_id"] for c in cur.content.get("citations", [])}
+        statuses = citation_status(db, [uuid.UUID(x) for x in cited])
         out["proposal"] = {
             "id": str(proposal.id), "provider": proposal.provider, "status": proposal.status, "usage": proposal.usage,
+            "stale_reason": proposal.stale_reason, "stale_at": iso(proposal.stale_at),
+            "citation_versions": {str(k): v for k, v in statuses.items()},
             "current_version": proposal.current_version,
             "version": {"id": str(cur.id), "version": cur.version, "content": cur.content,
                         "action_hash": cur.action_hash, "author": cur.author, "edit_note": cur.edit_note,

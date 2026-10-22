@@ -15,7 +15,7 @@ from ..models import Chunk, Customer, CustomerSession, Document, DocumentVersion
 from ..schemas import ApproveIn, EditProposalIn, RejectIn, SubmitRequestIn
 from ..security import token_hash
 from ..workflow import reprocess, run_request
-from .serializers import request_detail, request_summary, visible_requests_clause
+from .serializers import citation_status, request_detail, request_summary, visible_requests_clause
 
 router = APIRouter(prefix="/api/w/{ws}")
 
@@ -176,6 +176,8 @@ def get_chunk(chunk_id: uuid.UUID, actor: Actor = Depends(actor_for_workspace), 
     if row is None:
         raise HTTPException(404, "Passage not found.")
     c, d, v = row
+    # A citation always opens the exact version it cites, even after that version is superseded.
     return {"chunk_id": str(c.id), "document_id": str(d.id), "doc_slug": d.slug, "doc_title": d.title,
             "version": v.version, "version_status": v.status, "section": c.section, "text": c.text,
-            "active": c.active, "document_content": v.content}
+            "active": c.active, "document_content": v.content, "document_status": d.status,
+            "current_version": citation_status(db, [v.id]).get(v.id, {}).get("current_version")}
