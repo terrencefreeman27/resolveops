@@ -32,6 +32,10 @@ services:
         condition: service_healthy
     ports:
       - "${API_PORT:-8000}:8000"
+    # Evaluation suites (eval/) run inside this container; results are written back to the host and
+    # the dashboard reads the latest ones. Read-write so `python -m eval.run_*` can save results.
+    volumes:
+      - ./eval:/srv/eval
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request;urllib.request.urlopen('http://localhost:8000/api/health')"]
       interval: 5s
