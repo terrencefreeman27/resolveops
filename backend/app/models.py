@@ -269,6 +269,8 @@ class Proposal(Base):
     current_version: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
     provider: Mapped[str] = mapped_column(String(64), nullable=False)
     status: Mapped[str] = mapped_column(String(16), default="open", nullable=False)  # open | closed | stale
+    # Provider usage for the run that produced this proposal (latency, tokens, tool steps, model).
+    usage: Mapped[dict] = mapped_column(JSONB, default=dict, server_default=text("'{}'::jsonb"), nullable=False)
     created_at: Mapped[datetime] = created_at()
 
 
@@ -379,3 +381,26 @@ class AuditLog(Base):
     duration_ms: Mapped[int | None] = mapped_column(Integer)
     error: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+
+class AiRun(Base):
+    """One AI provider run for a request (simulated or live). Source for usage metrics, rate limits
+    and the live budget. Simulated and live runs are kept apart by `provider`."""
+    __tablename__ = "ai_runs"
+    id: Mapped[uuid.UUID] = uuid_pk()
+    workspace_id: Mapped[uuid.UUID] = ws_fk()
+    demo_session_id: Mapped[uuid.UUID | None] = demo_fk()
+    request_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("support_requests.id", ondelete="CASCADE"), index=True)
+    actor: Mapped[str] = mapped_column(String(120), nullable=False)
+    provider: Mapped[str] = mapped_column(String(16), nullable=False)  # simulated | live
+    model: Mapped[str | None] = mapped_column(String(64))
+    status: Mapped[str] = mapped_column(String(16), nullable=False)  # running | succeeded | error
+    latency_ms: Mapped[int | None] = mapped_column(Integer)
+    input_tokens: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    output_tokens: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    cache_read_input_tokens: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    cache_creation_input_tokens: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    api_calls: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    tool_steps: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    error: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), index=True, nullable=False)

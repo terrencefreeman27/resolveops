@@ -8,6 +8,7 @@ pydantic-settings==2.16.1
 pgvector==0.5.1
 fastembed==0.9.0
 argon2-cffi==25.1.0
+anthropic==2.1.0
 # test-only (kept in the image so `make test` runs inside the container)
 pytest==9.1.1
 httpx==0.28.1

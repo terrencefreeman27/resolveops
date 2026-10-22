@@ -9,7 +9,7 @@ from ..config import get_settings
 from ..context import (CUSTOMER_COOKIE, DEMO_COOKIE, REVIEWER_COOKIE, Actor, actor_for_workspace,
                        current_demo_session, current_reviewer, require_reviewer)
 from ..db import get_db
-from ..models import (AuditLog, AuthSession, Customer, CustomerSession, DemoSession, Document, DocumentVersion,
+from ..models import (AiRun, AuditLog, AuthSession, Customer, CustomerSession, DemoSession, Document, DocumentVersion,
                       Execution, Membership,
                       Reviewer, Subscription, SupportRequest, Ticket, Workspace)
 from ..schemas import CustomerSessionIn, LoginIn
@@ -102,7 +102,7 @@ def demo_reset(request: Request, db: Session = Depends(get_db)):
     if ds is None:
         raise HTTPException(401, "No demo session.")
     counts = {}
-    for model in (AuditLog, Execution, Ticket, CustomerSession, SupportRequest):
+    for model in (AiRun, AuditLog, Execution, Ticket, CustomerSession, SupportRequest):
         counts[model.__tablename__] = db.execute(delete(model).where(model.demo_session_id == ds.id)).rowcount
     db.commit()
     return {"reset": True, "deleted": counts}

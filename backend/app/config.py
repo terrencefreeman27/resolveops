@@ -27,6 +27,28 @@ class Settings(BaseSettings):
     execution_max_attempts: int = 3
     execution_attempt_timeout_s: float = 5.0
 
+    # --- live mode (Claude). See docs/DECISIONS.md D16-D20 and README "Live mode". ---
+    live_model: str = "claude-opus-5-5"
+    live_effort: Literal["low", "medium", "high", "xhigh", "max"] = "medium"
+    live_refusal_fallback: bool = True  # server-side fallback on safety refusals (beta header)
+    live_allow_visitors: bool = False  # public visitors never use live mode unless deliberately enabled
+    live_max_output_tokens: int = 8000  # per model call (includes adaptive thinking)
+    live_max_tool_steps: int = 6  # model turns that may call tools, per request
+    live_max_tokens_per_request: int = 150_000  # input + output summed over the tool loop
+    live_call_timeout_s: float = 60.0
+    live_max_retries: int = 2  # retries for 429 / 5xx / overloaded / timeouts (non-retryable errors fail at once)
+    live_retry_base_delay_s: float = 1.0
+    live_retry_max_delay_s: float = 8.0
+    live_rate_per_reviewer_per_min: int = 5
+    live_rate_global_per_min: int = 20
+    live_max_concurrency: int = 2  # in-process limit (single API instance)
+    live_monthly_token_budget: int = 2_000_000  # input + output tokens per calendar month (UTC); 0 = no live calls
+    # Optional USD budget: only used when BOTH prices are set. Never assumed.
+    live_price_input_per_mtok: float | None = None
+    live_price_output_per_mtok: float | None = None
+    live_monthly_usd_budget: float | None = None
+    max_upload_bytes: int = 1_000_000  # document import (Milestone 3)
+
 
 @lru_cache
 def get_settings() -> Settings:
