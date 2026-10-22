@@ -273,3 +273,41 @@ embeddings provider (Anthropic has no embeddings API). **Revisit:** same trigger
 - The token is a `SecretStr` read from `.env` only; it is used solely in the Authorization header, never logged,
   never in errors, audit rows, API responses, prompts or the frontend. Tests assert this on captured logs,
   audit rows and serialized responses. The status panel shows configured yes/no and the destination repo.
+
+## D31 — Dashboard is scoped like the inbox: visitors see only their own sandbox
+- Visitors see metrics for their own demo sandbox (`scope_clause`, the same filter the inbox uses). Reviewers see
+  the workspace queue of a workspace they belong to. There are no cross-visitor aggregates, so visitor
+  activity stays private, which is consistent with D6.
+- Alternative considered: a read-only, pre-computed demo dashboard. It was rejected because it would show numbers
+  the visitor did not produce, and a shared aggregate would leak other visitors' activity.
+- Simulated and live AI runs are separate blocks and are never summed. Simulated latency is labelled
+  "pipeline time, not model latency". Cost appears only when both `LIVE_PRICE_*` variables are set, together with
+  those assumptions. Otherwise it reads "pricing not configured". No savings or business impact is computed.
+- Evaluation results (latest file per suite and mode in `eval/results`) are shown to everyone, labelled by mode.
+  They describe the synthetic dataset, not the viewer's traffic.
+
+## D32 — Evaluation design
+- **Two suites.** The AI task eval (`eval/run_ai_eval.py`) is separate from deterministic backend checks
+  (`eval/run_backend_eval.py`, a curated, categorized selection of `backend/tests`).
+- The AI eval sends every case through the real HTTP API (in-process TestClient) against a freshly seeded
+  `resolveops_eval` database. Fault injection happens only inside that process: the provider boundary
+  (`workflow.get_provider` raises `ProviderError`) and the internal adapter's `FAULTS` hook.
+- **Demo coverage is reported, not hidden.** Cases with no fixture are "unsupported in demo mode" and excluded from
+  every rate. Demo results carry the label "Simulated — not evidence of AI performance". Fixtures were not tuned
+  to the dataset (three demo mismatches remain).
+- **Validity vs support.** Citation validity (exists, retrieved for this request, current version) is computed.
+  Support is a separate judgement from `support_labels.jsonl`, labelled by the build agent and awaiting human
+  review. No LLM judge is implemented.
+- **Baseline.** A prompt-only baseline (`eval/baseline.py`) runs only in live mode. Its outputs are never
+  simulated. Its inputs are documented, and so is the reason it is not a capability comparison.
+- A raw-message retrieval probe runs for every message case, without a model. It showed that the 0.72 evidence
+  threshold (D25) over-escalates with unfocused queries (12/32 answerable cases fall below it), so the threshold
+  needs re-calibrating on live query logs.
+
+## D33 — `eval/` is mounted into the api container; results are committed
+- The api image is built from `backend/` only, so `docker-compose.yml` bind-mounts `./eval` at `/srv/eval`. The
+  suites then run with `docker compose exec api python -m eval.…` and write results back to the host, where the
+  dashboard reads them. If the mount is absent, the dashboard reports that no results are available.
+- Result JSON files are committed alongside `eval/RESULTS.md`, so the numbers quoted in the docs can be checked.
+  Each file records the git commit (passed as `EVAL_GIT_COMMIT`, because the container has no `.git`), the mode,
+  and the dataset version.

@@ -149,7 +149,7 @@ export function DashboardView({ ws, onOpenInbox }: { ws: string; onOpenInbox: ()
             <Stat label="Approved as drafted" value={o.approved_as_drafted} />
             <Stat label="Edited, then approved" value={o.edited_then_approved} />
             <Stat label="Rejected" value={o.rejected} />
-            <Stat label="Approvals invalidated" value={o.approvals_invalidated} hint="by a later edit" />
+            <Stat label="Approvals invalidated" value={o.approvals_invalidated} hint="by an edit or stale evidence" />
             <Stat label="Proposals made stale" value={o.proposals_made_stale} hint="evidence or rules changed" />
           </div>
         </Section>
