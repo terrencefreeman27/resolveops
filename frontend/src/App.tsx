@@ -164,6 +164,7 @@ export default function App() {
             onApprove={() => act(() => api.approve(slug, detail.id, detail.proposal!.version.id, detail.proposal!.version.action_hash), outcome)}
             onReject={(reason) => act(() => api.reject(slug, detail.id, detail.proposal!.version.id, reason), () => "Proposal rejected.")}
             onRetry={() => act(() => api.retry(slug, detail.id), outcome)}
+            onEscalateInternal={() => act(() => api.escalateInternal(slug, detail.id), outcome)}
           />
         ) : (
           <section className="grid place-items-center bg-white p-10 text-center">

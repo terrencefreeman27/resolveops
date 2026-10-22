@@ -5,10 +5,12 @@ import { PanelHeading, Tag, timeAgo } from "./ui";
 export function EvidencePane({ detail: d, onCite }: { detail: RequestDetail | null; onCite: (id: string) => void }) {
   if (!d) return <aside className="hidden border-l border-zinc-200 bg-zinc-50 xl:block" />;
   const c = d.proposal?.version.content;
-  const history = [
+  type Entry = { at: string; text: string; tone: "zinc" | "amber" | "teal" | "red"; link?: { href: string; label: string } };
+  const history: Entry[] = [
     ...(d.proposal?.versions ?? []).map((v) => ({ at: v.created_at, text: `Version ${v.version} by ${v.author}${v.edit_note ? ` (${v.edit_note})` : ""}`, tone: "zinc" as const })),
     ...d.approvals.map((a) => ({ at: a.created_at, text: `${a.decision === "approved" ? "Approved" : "Rejected"} by ${a.actor}${a.status === "invalidated" ? `, invalidated: ${a.invalidated_reason}` : ""}${a.reason ? `: ${a.reason}` : ""}`, tone: a.status === "invalidated" ? ("amber" as const) : ("teal" as const) })),
-    ...d.executions.map((e) => ({ at: e.created_at, text: `Execution ${e.status} via ${e.adapter} adapter after ${e.attempts} attempt(s), key ${e.idempotency_key}${e.last_error ? `: ${e.last_error}` : ""}`, tone: e.status === "failed" ? ("red" as const) : ("zinc" as const) })),
+    ...d.executions.map((e) => ({ at: e.created_at, text: `Execution ${e.status} via ${e.adapter} adapter after ${e.attempts} attempt(s), key ${e.idempotency_key}${e.last_error ? `: ${e.last_error}` : ""}`, tone: e.status === "failed" ? ("red" as const) : ("zinc" as const),
+      link: e.external_url ? { href: e.external_url, label: `GitHub issue #${e.external_number}` } : undefined })),
   ].sort((a, b) => a.at.localeCompare(b.at));
 
   return (
@@ -56,6 +58,12 @@ export function EvidencePane({ detail: d, onCite }: { detail: RequestDetail | nu
             </div>
             <p className="mt-1 text-zinc-800">{t.subject}</p>
             <p className="text-xs text-zinc-500">{t.group}, {t.priority} priority, {t.adapter} adapter</p>
+            {t.external_url && (
+              <a href={t.external_url} target="_blank" rel="noopener noreferrer" data-testid="ticket-external-link"
+                className="mt-1 inline-block text-xs font-medium text-teal-800 underline underline-offset-2 hover:text-teal-900">
+                GitHub issue #{t.external_number}<span className="sr-only"> (opens in a new tab)</span>
+              </a>
+            )}
           </div>
         )) : <p className="text-sm text-zinc-500">No ticket has been created or changed for this request.</p>}
       </section>
@@ -66,7 +74,7 @@ export function EvidencePane({ detail: d, onCite }: { detail: RequestDetail | nu
           <ul className="space-y-1.5 text-sm" data-testid="history">
             {history.map((h, i) => (
               <li key={i} className={h.tone === "red" ? "text-red-800" : h.tone === "amber" ? "text-amber-800" : "text-zinc-700"}>
-                {h.text} <span className="text-xs text-zinc-400">{timeAgo(h.at)}</span>
+                {h.text}{h.link && <> · <a href={h.link.href} target="_blank" rel="noopener noreferrer" className="font-medium text-teal-800 underline underline-offset-2">{h.link.label}</a></>} <span className="text-xs text-zinc-400">{timeAgo(h.at)}</span>
               </li>
             ))}
           </ul>

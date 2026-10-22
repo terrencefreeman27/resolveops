@@ -5,7 +5,7 @@ const EVENT_LABEL: Record<string, string> = {
   "ai.synthesize": "AI: draft proposal", "tool.call": "Tool", "tool.error": "Tool error", "tool.rejected": "Tool rejected",
   "proposal.created": "Proposal created", "proposal.edited": "Proposal edited", "citation.rejected": "Citation rejected",
   "approval.granted": "Approved", "approval.rejected": "Rejected", "execution.attempt": "Execution attempt",
-  "execution.succeeded": "Execution succeeded", "execution.failed": "Execution failed", "execution.retry": "Retry requested",
+  "execution.succeeded": "Execution succeeded", "execution.failed": "Execution failed", "execution.retry": "Retry requested", "execution.adapter_switched": "Switched to internal tickets",
   "workflow.error": "Workflow error",
 };
 

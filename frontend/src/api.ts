@@ -46,6 +46,7 @@ export type RequestSummary = {
 export type Ticket = {
   id: string; number: string; subject: string; body: string; category: string; priority: string;
   status: string; group: string; source: string; adapter: string; sandbox: boolean;
+  external_number: number | null; external_url: string | null;
   notes: { body: string; at: string }[]; created_at: string; request_id: string | null;
 };
 
@@ -78,10 +79,11 @@ export type RequestDetail = RequestSummary & {
   approvals: { id: string; decision: string; actor: string; status: string; reason: string | null;
                invalidated_reason: string | null; version_id: string; created_at: string }[];
   executions: { id: string; status: string; attempts: number; last_error: string | null; adapter: string;
-                action_type: string; idempotency_key: string; ticket_id: string | null; created_at: string }[];
+                action_type: string; idempotency_key: string; ticket_id: string | null; created_at: string;
+                external_number: number | null; external_url: string | null }[];
   tickets: Ticket[];
   timeline: TimelineEvent[];
-  allowed_actions: { run: boolean; edit: boolean; approve: boolean; reject: boolean; retry: boolean };
+  allowed_actions: { run: boolean; edit: boolean; approve: boolean; reject: boolean; retry: boolean; escalate_internal: boolean };
 };
 
 export type Scenario = { key: string; label: string; description: string };
@@ -123,7 +125,7 @@ export type RuleIn = {
   name: string; description?: string; categories: string[]; keywords_any: string[]; plans_any: string[];
   action: "escalate" | "note"; group?: string | null; priority: string; note?: string | null;
 };
-export type Adapter = { name: string; label: string; available: boolean; configured: boolean; detail: string };
+export type Adapter = { name: string; label: string; available: boolean; configured: boolean; detail: string; repo?: string | null };
 export type CompanyIn = {
   name: string; slug?: string; tagline: string; industry: string; support_hours: string; support_signature: string; ticket_groups: string[];
 };
@@ -140,6 +142,7 @@ type UsageTotals = { runs: number; errors: number; input_tokens: number; output_
 export type AiStatus = {
   mode: "demo" | "live"; provider_label: string; model: string; effort: string; refusal_fallback: boolean;
   key_configured: boolean; live_for_visitors: boolean;
+  github: { configured: boolean; enabled: boolean; token_configured: boolean; repo: string | null; reason: string };
   budget: { monthly_token_budget: number; tokens_used: number; tokens_remaining: number; monthly_usd_budget: number | null;
             cost_usd: number | null; pricing: null | { input_per_mtok_usd: number; output_per_mtok_usd: number; source: string };
             period_start: string };
@@ -187,6 +190,7 @@ export const api = {
   reject: (ws: string, id: string, versionId: string, reason: string) =>
     call<RequestDetail>("POST", `${w(ws)}/requests/${id}/reject`, { proposal_version_id: versionId, reason }),
   retry: (ws: string, id: string) => call<RequestDetail>("POST", `${w(ws)}/requests/${id}/retry`),
+  escalateInternal: (ws: string, id: string) => call<RequestDetail>("POST", `${w(ws)}/requests/${id}/escalate-internal`),
   passage: (ws: string, chunkId: string) => call<Passage>("GET", `${w(ws)}/chunks/${chunkId}`),
   customers: (ws: string) =>
     call<{ customers: (Customer & { contact_name: string; plan: string })[] }>("GET", `${w(ws)}/customers`),

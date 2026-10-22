@@ -52,6 +52,7 @@ export function RequestPane(props: {
   onApprove: () => void;
   onReject: (reason: string) => void;
   onRetry: () => void;
+  onEscalateInternal: () => void;
   onCite: (chunkId: string) => void;
 }) {
   const { detail: d, groups, busy } = props;
@@ -192,10 +193,12 @@ export function RequestPane(props: {
               <p className="text-sm text-amber-800">This proposal was edited after an earlier approval. The old approval is no longer valid; version {p.version.version} needs its own approval.</p>
             )}
 
-            {!editing && (can.approve || can.edit || can.reject || can.retry) && (
+            {!editing && (can.approve || can.edit || can.reject || can.retry || can.escalate_internal) && (
               <div className="sticky bottom-0 -mx-6 flex flex-wrap items-center gap-2 border-t border-zinc-200 bg-white/95 px-6 py-3 backdrop-blur">
                 {can.approve && <Button variant="primary" onClick={props.onApprove} disabled={busy} data-testid="approve">Approve version {p.version.version}</Button>}
                 {can.retry && <Button variant="primary" onClick={props.onRetry} disabled={busy} data-testid="retry">Retry execution</Button>}
+                {can.escalate_internal && <Button onClick={props.onEscalateInternal} disabled={busy} data-testid="escalate-internal"
+                  title="Create an internal ticket instead. Refused if GitHub already has an issue for this execution.">Use internal ticket instead</Button>}
                 {can.edit && <Button onClick={() => setEditing(true)} disabled={busy} data-testid="edit">Edit</Button>}
                 {can.reject && !rejecting && <Button variant="danger" onClick={() => setRejecting(true)} disabled={busy}>Reject</Button>}
                 {rejecting && (

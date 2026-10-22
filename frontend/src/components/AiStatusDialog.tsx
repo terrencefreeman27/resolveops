@@ -58,6 +58,10 @@ export function AiStatusDialog({ ws, onClose }: { ws: string; onClose: () => voi
               </Row>
               <Row label="Refusal fallback">{s.refusal_fallback ? "Server-side default" : "Off"}</Row>
               <Row label="Live for public visitors">{s.live_for_visitors ? "Enabled" : "Disabled (reviewers only)"}</Row>
+              <Row label="GitHub Issues configured" testId="ai-status-github">
+                {s.github.configured ? <Tag tone="teal">Yes</Tag> : <Tag>No</Tag>}
+              </Row>
+              <Row label="GitHub destination" testId="ai-status-github-repo">{s.github.configured && s.github.repo ? <span className="font-mono">{s.github.repo}</span> : <span className="font-normal text-zinc-500">{s.github.reason}</span>}</Row>
             </dl>
             {s.mode === "live" && !s.key_configured && (
               <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-800" role="status">
