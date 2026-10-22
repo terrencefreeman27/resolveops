@@ -1,7 +1,7 @@
 """Citation validation, evidence provenance, fact-driven answers, document versions in retrieval."""
 import uuid
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 
 from app.models import Chunk, ProposalEvidence, SimFixture, SupportRequest, Workspace
 from app.providers.simulated import SimulatedProvider, normalize
@@ -105,3 +105,22 @@ def test_superseded_versions_leave_retrieval(db):
     assert hits and all(h.document_version_id == v2.id for h in hits)
     assert all("14 days" in h.text for h in hits)
     db.rollback()
+
+
+def test_provider_failure_in_demo_mode_is_an_error_without_fallback(visitor, db, monkeypatch):
+    """A provider failure ends in `error` with no proposal: nothing substitutes a simulated answer."""
+    from app import workflow
+    from app.models import Proposal
+    from app.providers import ProviderError
+
+    def failing(*_a, **_k):
+        raise ProviderError("provider unavailable")
+
+    monkeypatch.setattr(workflow, "get_provider", failing)
+    r = visitor.post(f"{WS}/scenarios/connector_outage/run")
+    assert r.status_code == 200
+    d = r.json()
+    assert d["state"] == "error" and "provider unavailable" in d["state_reason"]
+    assert d["proposal"] is None
+    assert db.scalar(select(func.count()).select_from(Proposal).where(Proposal.request_id == d["id"])) == 0
+    assert d["ai_runs"][0]["status"] == "error"

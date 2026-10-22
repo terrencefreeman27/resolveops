@@ -1,0 +1,15 @@
+{
+  "suite": "ai",
+  "mode": "live",
+  "dataset_version": "v1",
+  "git_commit": "885f57c",
+  "run_at": "2026-10-22T19:33:44+00:00",
+  "label": "Live model output (Claude); see caveats",
+  "status": "not run",
+  "reason": "ANTHROPIC_API_KEY is not set in the api container.",
+  "command": "docker compose exec -e EVAL_GIT_COMMIT=$(git rev-parse --short HEAD) api python -m eval.run_ai_eval --mode live",
+  "baseline": {
+    "status": "not run",
+    "command": "docker compose exec -e EVAL_GIT_COMMIT=$(git rev-parse --short HEAD) api python -m eval.run_ai_eval --mode live"
+  }
+}

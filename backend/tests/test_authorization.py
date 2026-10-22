@@ -141,3 +141,13 @@ def test_visitor_cannot_see_reviewer_or_other_visitor_rows(visitor, reviewer):
     assert visitor.post(f"{WS}/requests/{theirs['id']}/approve", json=approve_body(theirs)).status_code == 404
     ids = {r["id"] for r in other.get(f"{WS}/requests").json()["requests"]}
     assert mine["id"] not in ids and theirs["id"] not in ids
+
+
+def test_reviewer_with_unknown_or_foreign_customer_is_refused(reviewer, db):
+    """Missing customer record or a customer of another workspace: refused before any processing."""
+    body = {"subject": "Refund", "body": "We only use 48 of our 50 seats on the annual plan. Can we get a refund?"}
+    r = reviewer.post(f"{WS}/requests", json=body | {"customer_id": str(uuid.uuid4())})
+    assert r.status_code == 403
+    lumen_customer = db.scalar(select(Customer).where(Customer.account_ref == "LL-2033"))
+    r = reviewer.post(f"{WS}/requests", json=body | {"customer_id": str(lumen_customer.id)})
+    assert r.status_code == 403
