@@ -156,9 +156,11 @@ POST /api/w/{ws}/customer-session            (issue synthetic customer session)
    .md/.txt, review import status, escalation rules, adapter choice, test request);
    replace/delete docs → deactivate chunks → mark dependent pending proposals `stale` and
    block their execution; reprocess path; second company with different policies.
-4. **GitHub Issues adapter.** Env-configured token + single allowlisted repo; idempotent;
+4. **GitHub Issues adapter.** *(Built 2026-10-22; fake-transport tests only, unverified against real GitHub —
+   DECISIONS D28–D30.)* Env-configured token + single allowlisted repo; idempotent;
    failures recorded; labelled unverified if no credentials.
-5. **Evaluation + polish + docs.** 50-case versioned dataset; deterministic vs AI evals;
+5. **Evaluation + polish + docs.** *(Built 2026-10-22 — eval/RESULTS.md, docs/VERIFICATION.md, DECISIONS
+   D31–D33. Live eval and baseline not run: no key.)* 50-case versioned dataset; deterministic vs AI evals;
    baseline comparison; dashboard (by category/state, approvals, failures, latency/tokens,
    eval results; simulated vs live separated); README, architecture diagram, interview
    walkthrough, demo script.
