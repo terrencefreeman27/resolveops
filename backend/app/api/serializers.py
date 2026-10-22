@@ -42,17 +42,19 @@ def request_summary(r: SupportRequest, customer: Customer | None) -> dict:
 def ticket_dict(t: Ticket) -> dict:
     return {"id": str(t.id), "number": t.number, "subject": t.subject, "body": t.body, "category": t.category,
             "priority": t.priority, "status": t.status, "group": t.group, "source": t.source, "adapter": t.adapter,
+            "external_number": t.external_number, "external_url": t.external_url,
             "notes": t.notes, "sandbox": t.demo_session_id is not None, "created_at": iso(t.created_at),
             "request_id": str(t.request_id) if t.request_id else None}
 
 
-def allowed_actions(r: SupportRequest, has_proposal: bool) -> dict:
+def allowed_actions(r: SupportRequest, has_proposal: bool, last_adapter: str | None = None) -> dict:
     return {
         "run": r.is_template or r.state in ("received", "rejected", "stale", "error", "unsupported"),
         "edit": not r.is_template and has_proposal and r.state in ("awaiting_review", "failed"),
         "approve": not r.is_template and has_proposal and r.state == "awaiting_review",
         "reject": not r.is_template and has_proposal and r.state == "awaiting_review",
         "retry": not r.is_template and r.state == "failed",
+        "escalate_internal": not r.is_template and r.state == "failed" and last_adapter == "github",
     }
 
 
@@ -87,7 +89,8 @@ def request_detail(db: Session, actor: Actor, r: SupportRequest) -> dict:
     out["executions"] = [
         {"id": str(e.id), "status": e.status, "attempts": e.attempts, "last_error": e.last_error,
          "adapter": e.adapter, "action_type": e.action_type, "idempotency_key": e.idempotency_key[:12],
-         "ticket_id": str(e.ticket_id) if e.ticket_id else None, "created_at": iso(e.created_at),
+         "ticket_id": str(e.ticket_id) if e.ticket_id else None,
+         "external_number": e.external_number, "external_url": e.external_url, "created_at": iso(e.created_at),
          "finished_at": iso(e.finished_at)}
         for e in db.scalars(select(Execution).where(Execution.request_id == r.id).order_by(Execution.created_at))]
     out["tickets"] = [ticket_dict(t) for t in db.scalars(
@@ -101,7 +104,8 @@ def request_detail(db: Session, actor: Actor, r: SupportRequest) -> dict:
          "input_tokens": x.input_tokens, "output_tokens": x.output_tokens, "tool_steps": x.tool_steps,
          "api_calls": x.api_calls, "error": x.error, "created_at": iso(x.created_at)}
         for x in db.scalars(select(AiRun).where(AiRun.request_id == r.id).order_by(AiRun.created_at))]
-    out["allowed_actions"] = allowed_actions(r, proposal is not None and proposal.status != "closed")
+    out["allowed_actions"] = allowed_actions(r, proposal is not None and proposal.status != "closed",
+                                             out["executions"][-1]["adapter"] if out["executions"] else None)
     return out
 
 

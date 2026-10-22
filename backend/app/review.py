@@ -7,6 +7,8 @@ Backend-enforced rules:
 - The request row is locked (SELECT ... FOR UPDATE) for approve/edit/retry, so concurrent
   clicks serialize; executions and tickets carry a UNIQUE idempotency key as a backstop.
 - Execution retries are bounded; every attempt and failure is audited.
+- External adapters (GitHub, M4) are only used for reviewer-scope escalations, never for visitor
+  sandboxes; switching a failed GitHub execution to the internal adapter is an explicit reviewer action.
 """
 import hashlib
 import time
@@ -17,7 +19,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from . import audit
-from .adapters.base import ExecutionTarget
+from .adapters.base import AdapterError, ExecutionTarget
 from .adapters.internal import get_adapter
 from .config import get_settings
 from .models import Approval, Execution, Proposal, ProposalVersion, SupportRequest, Workspace
@@ -151,7 +153,7 @@ def approve(db: Session, req_id, actor: str, body: ApproveIn) -> SupportRequest:
     content = ProposalContent.model_validate(pv.content)
     ex = Execution(workspace_id=req.workspace_id, demo_session_id=req.demo_session_id, request_id=req.id,
                    proposal_version_id=pv.id, approval_id=approval.id, idempotency_key=idempotency_key(pv),
-                   adapter=_adapter_name(db, req), action_type=content.ticket_action.type, status="pending")
+                   adapter=_adapter_name(db, req, content), action_type=content.ticket_action.type, status="pending")
     db.add(ex)
     transition(db, req, "executing", actor)
     db.commit()  # approval + execution intent are durable before any side effect
@@ -178,10 +180,50 @@ def retry(db: Session, req_id, actor: str) -> SupportRequest:
     return _run_execution(db, req.id, ex.id, actor)
 
 
-def _adapter_name(db: Session, req: SupportRequest) -> str:
+def _adapter_name(db: Session, req: SupportRequest, content: ProposalContent) -> str:
     if req.demo_session_id is not None:
         return "internal"  # visitor sandboxes never reach external integrations
-    return db.get(Workspace, req.workspace_id).settings.get("ticket_adapter", "internal")
+    selected = db.get(Workspace, req.workspace_id).settings.get("ticket_adapter", "internal")
+    if selected == "github" and content.next_action == "escalate" and content.ticket_action.type == "create_ticket":
+        # Recorded even if the server flag is off: execution then fails with a clear reason instead of
+        # silently writing somewhere else. The GitHub adapter re-checks availability on every call.
+        return "github"
+    return "internal"  # notes and non-escalation tickets stay internal
+
+
+def escalate_internal(db: Session, req_id, actor: str) -> SupportRequest:
+    """Explicit reviewer action: re-run a failed GitHub execution with the internal adapter.
+    Refused if GitHub can be checked and already holds an issue for this execution (use Retry to link it)."""
+    from .adapters.github import GitHubIssuesAdapter
+    req = lock_request(db, req_id)
+    _refuse_if_stale(db, req, "switch adapters")
+    if req.state != "failed":
+        raise ReviewError(f"Only failed executions can be sent to the internal adapter (state: {req.state}).")
+    proposal, pv = current(db, req)
+    approval = db.scalar(select(Approval).where(Approval.proposal_id == proposal.id, Approval.status == "active",
+                                                Approval.decision == "approved", Approval.proposal_version_id == pv.id))
+    ex = db.scalar(select(Execution).where(Execution.idempotency_key == idempotency_key(pv)))
+    if approval is None or ex is None or ex.status != "failed":
+        raise ReviewError("No failed, approved execution to switch.")
+    if ex.adapter != "github":
+        raise ReviewError("This execution already uses the internal adapter; use Retry.")
+    content = ProposalContent.model_validate(pv.content)
+    target = ExecutionTarget(req.workspace_id, req.demo_session_id, req.customer_id, req.id, content.category,
+                             content.next_action, ex.created_at)
+    checked = "GitHub checked: no issue for this execution"
+    try:
+        found = GitHubIssuesAdapter().find_existing(target, ex.idempotency_key)
+    except AdapterError as exc:
+        found, checked = None, f"GitHub could not be checked ({exc})"
+    if found is not None:
+        raise ReviewError(f"GitHub already has issue #{found.get('number')} for this execution; use Retry to link it "
+                          "instead of creating an internal ticket.")
+    ex.adapter, ex.status = "internal", "pending"
+    transition(db, req, "executing", actor, "Switched to internal adapter")
+    _audit(db, req, actor, "execution.adapter_switched",
+           summary={"execution_id": str(ex.id), "from": "github", "to": "internal", "check": checked})
+    db.commit()
+    return _run_execution(db, req.id, ex.id, actor)
 
 
 def _run_execution(db: Session, req_id, ex_id, actor: str) -> SupportRequest:
@@ -194,7 +236,8 @@ def _run_execution(db: Session, req_id, ex_id, actor: str) -> SupportRequest:
         raise ReviewError("Proposal became stale before execution; nothing was executed.")
     content = ProposalContent.model_validate(pv.content)
     action = content.ticket_action
-    target = ExecutionTarget(req.workspace_id, req.demo_session_id, req.customer_id, req.id, content.category)
+    target = ExecutionTarget(req.workspace_id, req.demo_session_id, req.customer_id, req.id, content.category,
+                             content.next_action, ex.created_at)
     result, error = None, None
     for _ in range(settings.execution_max_attempts):
         ex.attempts += 1
@@ -210,7 +253,8 @@ def _run_execution(db: Session, req_id, ex_id, actor: str) -> SupportRequest:
                    duration_ms=int((time.perf_counter() - started) * 1000),
                    summary={"attempt": ex.attempts, "action": action.type,
                             "ticket": result.number if result else None,
-                            "created": result.created if result else None})
+                            "created": result.created if result else None,
+                            "external_url": result.external_url if result else None})
             error = None
             break
         except Exception as exc:  # noqa: BLE001 - every failure is recorded and bounded
@@ -218,13 +262,20 @@ def _run_execution(db: Session, req_id, ex_id, actor: str) -> SupportRequest:
             _audit(db, req, actor, "execution.attempt", tool_name=f"adapter.{ex.adapter}",
                    duration_ms=int((time.perf_counter() - started) * 1000),
                    summary={"attempt": ex.attempts, "action": action.type}, error=error)
+            if isinstance(exc, AdapterError) and not exc.retryable:
+                break  # the adapter already retried, or the failure is permanent
     ex.finished_at = datetime.now(timezone.utc)
     if error is None:
         ex.status, ex.last_error = "succeeded", None
         ex.ticket_id = result.ticket_id if result else None
+        if result is not None and result.external_url:
+            ex.external_id, ex.external_number, ex.external_url = (result.external_id, result.external_number,
+                                                                   result.external_url)
         req.resolution = RESOLUTION[content.next_action]
         proposal.status = "closed"
-        note = (f"Ticket {result.number} {'created' if action.type == 'create_ticket' else 'updated'}"
+        note = (f"GitHub issue #{result.external_number} {'created' if result.created else 'linked'}"
+                if result and result.external_url else
+                f"Ticket {result.number} {'created' if action.type == 'create_ticket' else 'updated'}"
                 if result else "No ticket change; reply draft approved (drafts are not sent in v1)")
         transition(db, req, "completed", actor, note)
         _audit(db, req, actor, "execution.succeeded", summary={"execution_id": str(ex.id), "result": note,

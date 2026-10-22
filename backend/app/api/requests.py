@@ -166,6 +166,14 @@ def retry(request_id: uuid.UUID, actor: Actor = Depends(actor_for_workspace), db
     return request_detail(db, actor, r)
 
 
+@router.post("/requests/{request_id}/escalate-internal")
+def escalate_internal(request_id: uuid.UUID, actor: Actor = Depends(actor_for_workspace), db: Session = Depends(get_db)):
+    # Explicit reviewer action after a failed GitHub execution; never automatic.
+    r = _get_owned(db, actor, request_id)
+    review.escalate_internal(db, r.id, actor.label)
+    return request_detail(db, actor, r)
+
+
 @router.get("/chunks/{chunk_id}")
 def get_chunk(chunk_id: uuid.UUID, actor: Actor = Depends(actor_for_workspace), db: Session = Depends(get_db)):
     row = db.execute(

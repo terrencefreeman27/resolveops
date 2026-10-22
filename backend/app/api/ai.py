@@ -3,6 +3,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from .. import limits
+from ..adapters import github
 from ..config import get_settings
 from ..context import Actor, require_reviewer
 from ..db import get_db
@@ -14,6 +15,7 @@ router = APIRouter(prefix="/api/w/{ws}")
 @router.get("/ai/status")
 def ai_status(actor: Actor = Depends(require_reviewer), db: Session = Depends(get_db)):
     s = get_settings()
+    gh = github.status(s)
     used = limits.usage_this_month(db)
     live_used = used["live"]["total_tokens"]
     pricing = None
@@ -28,6 +30,9 @@ def ai_status(actor: Actor = Depends(require_reviewer), db: Session = Depends(ge
         "refusal_fallback": s.live_refusal_fallback,
         "key_configured": bool(s.anthropic_api_key),  # never the key itself
         "live_for_visitors": s.live_allow_visitors,
+        # GitHub Issues adapter: yes/no + destination only; never the token or any part of it.
+        "github": {"configured": gh.available, "enabled": gh.enabled, "token_configured": gh.token_configured,
+                   "repo": gh.repo, "reason": gh.reason},
         "budget": {
             "monthly_token_budget": s.live_monthly_token_budget,
             "tokens_used": live_used,

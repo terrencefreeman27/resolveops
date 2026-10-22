@@ -94,11 +94,15 @@ def marker(key: str) -> str:
     return f"{MARKER_PREFIX}{key} -->"
 
 
-def _escape(text: str | None, limit: int) -> str:
-    """Neutralise markup that could ping people, embed HTML/comments (forge a marker), or break layout."""
+def _escape(text: str | None, limit: int, markdown: bool = True) -> str:
+    """Neutralise markup that could ping people, embed HTML/comments (forge a marker), or break layout.
+    Titles are plain text on GitHub (markdown=False): single line, no HTML escaping needed."""
     t = (text or "").replace("\r\n", "\n")
     t = re.sub(r"[\x00-\x08\x0b-\x1f\x7f]", "", t)
-    t = t.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+    if markdown:
+        t = t.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+    else:
+        t = re.sub(r"\s+", " ", t).strip()
     t = t.replace("@", "@​")  # no @mentions / team pings
     return t if len(t) <= limit else t[: limit - 1] + "…"
 
@@ -121,7 +125,7 @@ def build_issue(db: Session, target: ExecutionTarget, action: TicketAction, key:
         who = f"{_escape(cust.company_name, 120)} ({_escape(cust.account_ref, 40)})"
         if cust.is_synthetic:
             who += " — synthetic test customer, not a real account"
-    title = _escape(action.subject or (req.subject if req else "Escalation"), MAX_TITLE - 13)
+    title = _escape(action.subject or (req.subject if req else "Escalation"), MAX_TITLE - 13, markdown=False)
     body = "\n".join([
         f"**Escalated from ResolveOps** — {_escape(ws.name, 120)}",
         "",
@@ -331,3 +335,12 @@ class GitHubIssuesAdapter(TicketAdapter):
     def add_note(self, db: Session, target: ExecutionTarget, action: TicketAction, idempotency_key: str) -> TicketResult:
         # Notes stay internal in M4 (review.py never routes add_note here); refuse rather than guess.
         raise GitHubError("The GitHub adapter only creates issues for escalations.", retryable=False)
+
+    def find_existing(self, target: ExecutionTarget, idempotency_key: str) -> dict | None:
+        """Read-only marker lookup, used before an explicit fallback to the internal adapter."""
+        owner, name = self._guard(target)
+        client = _Client(self.s, owner, name)
+        try:
+            return client.find(idempotency_key, target.not_before)
+        finally:
+            client.close()

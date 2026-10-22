@@ -14,6 +14,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from .. import audit, documents, evidence, rules, staleness
+from ..adapters import github
 from ..config import get_settings
 from ..context import Actor, current_reviewer, require_reviewer
 from ..db import SessionLocal, get_db
@@ -111,19 +112,24 @@ def update_company(body: CompanyIn, actor: Actor = Depends(require_reviewer), db
 
 # --- step 5: ticket adapter ------------------------------------------------------------------
 
-ADAPTERS = [
-    {"name": "internal", "label": "Internal tickets", "available": True, "configured": True,
-     "detail": "Tickets are stored in ResolveOps. Works in demo and live mode."},
-    {"name": "github", "label": "GitHub Issues", "available": False, "configured": False,
-     "detail": "Not configured. The GitHub Issues adapter arrives in Milestone 4 and needs a server-side token "
-               "and one allowlisted test repository."},
-]
+def _adapters() -> list[dict]:
+    """Availability is decided server-side from config; the token itself never leaves the server."""
+    gh = github.status()
+    return [
+        {"name": "internal", "label": "Internal tickets", "available": True, "configured": True,
+         "detail": "Tickets are stored in ResolveOps. Works in demo and live mode."},
+        {"name": "github", "label": "GitHub Issues", "available": gh.available, "configured": gh.available,
+         "repo": gh.repo if gh.available else None,
+         "detail": (f"Approved escalations create an issue in {gh.repo}; other tickets and notes stay internal. "
+                    "Visitor sandboxes always use internal tickets." if gh.available else
+                    f"Not configured: {gh.reason} See README \"Optional GitHub Issues integration\".")},
+    ]
 
 
 @router.get("/w/{ws}/admin/adapters")
 def list_adapters(actor: Actor = Depends(require_reviewer), db: Session = Depends(get_db)):
     ws = db.get(Workspace, actor.workspace_id)
-    return {"selected": ws.settings.get("ticket_adapter", "internal"), "adapters": ADAPTERS}
+    return {"selected": ws.settings.get("ticket_adapter", "internal"), "adapters": _adapters()}
 
 
 class AdapterIn(In):
@@ -132,7 +138,8 @@ class AdapterIn(In):
 
 @router.put("/w/{ws}/admin/adapter")
 def select_adapter(body: AdapterIn, actor: Actor = Depends(require_reviewer), db: Session = Depends(get_db)):
-    spec = next((a for a in ADAPTERS if a["name"] == body.adapter), None)
+    adapters = _adapters()
+    spec = next((a for a in adapters if a["name"] == body.adapter), None)
     if spec is None:
         raise HTTPException(422, "Unknown ticket adapter.")
     if not spec["available"]:
@@ -142,7 +149,7 @@ def select_adapter(body: AdapterIn, actor: Actor = Depends(require_reviewer), db
     audit.record(db, workspace_id=ws.id, actor=actor.label, event="workspace.adapter_selected",
                  summary={"adapter": spec["name"]})
     db.commit()
-    return {"selected": spec["name"], "adapters": ADAPTERS}
+    return {"selected": spec["name"], "adapters": adapters}
 
 
 # --- steps 2-3: documents --------------------------------------------------------------------
