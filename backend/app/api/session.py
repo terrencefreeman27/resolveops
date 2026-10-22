@@ -44,7 +44,8 @@ def meta(request: Request, db: Session = Depends(get_db)):
         "live_configured": bool(s.anthropic_api_key),  # never the key itself
         "reviewer": None if reviewer is None else {"email": reviewer.email, "name": reviewer.name},
         "workspaces": [{"slug": w.slug, "name": w.name, "profile": w.profile,
-                        "demo_scenarios": w.settings.get("demo_scenarios", [])} for w in workspaces],
+                        "demo_scenarios": w.settings.get("demo_scenarios", []),
+                        "ticket_groups": w.settings.get("ticket_groups", [])} for w in workspaces],
     }
 
 
