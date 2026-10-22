@@ -18,6 +18,9 @@ class Settings(BaseSettings):
     embedding_model: str = "BAAI/bge-small-en-v1.5"
     embedding_dim: int = 384
     retrieval_top_k: int = 6
+    # Evidence check (evidence.py): passages scoring below this cosine similarity are not treated as
+    # supporting evidence. A workspace can override it with settings.retrieval_min_score.
+    retrieval_min_score: float = 0.6
 
     max_request_chars: int = 4000
     session_ttl_hours: int = 12
@@ -47,7 +50,9 @@ class Settings(BaseSettings):
     live_price_input_per_mtok: float | None = None
     live_price_output_per_mtok: float | None = None
     live_monthly_usd_budget: float | None = None
-    max_upload_bytes: int = 1_000_000  # document import (Milestone 3)
+    max_upload_bytes: int = 200_000  # per imported document (.md / .txt)
+    max_documents_per_workspace: int = 40
+    max_workspaces_per_reviewer: int = 10
 
 
 @lru_cache

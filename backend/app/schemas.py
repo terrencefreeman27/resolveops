@@ -194,6 +194,30 @@ class RuleHit(Strict):
     effect: str
 
 
+class ConflictValue(Strict):
+    value: str
+    document_id: uuid.UUID
+    doc_title: str
+    version: int
+    section: str
+    chunk_id: uuid.UUID
+
+
+class PolicyConflict(Strict):
+    key: str
+    values: list[ConflictValue]
+
+
+class EvidenceCheck(Strict):
+    """Deterministic evidence assessment made by application code (evidence.py), not by the model."""
+    status: Literal["sufficient", "insufficient", "conflicting"]
+    threshold: float
+    best_score: float | None
+    relevant_passages: int
+    conflicts: list[PolicyConflict] = Field(default_factory=list)
+    effect: str | None = None  # what the check changed in the proposal, if anything
+
+
 class ProposalContent(Strict):
     summary: str
     category: Category
@@ -210,6 +234,7 @@ class ProposalContent(Strict):
     risk_flags: list[str]
     provider_label: str
     simulated: bool
+    evidence_check: EvidenceCheck | None = None  # absent on proposals created before Milestone 3
 
 
 def action_hash(content: ProposalContent) -> str:

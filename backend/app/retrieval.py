@@ -2,15 +2,15 @@
 
 Embeddings come from a local ONNX model (fastembed, BAAI/bge-small-en-v1.5, 384-dim), so
 retrieval is real in both demo and live mode without any API key.
-Only chunks of the *current active version* of a non-deleted document are searchable.
+Only chunks of the *current active version* of a non-deleted document are searchable; the
+document lifecycle (import, replace, delete) lives in documents.py.
 """
-import hashlib
 import re
 import uuid
 from dataclasses import dataclass
 from functools import lru_cache
 
-from sqlalchemy import select, text, update
+from sqlalchemy import select, text
 from sqlalchemy.orm import Session
 
 from .config import get_settings
@@ -91,55 +91,12 @@ def split_sections(content: str, fmt: str = "markdown") -> tuple[str | None, lis
     return title, out
 
 
-def ingest_document(
-    db: Session, workspace_id: uuid.UUID, slug: str, title: str, content: str, fmt: str = "markdown"
-) -> DocumentVersion:
-    """Create (or replace) a document version and index its sections.
+def ingest_document(db: Session, workspace_id: uuid.UUID, slug: str, title: str, content: str,
+                    fmt: str = "markdown"):
+    """Kept for callers of the M1 API; the lifecycle lives in documents.py."""
+    from .documents import ingest_document as _ingest
 
-    Replacing a document marks the prior version 'superseded' and deactivates its chunks in the
-    same transaction, so stale text can never be retrieved alongside the new version.
-    """
-    doc = db.scalar(select(Document).where(Document.workspace_id == workspace_id, Document.slug == slug))
-    if doc is None:
-        doc = Document(workspace_id=workspace_id, slug=slug, title=title, status="active")
-        db.add(doc)
-        db.flush()
-    prev_version = db.scalar(
-        select(DocumentVersion.version).where(DocumentVersion.document_id == doc.id).order_by(DocumentVersion.version.desc()).limit(1)
-    )
-    version = DocumentVersion(
-        workspace_id=workspace_id,
-        document_id=doc.id,
-        version=(prev_version or 0) + 1,
-        content=content,
-        content_hash=hashlib.sha256(content.encode()).hexdigest(),
-        source_format=fmt,
-        status="processing",
-    )
-    db.add(version)
-    db.flush()
-
-    parsed_title, sections = split_sections(content, fmt)
-    if not sections:
-        version.status, version.import_error = "failed", "No text content found."
-        return version
-    vectors = embed_passages([f"{title}\n{s.title}\n{s.body}" for s in sections])
-    for i, (s, vec) in enumerate(zip(sections, vectors)):
-        db.add(Chunk(
-            workspace_id=workspace_id, document_id=doc.id, document_version_id=version.id,
-            section=s.title, section_slug=slugify(s.title), ordinal=i, text=s.body, embedding=vec, active=True,
-        ))
-    # Retire the previous version.
-    db.execute(update(DocumentVersion).where(
-        DocumentVersion.document_id == doc.id, DocumentVersion.id != version.id, DocumentVersion.status == "active"
-    ).values(status="superseded"))
-    db.execute(update(Chunk).where(Chunk.document_id == doc.id, Chunk.document_version_id != version.id).values(active=False))
-    version.status = "active"
-    doc.title = parsed_title or title
-    doc.status = "active"
-    doc.current_version_id = version.id
-    db.flush()
-    return version
+    return _ingest(db, workspace_id, slug, title, content, fmt)
 
 
 @dataclass

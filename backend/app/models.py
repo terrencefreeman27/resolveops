@@ -168,6 +168,7 @@ class Invoice(Base):
 
 class EscalationRule(Base):
     __tablename__ = "escalation_rules"
+    __table_args__ = (UniqueConstraint("workspace_id", "key", name="uq_escalation_rules_ws_key"),)
     id: Mapped[uuid.UUID] = uuid_pk()
     workspace_id: Mapped[uuid.UUID] = ws_fk()
     key: Mapped[str] = mapped_column(String(64), nullable=False)
@@ -180,6 +181,19 @@ class EscalationRule(Base):
     enabled: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
 
 
+class SimFixture(Base):
+    """Demo-mode simulated AI output for one seeded scenario of one workspace. Pure data: the simulated
+    provider is generic code that renders these templates from tool results (providers/simulated.py)."""
+    __tablename__ = "sim_fixtures"
+    __table_args__ = (UniqueConstraint("workspace_id", "key"),)
+    id: Mapped[uuid.UUID] = uuid_pk()
+    workspace_id: Mapped[uuid.UUID] = ws_fk()
+    key: Mapped[str] = mapped_column(String(64), nullable=False)
+    match_text: Mapped[str] = mapped_column(Text, nullable=False)  # normalized request body
+    classification: Mapped[dict] = mapped_column(JSONB, nullable=False)
+    synthesis: Mapped[dict] = mapped_column(JSONB, nullable=False)
+
+
 # --- knowledge base -------------------------------------------------------------
 
 class Document(Base):
@@ -189,8 +203,11 @@ class Document(Base):
     workspace_id: Mapped[uuid.UUID] = ws_fk()
     slug: Mapped[str] = mapped_column(String(120), nullable=False)
     title: Mapped[str] = mapped_column(String(300), nullable=False)
-    status: Mapped[str] = mapped_column(String(16), default="active", nullable=False)  # active | deleted
+    status: Mapped[str] = mapped_column(String(16), default="active", nullable=False)  # pending | active | deleted
     current_version_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True))
+    created_by: Mapped[str | None] = mapped_column(String(120))
+    deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    deleted_by: Mapped[str | None] = mapped_column(String(120))
     created_at: Mapped[datetime] = created_at()
 
 
@@ -204,9 +221,18 @@ class DocumentVersion(Base):
     content: Mapped[str] = mapped_column(Text, nullable=False)
     content_hash: Mapped[str] = mapped_column(String(64), nullable=False)
     source_format: Mapped[str] = mapped_column(String(16), default="markdown", nullable=False)
-    # processing | active | superseded | deleted | failed
+    # Lifecycle: pending | active | superseded | deleted | failed
     status: Mapped[str] = mapped_column(String(16), nullable=False)
+    # Import pipeline: pending | processing | ready | failed (failed carries import_error)
+    import_status: Mapped[str] = mapped_column(String(16), default="pending", server_default="ready", nullable=False)
     import_error: Mapped[str | None] = mapped_column(Text)
+    filename: Mapped[str | None] = mapped_column(String(200))
+    size_bytes: Mapped[int | None] = mapped_column(Integer)
+    # {key: value} declared by policy markers in the document (see retrieval.parse_policy_facts)
+    policy_facts: Mapped[dict] = mapped_column(JSONB, default=dict, server_default=text("'{}'::jsonb"), nullable=False)
+    created_by: Mapped[str | None] = mapped_column(String(120))
+    processed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    retired_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))  # superseded or deleted
     created_at: Mapped[datetime] = created_at()
 
 
@@ -222,6 +248,7 @@ class Chunk(Base):
     text: Mapped[str] = mapped_column(Text, nullable=False)
     embedding = mapped_column(Vector(EMBED_DIM), nullable=False)
     active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    policy_facts: Mapped[dict] = mapped_column(JSONB, default=dict, server_default=text("'{}'::jsonb"), nullable=False)
 
 
 Index("ix_chunks_ws_active", Chunk.workspace_id, Chunk.active)
@@ -271,6 +298,8 @@ class Proposal(Base):
     status: Mapped[str] = mapped_column(String(16), default="open", nullable=False)  # open | closed | stale
     # Provider usage for the run that produced this proposal (latency, tokens, tool steps, model).
     usage: Mapped[dict] = mapped_column(JSONB, default=dict, server_default=text("'{}'::jsonb"), nullable=False)
+    stale_reason: Mapped[str | None] = mapped_column(Text)
+    stale_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = created_at()
 
 

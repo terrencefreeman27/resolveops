@@ -32,6 +32,7 @@ WORKSPACE = {
         "tagline": "B2B analytics: dashboards, reporting and data connectors for operations teams.",
         "industry": "B2B SaaS — analytics",
         "support_hours": "Mon–Fri 08:00–20:00 ET",
+        "support_signature": "Northstar Support",
         "fictional": True,
     },
     "settings": {
@@ -39,6 +40,8 @@ WORKSPACE = {
         "ticket_adapter": "internal",
         "demo_enabled": True,
         "roles": ROLE_PERMISSIONS,
+        "admin_roles": ["Admin"],
+        "evidence_review_group": "Support Tier 1",
         "ticket_groups": TICKET_GROUPS,
         "supported_categories": ["access", "billing", "product_issue"],
         "demo_scenarios": [
@@ -149,7 +152,7 @@ TICKETS = [
      "Renewal payment failed; account is past due."),
 ]
 
-# Seeded inbox. scenario_key links to a simulated-AI fixture (seed/scenarios.py).
+# Seeded inbox. scenario_key links to a simulated-AI fixture (seed/northstar_fixtures.py).
 REQUESTS = [
     ("access_reporting_after_upgrade", "NS-1042", "Reporting not available after our upgrade",
      "We upgraded yesterday, but two employees still can't access the reporting feature. "

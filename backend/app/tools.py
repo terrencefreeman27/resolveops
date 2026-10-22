@@ -83,6 +83,7 @@ def lookup_customer(ctx: ToolContext, args: LookupCustomerArgs) -> CustomerFacts
     customer = _require_customer(ctx)
     ws = ctx.db.get(Workspace, ctx.workspace_id)
     roles = ws.settings.get("roles", {})
+    admin_roles = set(ws.settings.get("admin_roles", ["Admin"]))
     users = ctx.db.scalars(select(AccountUser).where(
         AccountUser.workspace_id == ctx.workspace_id, AccountUser.customer_id == customer.id,
         AccountUser.status == "active").order_by(AccountUser.name)).all()
@@ -96,7 +97,7 @@ def lookup_customer(ctx: ToolContext, args: LookupCustomerArgs) -> CustomerFacts
         customer_id=customer.id, account_ref=customer.account_ref, company_name=customer.company_name,
         contact_name=customer.contact_name, contact_email=customer.contact_email,
         is_synthetic=customer.is_synthetic, users=facts,
-        admins=[u.name for u in facts if u.role == "Admin"],
+        admins=[u.name for u in facts if u.role in admin_roles],
         users_without_reporting=[u.name for u in facts if not u.has_reporting],
         connectors=connectors, other_metadata=meta, foreign_emails_ignored=foreign,
     )
