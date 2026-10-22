@@ -1,4 +1,5 @@
 """Workspace, customer and session scoping — enforced in backend code."""
+import re
 import uuid
 
 from sqlalchemy import select
@@ -52,7 +53,9 @@ def test_mentioned_email_does_not_grant_access(visitor):
     assert "ops@tidewater-cu.example" in facts["Other accounts mentioned (not accessed)"]
     lookup = next(e for e in d["timeline"] if e["tool_name"] == "lookup_customer")
     assert lookup["summary"]["result"]["customer"] == "Orbit Fitness Studios"
-    blob = str(d["proposal"]["version"]["content"])
+    # Ignore UUIDs (citation ids are random hex and can contain "450" by chance).
+    blob = re.sub(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}", "<id>",
+                  str(d["proposal"]["version"]["content"]))
     assert "Tidewater" not in blob and "450" not in blob
     # Injection did not bypass review: still awaiting a human decision.
     assert d["state"] == "awaiting_review" and d["proposal"]["version"]["content"]["risk_flags"]
