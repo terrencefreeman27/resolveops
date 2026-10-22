@@ -142,3 +142,31 @@ def live(monkeypatch) -> LiveHarness:
 def customer_id(client: TestClient, company: str) -> str:
     rows = client.get(f"{WS}/customers").json()["customers"]
     return next(c["id"] for c in rows if c["company_name"] == company)
+
+
+LUMEN = "/api/w/lumen"
+
+
+def login(email: str, password: str) -> TestClient:
+    c = TestClient(app, headers=HDR)
+    r = c.post("/api/auth/login", json={"email": email, "password": password})
+    assert r.status_code == 200, r.text
+    return c
+
+
+def lumen_reviewer() -> TestClient:
+    """Member of Lumen Ledger only."""
+    return login("reviewer@lumenledger.example", "lumen-demo")
+
+
+def new_workspace(client: TestClient, name: str | None = None) -> str:
+    import uuid as _uuid
+    name = name or f"Test Co {_uuid.uuid4().hex[:6]}"
+    r = client.post("/api/workspaces", json={"name": name, "ticket_groups": ["Support", "Billing"]})
+    assert r.status_code == 200, r.text
+    return r.json()["slug"]
+
+
+def upload(client: TestClient, slug: str, filename: str, content: str, doc_id: str | None = None):
+    path = f"/api/w/{slug}/admin/documents" + (f"/{doc_id}/versions" if doc_id else "")
+    return client.post(path, json={"filename": filename, "content": content})
