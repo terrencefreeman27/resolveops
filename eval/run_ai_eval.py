@@ -38,7 +38,7 @@ def main(argv=None) -> int:
 
     if args.mode == "live" and not os.environ.get("ANTHROPIC_API_KEY"):
         payload = _header("live", args.dataset) | {
-            "status": "not run", "reason": "ANTHROPIC_API_KEY is not set in the api container.",
+            "label": "Not run — no live results exist", "status": "not run", "reason": "ANTHROPIC_API_KEY is not set in the api container.",
             "command": LIVE_CMD, "baseline": {"status": "not run", "command": LIVE_CMD}}
         path = harness.write_result("ai", "live", payload)
         print(f"Live AI eval NOT RUN (no ANTHROPIC_API_KEY). Wrote {path}")

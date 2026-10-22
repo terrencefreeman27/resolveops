@@ -5,6 +5,7 @@ from fastapi.responses import JSONResponse
 from .api import requests as requests_api
 from .api import admin as admin_api
 from .api import ai as ai_api
+from .api import dashboard as dashboard_api
 from .api import session as session_api
 from .limits import LimitExceeded
 from .review import ReviewError
@@ -43,3 +44,4 @@ app.include_router(session_api.router)
 app.include_router(requests_api.router)
 app.include_router(ai_api.router)
 app.include_router(admin_api.router)
+app.include_router(dashboard_api.router)
