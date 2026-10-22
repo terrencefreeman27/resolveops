@@ -89,7 +89,7 @@ export type RequestDetail = RequestSummary & {
 export type Scenario = { key: string; label: string; description: string };
 export type Meta = {
   mode: "demo" | "live"; effective_mode: "demo" | "live"; provider_label: string; live_model: string | null;
-  live_configured: boolean; live_for_visitors: boolean;
+  live_configured: boolean; live_for_visitors: boolean; github_issues?: boolean;
   reviewer: { email: string; name: string } | null;
   workspaces: Workspace[];
 };

@@ -193,7 +193,9 @@ function ModeBanner({ meta }: { meta: Meta | null }) {
   let tone = "bg-amber-300 text-amber-950";
   let text = "Connecting";
   if (meta?.mode === "demo") {
-    text = "Demo mode: Simulated AI. Outputs are deterministic fixtures on synthetic data; tickets are internal only.";
+    text = "Demo mode: Simulated AI. Outputs are deterministic fixtures on synthetic data; " + (meta.github_issues
+      ? "approved escalations in workspaces using GitHub Issues create real issues in the configured test repository."
+      : "tickets are internal only.");
   } else if (meta && meta.effective_mode === "demo") {
     text = "Demo mode for visitors: Simulated AI. Live model calls are limited to signed-in reviewers.";
   } else if (meta && !meta.live_configured) {

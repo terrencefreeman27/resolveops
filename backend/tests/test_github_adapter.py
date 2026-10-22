@@ -261,6 +261,8 @@ def test_visitor_sandbox_always_uses_internal(gh, visitor):
     # Visitors cannot select adapters or read the AI/GitHub status either.
     assert visitor.put(f"{WS}/admin/adapter", json={"adapter": "github"}).status_code in (401, 403)
     assert visitor.get(f"{WS}/ai/status").status_code in (401, 403)
+    assert visitor.get("/api/meta").json()["github_issues"] is False
+    assert new_reviewer().get("/api/meta").json()["github_issues"] is True
 
 
 def test_escalate_internal_is_explicit_and_checks_github_first(gh, reviewer):

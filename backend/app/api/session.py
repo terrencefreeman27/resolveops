@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
+from ..adapters import github
 from ..config import get_settings
 from ..context import (CUSTOMER_COOKIE, DEMO_COOKIE, REVIEWER_COOKIE, Actor, actor_for_workspace,
                        current_demo_session, current_reviewer, require_reviewer)
@@ -51,6 +52,8 @@ def meta(request: Request, db: Session = Depends(get_db)):
         "provider_label": label_for(s.live_model) if live else "Simulated AI — demo mode",
         "live_model": s.live_model if s.ai_mode == "live" else None,
         "live_configured": bool(s.anthropic_api_key),  # never the key itself
+        # Reviewer escalations may reach the configured GitHub test repo; visitors never do.
+        "github_issues": reviewer is not None and github.status(s).available,
         "live_for_visitors": s.live_allow_visitors,
         "reviewer": None if reviewer is None else {"email": reviewer.email, "name": reviewer.name},
         "workspaces": [{"slug": w.slug, "name": w.name, "profile": w.profile, "is_member": w.id in member_of,
