@@ -9,6 +9,8 @@ from ..config import get_settings
 from ..context import (CUSTOMER_COOKIE, DEMO_COOKIE, REVIEWER_COOKIE, Actor, actor_for_workspace,
                        current_demo_session, current_reviewer, require_reviewer)
 from ..db import get_db
+from ..providers import live_for
+from ..providers.live import label_for
 from ..models import (AiRun, AuditLog, AuthSession, Customer, CustomerSession, DemoSession, Document, DocumentVersion,
                       Execution, Membership,
                       Reviewer, Subscription, SupportRequest, Ticket, Workspace)
@@ -38,10 +40,14 @@ def meta(request: Request, db: Session = Depends(get_db)):
     s = get_settings()
     reviewer = current_reviewer(request, db)
     workspaces = db.scalars(select(Workspace).order_by(Workspace.name)).all()
+    live = live_for(reviewer is not None)
     return {
-        "mode": s.ai_mode,
-        "provider_label": "Simulated AI — demo mode" if s.ai_mode == "demo" else "Claude (live)",
+        "mode": s.ai_mode,  # server mode
+        "effective_mode": "live" if live else "demo",  # what *this caller's* requests use
+        "provider_label": label_for(s.live_model) if live else "Simulated AI — demo mode",
+        "live_model": s.live_model if s.ai_mode == "live" else None,
         "live_configured": bool(s.anthropic_api_key),  # never the key itself
+        "live_for_visitors": s.live_allow_visitors,
         "reviewer": None if reviewer is None else {"email": reviewer.email, "name": reviewer.name},
         "workspaces": [{"slug": w.slug, "name": w.name, "profile": w.profile,
                         "demo_scenarios": w.settings.get("demo_scenarios", []),

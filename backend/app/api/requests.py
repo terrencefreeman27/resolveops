@@ -1,14 +1,16 @@
 """Request, proposal and review endpoints. Every lookup is scoped by workspace and caller scope."""
 import uuid
+from contextlib import contextmanager
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from .. import review
+from .. import limits, review
 from ..context import CUSTOMER_COOKIE, Actor, actor_for_workspace
 from ..db import get_db
+from ..providers import live_for
 from ..models import Chunk, Customer, CustomerSession, Document, DocumentVersion, SupportRequest
 from ..schemas import ApproveIn, EditProposalIn, RejectIn, SubmitRequestIn
 from ..security import token_hash
@@ -42,6 +44,20 @@ def _clone(db: Session, actor: Actor, t: SupportRequest) -> SupportRequest:
     return r
 
 
+@contextmanager
+def _ai_gate(db: Session, actor: Actor, subject: str, body: str):
+    """Decide live vs simulated for this caller and, for live, enforce input size, rate limits and
+    budget *before* any row is written, then hold a concurrency slot for the run."""
+    live = live_for(actor.is_reviewer)
+    if not live:
+        yield False
+        return
+    limits.check_input(subject, body)
+    limits.preflight(db, actor.label)
+    with limits.live_slot():
+        yield True
+
+
 @router.get("/requests")
 def list_requests(state: str | None = None, category: str | None = None,
                   actor: Actor = Depends(actor_for_workspace), db: Session = Depends(get_db)):
@@ -66,21 +82,23 @@ def run_scenario(key: str, actor: Actor = Depends(actor_for_workspace), db: Sess
                                                SupportRequest.is_template.is_(True), SupportRequest.scenario_key == key))
     if t is None:
         raise HTTPException(404, "Unknown demo scenario.")
-    r = _clone(db, actor, t)
-    run_request(db, r, actor.label)
+    with _ai_gate(db, actor, t.subject, t.body) as live:
+        r = _clone(db, actor, t)
+        run_request(db, r, actor.label, live=live)
     return request_detail(db, actor, r)
 
 
 @router.post("/requests/{request_id}/run")
 def run(request_id: uuid.UUID, actor: Actor = Depends(actor_for_workspace), db: Session = Depends(get_db)):
     r = _get_visible(db, actor, request_id)
-    if r.is_template:
-        r = _clone(db, actor, r)
-        run_request(db, r, actor.label)
-    elif r.state == "received":
-        run_request(db, r, actor.label)
-    else:
-        reprocess(db, r, actor.label)
+    with _ai_gate(db, actor, r.subject, r.body) as live:
+        if r.is_template:
+            r = _clone(db, actor, r)
+            run_request(db, r, actor.label, live=live)
+        elif r.state == "received":
+            run_request(db, r, actor.label, live=live)
+        else:
+            reprocess(db, r, actor.label, live=live)
     return request_detail(db, actor, r)
 
 
@@ -105,12 +123,13 @@ def submit(body: SubmitRequestIn, request: Request, actor: Actor = Depends(actor
         via = "customer_session"
     if customer is None:
         raise HTTPException(403, "No authorized customer for this submission.")
-    r = SupportRequest(workspace_id=actor.workspace_id, demo_session_id=actor.demo_session_id, customer_id=customer.id,
-                       submitted_via=via, from_name=customer.contact_name, from_email=customer.contact_email,
-                       subject=body.subject, body=body.body, state="received")
-    db.add(r)
-    db.flush()
-    run_request(db, r, actor.label)
+    with _ai_gate(db, actor, body.subject, body.body) as live:
+        r = SupportRequest(workspace_id=actor.workspace_id, demo_session_id=actor.demo_session_id,
+                           customer_id=customer.id, submitted_via=via, from_name=customer.contact_name,
+                           from_email=customer.contact_email, subject=body.subject, body=body.body, state="received")
+        db.add(r)
+        db.flush()
+        run_request(db, r, actor.label, live=live)
     return request_detail(db, actor, r)
 
 

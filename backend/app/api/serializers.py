@@ -3,7 +3,7 @@ from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from ..context import Actor, scope_clause
-from ..models import (Approval, AuditLog, Customer, Execution, Proposal, ProposalVersion, SupportRequest,
+from ..models import (AiRun, Approval, AuditLog, Customer, Execution, Proposal, ProposalVersion, SupportRequest,
                       Ticket)
 
 
@@ -52,7 +52,7 @@ def request_detail(db: Session, actor: Actor, r: SupportRequest) -> dict:
                               .order_by(ProposalVersion.version)).all()
         cur = next(v for v in versions if v.version == proposal.current_version)
         out["proposal"] = {
-            "id": str(proposal.id), "provider": proposal.provider, "status": proposal.status,
+            "id": str(proposal.id), "provider": proposal.provider, "status": proposal.status, "usage": proposal.usage,
             "current_version": proposal.current_version,
             "version": {"id": str(cur.id), "version": cur.version, "content": cur.content,
                         "action_hash": cur.action_hash, "author": cur.author, "edit_note": cur.edit_note,
@@ -77,6 +77,11 @@ def request_detail(db: Session, actor: Actor, r: SupportRequest) -> dict:
         {"id": a.id, "event": a.event, "actor": a.actor, "tool_name": a.tool_name, "summary": a.summary,
          "duration_ms": a.duration_ms, "error": a.error, "created_at": iso(a.created_at)}
         for a in db.scalars(select(AuditLog).where(AuditLog.request_id == r.id).order_by(AuditLog.id))]
+    out["ai_runs"] = [
+        {"id": str(x.id), "provider": x.provider, "model": x.model, "status": x.status, "latency_ms": x.latency_ms,
+         "input_tokens": x.input_tokens, "output_tokens": x.output_tokens, "tool_steps": x.tool_steps,
+         "api_calls": x.api_calls, "error": x.error, "created_at": iso(x.created_at)}
+        for x in db.scalars(select(AiRun).where(AiRun.request_id == r.id).order_by(AiRun.created_at))]
     out["allowed_actions"] = allowed_actions(r, proposal is not None and proposal.status != "closed")
     return out
 

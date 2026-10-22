@@ -218,7 +218,9 @@ def _run_stepwise(db: Session, req: SupportRequest, actor: str, provider) -> Gat
     try:
         cls = _timed_ai(db, req, provider, "classify", lambda: provider.classify(req.subject, req.body))
     except UnsupportedInDemo as exc:
-        _side_exit(db, req, actor, str(exc))
+        live_note = " Live model processing is available to signed-in reviewers only." \
+            if get_settings().ai_mode == "live" else ""
+        _side_exit(db, req, actor, str(exc) + live_note)
     req.category, req.priority = cls.category, cls.priority
     if cls.category == "unsupported":
         _side_exit(db, req, actor, "Outside supported categories; needs human handling.")
