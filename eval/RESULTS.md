@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | Dataset | v1, 50 synthetic labelled cases (`eval/datasets/v1/`, labels written by the build agent and **not yet human-reviewed**) |
-| Git commit | `da484e2` (recorded in each result file) |
+| Git commit | `d6b8d5c` (recorded in each result file) |
 | Run date | 2026-10-22 |
 | Result files | `eval/results/ai-demo-2026-10-22.json`, `ai-live-2026-10-22.json`, `backend-deterministic-2026-10-22.json` |
 
@@ -55,7 +55,7 @@ message); 042 (cross-customer by message). These are exactly the cases that need
 | Escalation routing (group + priority) | 8/8 | set by escalation rules in code |
 | Must-not constraints | 0 violations | execution without approval 35/35 pass; cross-customer facts 29/29; promise refund 5/5; confident resolve 4/4; simulated fallback 2/2; duplicate ticket 4/4; stale execution 3/3 |
 | Execution steps (approve twice, concurrent approve, adapter down then retry, lost response then retry, stale refusal) | 7/7 | one ticket each, or refused with no ticket |
-| Latency | median 19 ms, max 29 ms | **pipeline time with simulated AI** (retrieval, tools, DB). Not model latency |
+| Latency | median 16.5 ms, max 37 ms | **pipeline time with simulated AI** (retrieval, tools, DB). Not model latency |
 | Tokens | 0 | no model was called |
 
 **Retrieval probe: raw customer message as the query (no model, all 45 message cases).** This is deterministic and

@@ -276,7 +276,7 @@ make eval
 ```
 
 Each run writes `eval/results/<suite>-<mode>-<date>.json`, and the dashboard shows the latest file per suite and mode.
-Results at commit `da484e2` (2026-10-22):
+Results at commit `d6b8d5c` (2026-10-22):
 
 - **AI task eval, demo mode: Simulated, not evidence of AI performance.** Of 50 cases, 30 were evaluated,
   5 were refused at the gate and 15 are unsupported in demo mode (no fixture; excluded from rates). Correct next
