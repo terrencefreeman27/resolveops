@@ -93,3 +93,52 @@ def run_scenario(client: TestClient, key: str) -> dict:
 def approve_body(detail: dict) -> dict:
     v = detail["proposal"]["version"]
     return {"proposal_version_id": v["id"], "action_hash": v["action_hash"]}
+
+
+# --- live mode (fake Anthropic client; no network, no real key) -----------------------------
+
+FAKE_KEY = "sk-ant-test-not-a-real-key"
+
+
+class LiveHarness:
+    """Switches the app to AI_MODE=live with a fake Anthropic client for one test."""
+
+    def __init__(self, monkeypatch):
+        from app.config import get_settings
+        from app.providers import live as live_mod
+
+        self.settings = get_settings()
+        self.client = None
+        self.factory_calls = 0
+        self.mp = monkeypatch
+        for k, v in {"ai_mode": "live", "anthropic_api_key": FAKE_KEY, "live_retry_base_delay_s": 0.0,
+                     "live_retry_max_delay_s": 0.0, "live_rate_per_reviewer_per_min": 10_000,
+                     "live_rate_global_per_min": 10_000, "live_monthly_token_budget": 10**12,
+                     "live_max_concurrency": 4}.items():
+            monkeypatch.setattr(self.settings, k, v)
+
+        def factory(_settings):
+            self.factory_calls += 1
+            assert self.client is not None, "test did not install a fake client"
+            return self.client
+        monkeypatch.setattr(live_mod, "client_factory", factory)
+
+    def set(self, **kw):
+        for k, v in kw.items():
+            self.mp.setattr(self.settings, k, v)
+
+    def script(self, steps):
+        from tests.live_fakes import FakeAnthropic
+
+        self.client = FakeAnthropic(steps)
+        return self.client
+
+
+@pytest.fixture
+def live(monkeypatch) -> LiveHarness:
+    return LiveHarness(monkeypatch)
+
+
+def customer_id(client: TestClient, company: str) -> str:
+    rows = client.get(f"{WS}/customers").json()["customers"]
+    return next(c["id"] for c in rows if c["company_name"] == company)

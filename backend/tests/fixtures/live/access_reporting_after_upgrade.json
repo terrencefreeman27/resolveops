@@ -1,0 +1,38 @@
+{
+  "description": "Recorded-format fixture (Messages API response shape, hand-written; not captured from the live API). Scenario 1: access issue resolved with account facts and docs.",
+  "turns": [
+    {"stop_reason": "tool_use", "usage": {"input_tokens": 3120, "output_tokens": 140},
+     "tool_calls": [
+       {"name": "lookup_customer", "input": {"mentioned_emails": []}},
+       {"name": "get_subscription", "input": {}}
+     ]},
+    {"stop_reason": "tool_use", "usage": {"input_tokens": 4410, "output_tokens": 160},
+     "tool_calls": [
+       {"name": "search_knowledge_base", "input": {"query": "users cannot access reporting after plan upgrade role permission", "top_k": 6}},
+       {"name": "search_knowledge_base", "input": {"query": "change user role to Analyst reporting permission", "top_k": 6}}
+     ]},
+    {"stop_reason": "tool_use", "usage": {"input_tokens": 7950, "output_tokens": 210},
+     "tool_calls": [
+       {"name": "propose_ticket_action", "input": {"type": "create_ticket", "subject": "Reporting access after Starter to Pro upgrade", "body": "Two users still have the Viewer role after the upgrade; an Admin must change them to Analyst.", "priority": "normal", "group": "Support Tier 1", "status": "pending_customer", "ticket_id": null}}
+     ]},
+    {"stop_reason": "end_turn", "usage": {"input_tokens": 8300, "output_tokens": 640},
+     "final": {
+       "classification": {
+         "category": "access", "priority": "normal",
+         "justification": "Paid plan includes Reporting; two users lack the permission because of their role.",
+         "summary": "After upgrading Starter to Pro, two employees still cannot open Reporting.",
+         "mentioned_emails": [], "risk_flags": []
+       },
+       "proposal": {
+         "next_action": "resolve",
+         "draft_reply": "Hi Maya,\n\nYour account moved from Starter to Pro yesterday and Pro includes Reporting. A plan upgrade does not change existing roles: Jordan Patel and Priya Nair still have the Viewer role, which cannot open Reporting. An Admin can change them to Analyst in Settings > Users & Roles; it applies on their next page load.\n\nBest regards,\nNorthstar Support",
+         "citations": [
+           {"chunk_id": "{{cite:roles-and-permissions}}", "claim": "A plan upgrade does not change existing roles; Admins change roles."}
+         ],
+         "ticket_action": {"type": "create_ticket", "subject": "Reporting access after Starter to Pro upgrade", "body": "Two users still have the Viewer role after the upgrade; an Admin must change them to Analyst.", "priority": "normal", "group": "Support Tier 1", "status": "pending_customer", "ticket_id": null},
+         "missing_info": [],
+         "escalation_reason": null
+       }
+     }}
+  ]
+}

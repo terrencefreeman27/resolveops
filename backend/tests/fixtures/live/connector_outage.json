@@ -1,0 +1,32 @@
+{
+  "description": "Recorded-format fixture (Messages API response shape, hand-written; not captured from the live API). Scenario 3: connector outage. The model proposes only a note; the deterministic escalation rule must still force an Engineering ticket.",
+  "turns": [
+    {"stop_reason": "tool_use", "usage": {"input_tokens": 3200, "output_tokens": 150},
+     "tool_calls": [
+       {"name": "lookup_customer", "input": {"mentioned_emails": []}},
+       {"name": "get_subscription", "input": {}},
+       {"name": "get_existing_tickets", "input": {"include_closed": true, "limit": 10}}
+     ]},
+    {"stop_reason": "tool_use", "usage": {"input_tokens": 5100, "output_tokens": 120},
+     "tool_calls": [
+       {"name": "search_knowledge_base", "input": {"query": "NS-CONN-504 Snowflake connector timeout", "top_k": 6}}
+     ]},
+    {"stop_reason": "end_turn", "usage": {"input_tokens": 7600, "output_tokens": 520},
+     "final": {
+       "classification": {
+         "category": "product_issue", "priority": "high",
+         "justification": "Production connector failing repeatedly after documented troubleshooting.",
+         "summary": "Snowflake connector fails every sync with NS-CONN-504; dashboards are stale.",
+         "mentioned_emails": [], "risk_flags": []
+       },
+       "proposal": {
+         "next_action": "resolve",
+         "draft_reply": "Hi,\n\nThanks for the detail on NS-CONN-504. We are looking into the connector failures.\n\nBest regards,\nNorthstar Support",
+         "citations": [{"chunk_id": "{{cite:data-connectors-troubleshooting}}", "claim": "NS-CONN-504 is a warehouse query timeout."}],
+         "ticket_action": {"type": "none", "subject": null, "body": null, "priority": null, "group": null, "status": null, "ticket_id": null},
+         "missing_info": [],
+         "escalation_reason": null
+       }
+     }}
+  ]
+}
