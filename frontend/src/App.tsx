@@ -56,14 +56,15 @@ export default function App() {
   }, [slug, filters]);
 
   useEffect(() => { loadMeta(); }, [loadMeta]);
-  useEffect(() => { loadRequests(); }, [loadRequests]);
+  // Reload when returning from setup too: document or rule changes there can mark requests stale.
+  useEffect(() => { if (view === "inbox") loadRequests(); }, [loadRequests, view]);
   useEffect(() => {
     if (!slug || !selectedId) { setDetail(null); return; }
     api.request(slug, selectedId).then(setDetail).catch((e: ApiError) => {
       setDetail(null);
       if (e.status === 404) setSelectedId(null); else setError(e.message);
     });
-  }, [slug, selectedId]);
+  }, [slug, selectedId, view]);
 
   async function act(fn: () => Promise<RequestDetail>, okMessage?: (d: RequestDetail) => string | null) {
     setBusy(true); setError(null); setNotice(null);

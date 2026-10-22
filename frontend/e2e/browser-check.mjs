@@ -1,8 +1,9 @@
-// Browser verification of the M1 vertical slice against the running compose stack.
+// Browser verification against the running compose stack (M1 slice, M2 live-mode guards, M3 in m3-checks.mjs).
 // Usage: npm run e2e   (BASE defaults to http://localhost:8080)
 import { chromium } from "playwright-core";
 import { mkdir } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
+import { m3 } from "./m3-checks.mjs";
 
 const BASE = process.env.BASE ?? "http://localhost:8080";
 const OUT = fileURLToPath(new URL("../../docs/screenshots/", import.meta.url));
@@ -177,6 +178,9 @@ try {
     && !/sk-ant/.test(panel) && (await R.page.getByTestId("ai-status-mode").innerText()).includes(rMeta.mode === "live" ? "Live" : "Demo"),
     `mode=${rMeta.mode}`);
   await R.page.screenshot({ path: `${OUT}10-ai-status.png` });
+
+  // 11. Milestone 3: onboarding, document lifecycle + stale proposals, second company.
+  await m3({ visitor, apiCall, check, OUT, expectedHttp });
 } catch (e) {
   check("browser flow completed without exceptions", false, String(e).slice(0, 300));
 } finally {
