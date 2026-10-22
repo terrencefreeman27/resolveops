@@ -39,9 +39,10 @@ OWNER_RE = re.compile(r"^[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})$")
 NAME_RE = re.compile(r"^[A-Za-z0-9._-]{1,100}$")
 LABEL_RE = re.compile(r"^[A-Za-z0-9 _.:/-]{1,50}$")
 
-# Test hooks (never set from input): an httpx transport and a sleep function.
+# Test hooks (never set from input): an httpx transport, a sleep function and a clock.
 TRANSPORT: httpx.BaseTransport | None = None
 SLEEP = time.sleep
+NOW = time.time
 
 
 class GitHubError(AdapterError):
@@ -168,7 +169,7 @@ def _gh_message(resp: httpx.Response) -> str:
     return re.sub(r"\s+", " ", str(msg))[:200]
 
 
-def rate_limit_wait(resp: httpx.Response, now: float | None = None) -> float | None:
+def rate_limit_wait(resp: httpx.Response) -> float | None:
     """Seconds to wait before retrying a 403/429, or None if it is not a rate limit.
     Follows GitHub's documented order: retry-after, then x-ratelimit-remaining=0 + reset, else 60s."""
     ra = resp.headers.get("retry-after")
@@ -179,7 +180,7 @@ def rate_limit_wait(resp: httpx.Response, now: float | None = None) -> float | N
             return 60.0
     if resp.headers.get("x-ratelimit-remaining") == "0":
         try:
-            return max(0.0, float(resp.headers.get("x-ratelimit-reset", "")) - (now or time.time()))
+            return max(0.0, float(resp.headers.get("x-ratelimit-reset", "")) - NOW())
         except ValueError:
             return 60.0
     if "rate limit" in _gh_message(resp).lower():

@@ -240,7 +240,7 @@ def test_secondary_rate_limit_retry_after_is_honoured(gh, reviewer):
 
 
 def test_primary_rate_limit_reset_header_is_honoured(gh, reviewer, monkeypatch):
-    monkeypatch.setattr(github.time, "time", lambda: 1_000_000.0)
+    monkeypatch.setattr(github, "NOW", lambda: 1_000_000.0)
     gh.fake.post_faults = [("status", 429, {"x-ratelimit-remaining": "0", "x-ratelimit-reset": "1000004"}, {})]
     out = _approve(reviewer, _escalation(reviewer)).json()
     assert out["state"] == "completed" and gh.sleeps == [4.0]
