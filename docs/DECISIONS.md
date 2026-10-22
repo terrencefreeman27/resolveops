@@ -62,3 +62,28 @@ than citing something unretrieved.
 ## D10 — CSRF guard
 Cookie auth + `SameSite=Lax` + required `X-ResolveOps: 1` header on mutating requests (browsers
 cannot send custom headers cross-site without CORS preflight, and no CORS is enabled).
+
+## D11 — Seeded requests are shared templates
+The seeded inbox is shared and read-only. "Run workflow" (or a scenario button) clones a template
+into the caller's scope and runs it. This keeps the inbox identical for every visitor, makes reset
+trivial (delete own rows), and lets the reviewer queue and visitor sandboxes coexist.
+
+## D12 — Visitor notes on shared tickets go to a sandbox copy
+When a visitor approves an `add_note` action on a shared seed ticket, the internal adapter records
+the note on a session-scoped copy of that ticket (same number, flagged "Demo sandbox"). Shared
+seed data is never mutated by visitors.
+
+## D13 — Unsupported demo input is stored, labelled, and not processed
+Free text that is not a seeded scenario goes to state `unsupported` with the reason "Demo mode
+only handles the seeded scenarios. This message was not processed by any AI model." No proposal
+is generated. In live mode (M2) the same path will call the real provider instead.
+
+## D14 — Test-only fault injection
+`adapters/internal.py` has an in-process `FAULTS` counter (fail before / after the write) that
+only code can set. Tests use it to prove bounded retries, savepoint rollback and single-ticket
+retry. It is not reachable from any API input.
+
+## D15 — Proposal editing scope (M1)
+Reviewers can edit the draft reply, next action, and ticket action. Citations and account facts
+are not editable: they record what tools and retrieval actually returned. Edits carry the
+evidence of the version they were based on.
