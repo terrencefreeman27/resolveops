@@ -142,3 +142,192 @@ def build_issue(db: Session, target: ExecutionTarget, action: TicketAction, key:
     if labels(settings):
         payload["labels"] = labels(settings)
     return payload
+
+
+# --- HTTP ------------------------------------------------------------------------------------
+
+FATAL = {
+    400: "GitHub rejected the request as malformed (400)",
+    401: "GitHub rejected the token (401): it is invalid, expired or revoked",
+    403: "GitHub refused the request (403): the token lacks Issues write access to this repository",
+    404: "GitHub returned 404: the repository does not exist or the token cannot see it",
+    410: "GitHub returned 410: issues are disabled for this repository",
+    422: "GitHub rejected the issue (422 validation failed or spam protection)",
+}
+
+
+def _gh_message(resp: httpx.Response) -> str:
+    try:
+        msg = resp.json().get("message", "")
+    except Exception:  # noqa: BLE001 - non-JSON error body
+        msg = ""
+    return re.sub(r"\s+", " ", str(msg))[:200]
+
+
+def rate_limit_wait(resp: httpx.Response, now: float | None = None) -> float | None:
+    """Seconds to wait before retrying a 403/429, or None if it is not a rate limit.
+    Follows GitHub's documented order: retry-after, then x-ratelimit-remaining=0 + reset, else 60s."""
+    ra = resp.headers.get("retry-after")
+    if ra is not None:
+        try:
+            return max(0.0, float(ra))
+        except ValueError:
+            return 60.0
+    if resp.headers.get("x-ratelimit-remaining") == "0":
+        try:
+            return max(0.0, float(resp.headers.get("x-ratelimit-reset", "")) - (now or time.time()))
+        except ValueError:
+            return 60.0
+    if "rate limit" in _gh_message(resp).lower():
+        return 60.0
+    return None
+
+
+class _Client:
+    """Bounded retries around one repository. The token only ever lives in the Authorization header."""
+
+    def __init__(self, settings: Settings, owner: str, name: str):
+        self.s = settings
+        self.path = f"/repos/{owner}/{name}/issues"
+        self.repo = f"{owner}/{name}"
+        self.http = httpx.Client(
+            base_url=API_BASE, transport=TRANSPORT, timeout=settings.github_timeout_s, follow_redirects=False,
+            headers={"Accept": "application/vnd.github+json", "X-GitHub-Api-Version": API_VERSION,
+                     "User-Agent": "ResolveOps-ticket-adapter",
+                     "Authorization": f"Bearer {settings.github_token.get_secret_value()}"})
+
+    def close(self) -> None:
+        self.http.close()
+
+    def _once(self, send) -> tuple[bool, object, float | None]:
+        """(ok, json-or-reason, wait). Raises GitHubError(retryable=False) for permanent failures."""
+        try:
+            resp = send()
+        except httpx.TimeoutException:
+            return False, f"timed out after {self.s.github_timeout_s:g}s (outcome unknown)", None
+        except httpx.TransportError as exc:
+            return False, f"network error ({type(exc).__name__})", None
+        if 200 <= resp.status_code < 300:
+            return True, resp.json(), None
+        if resp.status_code in (403, 429):
+            wait = rate_limit_wait(resp)
+            if wait is not None:
+                if wait > self.s.github_max_wait_s:
+                    raise GitHubError(f"GitHub rate limit hit ({resp.status_code}); GitHub asks to wait "
+                                      f"{int(wait)}s. Nothing was created; retry later.", retryable=False)
+                return False, f"rate limited ({resp.status_code}), waited {wait:g}s", wait
+        if resp.status_code >= 500:
+            return False, f"GitHub server error {resp.status_code}", None
+        base = FATAL.get(resp.status_code, f"GitHub returned {resp.status_code}")
+        detail = _gh_message(resp)
+        raise GitHubError(f"{base}{': ' + detail if detail else ''}.", retryable=False)
+
+    def call(self, what: str, send, before_retry=None):
+        last = ""
+        for attempt in range(1, self.s.github_max_attempts + 1):
+            if attempt > 1 and before_retry is not None:
+                found = before_retry()
+                if found is not None:
+                    return found
+            ok, value, wait = self._once(send)
+            if ok:
+                return value
+            last = str(value)
+            log.warning("github %s attempt %d failed: %s", what, attempt, last)
+            if attempt < self.s.github_max_attempts:
+                SLEEP(wait if wait is not None else min(self.s.github_retry_base_delay_s * 2 ** (attempt - 1),
+                                                        self.s.github_max_wait_s))
+        raise GitHubError(f"GitHub {what} failed after {self.s.github_max_attempts} attempt(s): {last}.",
+                          retryable=False)
+
+    def find(self, key: str, since: datetime | None) -> dict | None:
+        """An issue in the configured repository whose body carries this execution's marker."""
+        needle = marker(key)
+        params = {"state": "all", "sort": "created", "direction": "desc", "per_page": 100}
+        if since is not None:
+            params["since"] = (since - timedelta(minutes=5)).astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        for page in range(1, LOOKUP_PAGES + 1):
+            items = self.call("issue lookup", lambda p=page: self.http.get(self.path, params={**params, "page": p}))
+            if not isinstance(items, list):
+                raise GitHubError("GitHub issue lookup returned an unexpected response.", retryable=False)
+            for it in items:
+                if isinstance(it, dict) and "pull_request" not in it and needle in (it.get("body") or ""):
+                    return it
+            if len(items) < 100:
+                return None
+        return None
+
+    def create(self, payload: dict, key: str, since: datetime | None) -> tuple[dict, str]:
+        """Returns (issue, how): how is "created", "existing" (found before sending), or
+        "recovered" (an earlier send whose response was lost turned out to have created it)."""
+        existing = self.find(key, since)
+        if existing is not None:
+            return existing, "existing"
+        recovered = {}
+
+        def recheck():
+            found = self.find(key, since)
+            if found is not None:
+                recovered["yes"] = True
+            return found
+        issue = self.call("create issue", lambda: self.http.post(self.path, json=payload), before_retry=recheck)
+        return issue, "recovered" if recovered else "created"
+
+
+# --- adapter ---------------------------------------------------------------------------------
+
+def _valid_issue(issue: object, repo: str) -> tuple[int, int, str]:
+    """Only accept a well-formed issue that links back to the configured repository."""
+    if not isinstance(issue, dict):
+        raise GitHubError("GitHub returned an unexpected response.", retryable=False)
+    number, iid, url = issue.get("number"), issue.get("id"), issue.get("html_url")
+    prefix = f"https://github.com/{repo}/issues/".lower()
+    if not (isinstance(number, int) and isinstance(iid, int) and isinstance(url, str)
+            and url.lower() == f"{prefix}{number}"):
+        raise GitHubError("GitHub returned an issue that does not match the configured repository.", retryable=False)
+    return number, iid, url
+
+
+class GitHubIssuesAdapter(TicketAdapter):
+    """Creates one GitHub issue per approved escalation and mirrors it as a local ticket row
+    (adapter="github", external number/id/url, same UNIQUE idempotency key)."""
+    name = "github"
+
+    def __init__(self, settings: Settings | None = None):
+        self.s = settings or get_settings()
+
+    def _guard(self, target: ExecutionTarget) -> tuple[str, str]:
+        if target.demo_session_id is not None:  # defence in depth: review.py already routes visitors to internal
+            raise GitHubError("Visitor sandboxes never use external adapters.", retryable=False)
+        st = status(self.s)
+        if not st.available:
+            raise GitHubError(f"GitHub Issues adapter unavailable: {st.reason}", retryable=False)
+        return parse_repo(self.s.github_issues_repo)
+
+    def create_ticket(self, db: Session, target: ExecutionTarget, action: TicketAction, idempotency_key: str) -> TicketResult:
+        mirror = db.scalar(select(Ticket).where(Ticket.idempotency_key == idempotency_key))
+        if mirror is not None:
+            return TicketResult(mirror.id, mirror.number, False, mirror.external_id, mirror.external_url,
+                                mirror.external_number)
+        owner, name = self._guard(target)
+        payload = build_issue(db, target, action, idempotency_key, self.s)
+        client = _Client(self.s, owner, name)
+        try:
+            issue, how = client.create(payload, idempotency_key, target.not_before)
+        finally:
+            client.close()
+        number, iid, url = _valid_issue(issue, client.repo)
+        log.info("github issue %s#%d %s for execution %s", client.repo, number, how, idempotency_key[:12])
+        t = Ticket(
+            workspace_id=target.workspace_id, demo_session_id=None, customer_id=target.customer_id,
+            request_id=target.request_id, number=f"GH-{number}", subject=action.subject or payload["title"],
+            body=action.body or "", category=target.category, priority=action.priority or "normal",
+            status=action.status or "open", group=action.group or "", source="execution", adapter=self.name,
+            external_id=str(iid), external_url=url, external_number=number, idempotency_key=idempotency_key)
+        db.add(t)
+        db.flush()
+        return TicketResult(t.id, t.number, how == "created", str(iid), url, number)
+
+    def add_note(self, db: Session, target: ExecutionTarget, action: TicketAction, idempotency_key: str) -> TicketResult:
+        # Notes stay internal in M4 (review.py never routes add_note here); refuse rather than guess.
+        raise GitHubError("The GitHub adapter only creates issues for escalations.", retryable=False)

@@ -70,4 +70,7 @@ class InternalTicketAdapter(TicketAdapter):
 def get_adapter(name: str) -> TicketAdapter:
     if name == "internal":
         return InternalTicketAdapter()
+    if name == "github":
+        from .github import GitHubIssuesAdapter  # availability is checked on every call
+        return GitHubIssuesAdapter()
     raise AdapterError(f"Ticket adapter '{name}' is not available.")
