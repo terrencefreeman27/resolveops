@@ -315,7 +315,8 @@ def create_rule(body: RuleIn, actor: Actor = Depends(require_reviewer), db: Sess
     r = EscalationRule(workspace_id=ws.id, key=key, name="", description="", condition={}, outcome={})
     _apply_rule(ws, r, body)
     db.add(r)
-    return _rule_dict(r) | _rules_changed(db, actor, f"added '{r.name}'")
+    changed = _rules_changed(db, actor, f"added '{r.name}'")  # flushes, so r.id is set
+    return _rule_dict(r) | changed
 
 
 @router.put("/w/{ws}/admin/rules/{rule_id}")
@@ -326,7 +327,8 @@ def update_rule(rule_id: uuid.UUID, body: RuleIn, actor: Actor = Depends(require
     if r is None:
         raise HTTPException(404, "Rule not found.")
     _apply_rule(ws, r, body)
-    return _rule_dict(r) | _rules_changed(db, actor, f"updated '{r.name}'")
+    changed = _rules_changed(db, actor, f"updated '{r.name}'")
+    return _rule_dict(r) | changed
 
 
 @router.delete("/w/{ws}/admin/rules/{rule_id}")
