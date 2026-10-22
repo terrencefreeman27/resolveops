@@ -221,3 +221,55 @@ embeddings provider (Anthropic has no embeddings API). **Revisit:** same trigger
   pretending a model read it (SPEC §8); full runs need live mode or a seeded fixture.
 - Onboarding does not import customers/subscriptions (seed only), so new workspaces cannot run full requests
   yet. **Revisit:** if a pilot needs CSV/API customer import.
+
+## D28 — GitHub Issues adapter: fixed destination, escalations only, server flag
+- Base URL is a constant (`https://api.github.com`). The repository comes from `GITHUB_ISSUES_REPO`
+  (validated `owner/name`) and must also appear in `GITHUB_ALLOWED_REPOS`; the adapter is usable only when
+  `GITHUB_ADAPTER_ENABLED=true` and a token is set. Availability is re-checked on every call, so turning the
+  flag off blocks reviewers immediately (their pending GitHub executions fail with the reason).
+- Only `create_ticket` actions whose `next_action` is `escalate`, in reviewer (non-sandbox) requests of a
+  workspace that selected GitHub, are routed to GitHub (SPEC §10 "approved escalations"). Other tickets and
+  all notes stay internal; visitor sandboxes are always internal (checked in `review.py` and again in the adapter).
+- Title/body are built by code from approved fields, Markdown/HTML-escaped (so proposal text cannot forge
+  the marker or embed HTML), `@` neutralised, length-limited; customer email, original message, draft reply,
+  reviewer identity and retrieved evidence are excluded. The returned `html_url` must equal
+  `https://github.com/<configured repo>/issues/<number>` before it is stored or linked.
+- API version header `X-GitHub-Api-Version: 2026-03-10` (current per `GET https://api.github.com/versions`
+  and the REST docs on 2026-10-22); `Accept: application/vnd.github+json`. HTTP client: `httpx` (already pinned).
+- The issue is mirrored as a local `tickets` row (`adapter=github`, number `GH-<n>`, external id/number/url,
+  same UNIQUE idempotency key); the execution row stores external id/number/url too.
+- **Revisit:** if issues should be updated (comments for notes, closing on resolution), or a second repo is needed.
+
+## D29 — GitHub idempotency: hidden marker + list-endpoint lookup before every (re)send
+- The execution idempotency key (sha256 of proposal version + action hash) goes into the issue body as
+  `<!-- resolveops-execution: <key> -->`. Before the first POST, and before every re-send after an ambiguous
+  failure (timeout, network error, 5xx), the adapter lists the repo's issues (`state=all`, newest first,
+  `since` = execution start − 5 min, up to 3 × 100) and reuses one carrying the marker. A local mirror row with
+  the key short-circuits even that. Double/concurrent approvals are already serialised by the request row
+  lock + unique active approval + unique execution key, so only one execution ever reaches GitHub.
+- Chosen over the search API because search is eventually consistent (an issue can be invisible to search for
+  a while after creation); the list endpoint reads the issue table directly. Chosen over a "pending create"
+  row alone because a pending row says only that a create *may* have happened; the marker says whether it did.
+- **Limits:** GitHub does not document read-after-write guarantees for the list endpoint either, so a lookup
+  within moments of a lost response could in principle miss a just-created issue (window is small; the
+  re-check runs after a backoff delay). The lookup scans at most 300 issues updated since the execution
+  started; a busy repo could push the issue out of that window — use a dedicated test repo. Someone with repo
+  access could edit the marker out of the body. The HTTP call happens while the request row is locked
+  (bounded by timeouts × attempts), which is acceptable for a single reviewer prototype.
+- **Revisit:** for production, add a durable "external create sent" state committed before the POST and a
+  reconciliation job, or use an API that accepts a client idempotency key.
+
+## D30 — GitHub failures: bounded retries, fail fast, explicit internal fallback
+- Per HTTP call at most `GITHUB_MAX_ATTEMPTS` (3) attempts with exponential backoff (1 s, 2 s, capped).
+  403/429 that are rate limits follow GitHub's documented order: `retry-after`, else
+  `x-ratelimit-remaining: 0` + `x-ratelimit-reset`, else 60 s. Waits over `GITHUB_MAX_WAIT_S` (10 s) are
+  not slept inline: the execution fails with "GitHub asks to wait Ns" and nothing created.
+- 400/401/403(non-rate-limit)/404/410/422 fail at once with a specific, recorded message (plus GitHub's
+  `message`, truncated). Adapter errors are marked non-retryable so the executor does not multiply attempts.
+- Each execution attempt runs in a savepoint, so a failure leaves no partial ticket rows. The reviewer
+  can **Retry** (same adapter, marker lookup first) or **Use internal ticket instead** — an explicit, audited
+  action (`execution.adapter_switched`) that first checks GitHub for the marker and is refused if an issue
+  exists. If GitHub cannot be checked (e.g. revoked token) the switch proceeds and the audit records that.
+- The token is a `SecretStr` read from `.env` only; it is used solely in the Authorization header, never logged,
+  never in errors, audit rows, API responses, prompts or the frontend. Tests assert this on captured logs,
+  audit rows and serialized responses. The status panel shows configured yes/no and the destination repo.

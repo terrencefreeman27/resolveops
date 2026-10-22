@@ -11,7 +11,8 @@ analytics, the default) and **Lumen Ledger** (B2B invoicing, different plans and
 customers and people are synthetic. Reviewers can create further workspaces through an
 onboarding flow and import their own Markdown or plain-text documentation.
 
-> Status: **Milestone 3** (configurable workspaces, document lifecycle, second company; demo mode
+> Status: **Milestone 4** (optional GitHub Issues adapter, built and tested against a fake HTTP
+> layer only, **unverified against real GitHub**; M3 workspaces and document lifecycle; demo mode
 > verified, live mode built but not yet run against the real API). See `docs/PLAN.md` for the milestones,
 > `docs/DECISIONS.md` for design decisions, and `docs/SPEC.md` for the full specification.
 
@@ -94,8 +95,9 @@ reviewer of workspace A cannot read or change workspace B.
    here.
 4. **Escalation rules**: category, keyword and plan conditions → escalate to an allowed group at
    a priority. Evaluated by code, not by the model.
-5. **Ticket adapter**: Internal tickets. GitHub Issues is listed as *Not configured* until
-   Milestone 4.
+5. **Ticket adapter**: Internal tickets, or GitHub Issues when the server is configured for it (see
+   [Optional GitHub Issues integration](#optional-github-issues-integration)). Otherwise GitHub is
+   listed as *Not configured* with the server's reason.
 6. **Test a sample request**: a dry run of retrieval, the evidence check and the escalation rules
    against this workspace. It calls no AI model and stores nothing. In demo mode, full proposals
    exist only for the seeded scenarios, which are workspace data (`sim_fixtures`).
@@ -139,7 +141,7 @@ browser ─► web (nginx + React build) ─/api─► api (FastAPI, Python 3.12
                                               ├─ providers/    Simulated (demo) │ Claude live (M2)
                                               ├─ retrieval.py  fastembed bge-small, 384-dim
                                               ├─ review.py     edit / approve / reject / retry
-                                              └─ adapters/     internal tickets │ GitHub (M4)
+                                              └─ adapters/     internal tickets │ GitHub Issues
 ```
 
 - **The AI proposes and application code decides.** Workspace and customer ids come from
@@ -191,12 +193,70 @@ Limits (size, rate, budget, concurrency) return 413/429 with an explanation; not
 Each proposal shows which provider produced it and, for live runs, model, tokens, tool calls and
 latency. Details: `docs/DECISIONS.md` D16–D21.
 
-## Known limitations (M1–M3)
+## Optional GitHub Issues integration
+
+> **Unverified against real GitHub.** The adapter is tested only against a fake HTTP transport
+> (`backend/tests/test_github_adapter.py`). The `github_live` smoke test exists but has not been run.
+
+When enabled, approving an **escalation** in a reviewer workspace that selected *GitHub Issues*
+creates one issue in a single, server-configured test repository. Everything else stays internal:
+non-escalation tickets, notes, and every visitor sandbox (enforced server-side). The base URL is
+fixed to `https://api.github.com`; the repository comes only from server config and must also be
+on the allowlist. Nothing in a proposal can choose the host, URL or repository.
+
+**What goes into the issue** (built by code, Markdown-escaped, `@mentions` neutralised, length-limited):
+title `[ResolveOps] <approved ticket subject>`; workspace name; category, priority, group; the
+customer's company name and account reference labelled *synthetic test customer*; the approved ticket
+body; the request id; and a hidden marker `<!-- resolveops-execution: <idempotency key> -->`.
+**Not included:** customer emails, the customer's original message, the draft reply, reviewer
+identity, retrieved passages or scores. Optional labels come from `GITHUB_LABELS`.
+
+**Enable it (test repository only):**
+1. Create a dedicated, empty test repository on GitHub (e.g. `<you>/resolveops-test`), private is fine.
+   Do not use a real project repository.
+2. Create a **fine-grained personal access token**: *Settings → Developer settings → Fine-grained
+   tokens → Generate*. Resource owner: you. Repository access: **Only select repositories** → that
+   one test repository. Repository permissions: **Issues: Read and write** (Metadata: read-only is
+   added automatically). No other permissions. Set a short expiry.
+3. Add to `.env` (gitignored; never commit the token):
+   ```
+   GITHUB_ADAPTER_ENABLED=true
+   GITHUB_TOKEN=<fine-grained token>
+   GITHUB_ISSUES_REPO=<owner>/<test-repo>
+   GITHUB_ALLOWED_REPOS=<owner>/<test-repo>
+   # optional (labels need push access, otherwise GitHub silently drops them)
+   # GITHUB_LABELS=resolveops,synthetic-test
+   # GITHUB_TIMEOUT_S=10
+   # GITHUB_MAX_ATTEMPTS=3
+   # GITHUB_RETRY_BASE_DELAY_S=1
+   # GITHUB_MAX_WAIT_S=10
+   ```
+4. `docker compose up -d --force-recreate api`
+5. Sign in as the reviewer. **AI status** shows *GitHub Issues configured: Yes* and the destination
+   repository (never the token). In **Workspace setup → step 5** select *GitHub Issues*.
+6. Run the *connector outage* scenario and approve it: the ticket card and action history link to the
+   new issue.
+7. Optional smoke test (creates **one** real, clearly labelled issue in the test repo, then checks
+   that a retry with the same execution key finds it instead of creating a second):
+   `docker compose exec api pytest -m github_live -q`
+
+**Failures and duplicates.** Before creating, and before every re-send after a timeout, network
+error or 5xx, the adapter lists the repository's recently updated issues and reuses one carrying this
+execution's marker, so a lost response, a double approval or a retry does not create a second issue.
+5xx and rate limits are retried a bounded number of times (honouring `Retry-After` /
+`x-ratelimit-reset`; waits longer than `GITHUB_MAX_WAIT_S` fail with the wait time instead of
+blocking). 401/403/404/410/422 fail at once with a recorded error. A failed GitHub execution offers
+**Retry** and an explicit **Use internal ticket instead** action, which is refused if GitHub already
+has an issue for that execution. Details and limits: `docs/DECISIONS.md` D28–D30.
+
+## Known limitations (M1–M4)
 
 - The live provider has been tested only against a fake Anthropic client and recorded-format
   fixtures; the live smoke test (`pytest -m live`) has not been run against the real API yet.
 - The live concurrency limit is per API process (single-instance deployment assumed).
-- GitHub adapter (M4), evaluation dataset and dashboard (M5) are later milestones.
+- The GitHub Issues adapter has not been run against real GitHub (no test repository or token was
+  available); see its section above. Notes stay internal; GitHub issues are not updated after creation.
+- Evaluation dataset and dashboard (M5) are a later milestone.
 - Onboarding imports documents, rules and company details. It does not import customers or
   subscriptions, so a new workspace can test retrieval and rules (step 6) but has no customers
   to run full requests against until data is loaded by other means. Demo-mode proposals exist
