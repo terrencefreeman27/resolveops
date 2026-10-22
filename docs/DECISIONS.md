@@ -159,7 +159,7 @@ embeddings provider (Anthropic has no embeddings API). **Revisit:** same trigger
   chosen by a small fixed set of data predicates (`plan_lacks_feature`, `no_users_with_role`, …), text
   rendered from tool results, citations emitted only for passages retrieval returned. Admin roles and the
   reply signature are workspace settings/profile. `grep -i northstar backend/app` outside `app/seed/` finds
-  only the default seed reviewer email in `config.py`.
+  only the default seed-reviewer email and password in `config.py`.
 - **Why:** SPEC §2 — the app must be configurable, not built around one company; the same wording in two
   workspaces must produce two evidence-based answers.
 - **Revisit:** if fixtures need logic beyond the predicates (prefer adding a predicate over code branches).
