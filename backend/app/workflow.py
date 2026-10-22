@@ -5,17 +5,21 @@ awaiting_review → approved → executing → completed | failed      (see revi
 Side exits: unsupported, error, rejected, stale. Reprocess returns to received.
 """
 import time
+from dataclasses import dataclass
 
 from sqlalchemy.orm import Session
 
 from . import audit, rules
-from .models import Proposal, ProposalEvidence, ProposalVersion, SupportRequest
-from .providers import ProviderError, SynthesisInput, UnsupportedInDemo, get_provider
+from .config import get_settings
+from .models import AiRun, Proposal, ProposalEvidence, ProposalVersion, SupportRequest
+from .providers import ProviderError, SynthesisInput, UnsupportedInDemo, Usage, get_provider
 from .schemas import (
     AccountFact,
     Citation,
+    Classification,
     ProposalContent,
     TicketAction,
+    TicketList,
     action_hash,
 )
 from .tools import ToolContext, ToolError, call_tool, default_top_k
@@ -182,69 +186,154 @@ def save_version(db: Session, proposal: Proposal, version: int, content: Proposa
     return pv
 
 
-def run_request(db: Session, req: SupportRequest, actor: str) -> SupportRequest:
-    """Drive a request from 'received' to 'awaiting_review' (or a side exit). Commits."""
+@dataclass
+class Gathered:
+    """Everything the server needs to assemble a proposal, however the provider produced it."""
+    cls: Classification
+    customer: object
+    sub: object
+    tickets: object
+    passages: list
+    hits: list
+    draft: object
+    usage: Usage
+
+
+class _SideExit(Exception):
+    """The request left the pipeline through 'unsupported' (already transitioned)."""
+
+    def __init__(self, usage: Usage | None = None):
+        super().__init__()
+        self.usage = usage
+
+
+def _side_exit(db: Session, req: SupportRequest, actor: str, reason: str, usage: Usage | None = None):
+    transition(db, req, "unsupported", actor, reason)
+    raise _SideExit(usage)
+
+
+def _run_stepwise(db: Session, req: SupportRequest, actor: str, provider) -> Gathered:
+    """Demo path: the server calls the tools; the provider classifies and drafts."""
+    ai = f"ai:{provider.name}"
+    try:
+        cls = _timed_ai(db, req, provider, "classify", lambda: provider.classify(req.subject, req.body))
+    except UnsupportedInDemo as exc:
+        _side_exit(db, req, actor, str(exc))
+    req.category, req.priority = cls.category, cls.priority
+    if cls.category == "unsupported":
+        _side_exit(db, req, actor, "Outside supported categories; needs human handling.")
+    transition(db, req, "classified", ai, cls.summary)
+    if req.customer_id is None:
+        _side_exit(db, req, actor, "No authorized customer record for this request.")
+    ctx = tool_context(db, req, actor)
+    customer = call_tool(ctx, "lookup_customer", {"mentioned_emails": cls.mentioned_emails})
+    sub = call_tool(ctx, "get_subscription", {})
+    tickets = call_tool(ctx, "get_existing_tickets", {"include_closed": True, "limit": 10})
+    transition(db, req, "context_resolved", actor)
+    passages, seen = [], set()
+    for q in cls.search_queries:
+        res = call_tool(ctx, "search_knowledge_base", {"query": q, "top_k": default_top_k()})
+        for p in res.passages:
+            if p.chunk_id not in seen:
+                seen.add(p.chunk_id)
+                passages.append(p)
+    transition(db, req, "retrieved", actor, f"{len(passages)} passages")
+    hits = rules.evaluate(db, req.workspace_id, category=cls.category, text=f"{req.subject}\n{req.body}", plan=sub.plan)
+    inp = SynthesisInput(subject=req.subject, body=req.body, classification=cls, customer=customer,
+                         subscription=sub, tickets=tickets.tickets, passages=passages,
+                         rule_hits=[h for _, h in hits])
+    draft = _timed_ai(db, req, provider, "synthesize", lambda: provider.synthesize(inp))
+    return Gathered(cls, customer, sub, tickets, passages, hits, draft, Usage(model=None))
+
+
+def _run_agentic(db: Session, req: SupportRequest, actor: str, provider) -> Gathered:
+    """Live path: the model chooses which allowlisted tools to call (through ToolGate) and drafts.
+    The server then fills any required context the model skipped, so account facts and escalation
+    rules never depend on the model having asked for them."""
+    if req.customer_id is None:
+        _side_exit(db, req, actor, "No authorized customer record for this request.")
+    ctx = tool_context(db, req, actor)
+    started = time.perf_counter()
+    try:
+        result = provider.run_agent(ctx, req.subject, req.body)
+    except ProviderError as exc:
+        audit.record(db, workspace_id=req.workspace_id, actor=f"ai:{provider.name}", event="ai.run", request_id=req.id,
+                     demo_session_id=req.demo_session_id, duration_ms=int((time.perf_counter() - started) * 1000),
+                     summary={"provider": provider.label}, error=str(exc))
+        raise
+    u, cls = result.usage, result.classification
+    audit.record(db, workspace_id=req.workspace_id, actor=f"ai:{provider.name}", event="ai.run", request_id=req.id,
+                 demo_session_id=req.demo_session_id, duration_ms=int((time.perf_counter() - started) * 1000),
+                 summary={"provider": provider.label, "model": u.model, "category": cls.category,
+                          "next_action": result.draft.next_action, "tool_steps": u.tool_steps,
+                          "api_calls": u.api_calls, "input_tokens": u.input_tokens, "output_tokens": u.output_tokens,
+                          "citations": len(result.draft.citations), "blocked": len(result.security_flags)})
+    req.category, req.priority = cls.category, cls.priority
+    if cls.category == "unsupported":
+        _side_exit(db, req, actor, "Outside supported categories; needs human handling.", u)
+    transition(db, req, "classified", f"ai:{provider.name}", cls.summary)
+    customer = result.customer or call_tool(ctx, "lookup_customer", {"mentioned_emails": cls.mentioned_emails})
+    sub = result.subscription or call_tool(ctx, "get_subscription", {})
+    tickets = (TicketList(tickets=result.tickets) if result.tickets is not None
+               else call_tool(ctx, "get_existing_tickets", {"include_closed": True, "limit": 10}))
+    transition(db, req, "context_resolved", actor)
+    transition(db, req, "retrieved", actor, f"{len(result.passages)} passages from model-chosen searches")
+    hits = rules.evaluate(db, req.workspace_id, category=cls.category, text=f"{req.subject}\n{req.body}", plan=sub.plan)
+    return Gathered(cls, customer, sub, tickets, result.passages, hits, result.draft, u)
+
+
+def _usage_dict(provider, usage: Usage, latency_ms: int) -> dict:
+    return {"provider": "simulated" if provider.simulated else "live", "label": provider.label,
+            "model": usage.model, "latency_ms": latency_ms, "input_tokens": usage.input_tokens,
+            "output_tokens": usage.output_tokens, "cache_read_input_tokens": usage.cache_read_input_tokens,
+            "cache_creation_input_tokens": usage.cache_creation_input_tokens, "api_calls": usage.api_calls,
+            "tool_steps": usage.tool_steps, "retries": usage.retries}
+
+
+def _finish_run(run: AiRun, status: str, usage: Usage | None, started: float, error: str | None = None) -> None:
+    run.status, run.error = status, (error[:2000] if error else None)
+    run.latency_ms = int((time.perf_counter() - started) * 1000)
+    if usage is not None:
+        run.model = usage.model or run.model
+        run.input_tokens, run.output_tokens = usage.input_tokens, usage.output_tokens
+        run.cache_read_input_tokens = usage.cache_read_input_tokens
+        run.cache_creation_input_tokens = usage.cache_creation_input_tokens
+        run.api_calls, run.tool_steps = usage.api_calls, usage.tool_steps
+
+
+def run_request(db: Session, req: SupportRequest, actor: str, live: bool = False) -> SupportRequest:
+    """Drive a request from 'received' to 'awaiting_review' (or a side exit). Commits.
+    `live` selects the live provider; callers decide it from the actor (providers.live_for)."""
     if req.state != "received":
         raise InvalidTransition(f"Request must be 'received' to run (is '{req.state}').")
     audit.record(db, workspace_id=req.workspace_id, actor=actor, event="workflow.started",
-                 request_id=req.id, demo_session_id=req.demo_session_id)
+                 request_id=req.id, demo_session_id=req.demo_session_id, summary={"live": live})
+    started = time.perf_counter()
+    run = AiRun(workspace_id=req.workspace_id, demo_session_id=req.demo_session_id, request_id=req.id, actor=actor,
+                provider="live" if live else "simulated", status="running",
+                model=get_settings().live_model if live else None)
+    db.add(run)
+    if live:
+        db.commit()  # make the in-flight live run visible to rate limiting right away
     try:
-        provider = get_provider()
+        provider = get_provider(live)
     except ProviderError as exc:
+        _finish_run(run, "error", None, started, str(exc))
         transition(db, req, "error", actor, str(exc))
         db.commit()
         return req
     ai = f"ai:{provider.name}"
     try:
-        # 1. classify
-        try:
-            cls = _timed_ai(db, req, provider, "classify", lambda: provider.classify(req.subject, req.body))
-        except UnsupportedInDemo as exc:
-            transition(db, req, "unsupported", actor, str(exc))
-            db.commit()
-            return req
-        req.category, req.priority = cls.category, cls.priority
-        if cls.category == "unsupported":
-            transition(db, req, "unsupported", actor, "Outside supported categories; needs human handling.")
-            db.commit()
-            return req
-        transition(db, req, "classified", ai, cls.summary)
+        g = (_run_agentic if provider.agentic else _run_stepwise)(db, req, actor, provider)
+        cls, hits = g.cls, g.hits
 
-        # 2. authorized customer context (from the request row, set by the server)
-        if req.customer_id is None:
-            transition(db, req, "unsupported", actor, "No authorized customer record for this request.")
-            db.commit()
-            return req
-        ctx = tool_context(db, req, actor)
-        customer = call_tool(ctx, "lookup_customer", {"mentioned_emails": cls.mentioned_emails})
-        sub = call_tool(ctx, "get_subscription", {})
-        tickets = call_tool(ctx, "get_existing_tickets", {"include_closed": True, "limit": 10})
-        transition(db, req, "context_resolved", actor)
-
-        # 3. retrieve approved documentation
-        passages, seen = [], set()
-        for q in cls.search_queries:
-            res = call_tool(ctx, "search_knowledge_base", {"query": q, "top_k": default_top_k()})
-            for p in res.passages:
-                if p.chunk_id not in seen:
-                    seen.add(p.chunk_id)
-                    passages.append(p)
-        transition(db, req, "retrieved", actor, f"{len(passages)} passages")
-
-        # 4. deterministic rules + AI synthesis
-        hits = rules.evaluate(db, req.workspace_id, category=cls.category, text=f"{req.subject}\n{req.body}", plan=sub.plan)
-        inp = SynthesisInput(subject=req.subject, body=req.body, classification=cls, customer=customer,
-                             subscription=sub, tickets=tickets.tickets, passages=passages,
-                             rule_hits=[h for _, h in hits])
-        draft = _timed_ai(db, req, provider, "synthesize", lambda: provider.synthesize(inp))
-
-        # 5. server-side validation and assembly
-        citations = validate_citations(db, req, draft, passages, actor)
+        # Server-side validation and assembly (identical for simulated and live output).
+        citations = validate_citations(db, req, g.draft, g.passages, actor)
         content = ProposalContent(
             summary=cls.summary, category=cls.category, priority=cls.priority, justification=cls.justification,
-            next_action=draft.next_action, account_facts=account_facts(customer, sub, tickets),
-            draft_reply=draft.draft_reply, citations=citations, ticket_action=draft.ticket_action,
-            missing_info=draft.missing_info, escalation_reason=draft.escalation_reason,
+            next_action=g.draft.next_action, account_facts=account_facts(g.customer, g.sub, g.tickets),
+            draft_reply=g.draft.draft_reply, citations=citations, ticket_action=g.draft.ticket_action,
+            missing_info=g.draft.missing_info, escalation_reason=g.draft.escalation_reason,
             rule_hits=[h for _, h in hits], risk_flags=list(cls.risk_flags),
             provider_label=provider.label, simulated=provider.simulated,
         )
@@ -253,14 +342,17 @@ def run_request(db: Session, req: SupportRequest, actor: str) -> SupportRequest:
             content.escalation_reason = "No supporting documentation was retrieved; a human must review."
         content = apply_rules(content, hits)
         req.priority = content.priority
-        checked = call_tool(ctx, "propose_ticket_action", content.ticket_action.model_dump(mode="json"))
+        checked = call_tool(tool_context(db, req, actor), "propose_ticket_action",
+                            content.ticket_action.model_dump(mode="json"))
         if not checked.valid:
             raise ToolError("Proposed ticket action failed validation: " + "; ".join(checked.problems))
 
-        proposal = Proposal(workspace_id=req.workspace_id, request_id=req.id, provider=provider.label, status="open")
+        _finish_run(run, "succeeded", g.usage, started)
+        proposal = Proposal(workspace_id=req.workspace_id, request_id=req.id, provider=provider.label, status="open",
+                            usage=_usage_dict(provider, g.usage, run.latency_ms))
         db.add(proposal)
         db.flush()
-        save_version(db, proposal, 1, content, ai, passages=passages)
+        save_version(db, proposal, 1, content, ai, passages=g.passages)
         transition(db, req, "awaiting_review", actor, f"Proposal v1: {content.next_action}")
         audit.record(db, workspace_id=req.workspace_id, actor=ai, event="proposal.created", request_id=req.id,
                      demo_session_id=req.demo_session_id,
@@ -268,7 +360,11 @@ def run_request(db: Session, req: SupportRequest, actor: str) -> SupportRequest:
                               "ticket_action": content.ticket_action.type,
                               "rule_hits": [h.key for _, h in hits]})
         db.commit()
+    except _SideExit as exit_:
+        _finish_run(run, "succeeded", exit_.usage, started)
+        db.commit()
     except (ToolError, ProviderError, InvalidTransition) as exc:
+        _finish_run(run, "error", getattr(exc, "usage", None), started, str(exc))
         req.state, req.state_reason = "error", str(exc)
         audit.record(db, workspace_id=req.workspace_id, actor=actor, event="workflow.error", request_id=req.id,
                      demo_session_id=req.demo_session_id, error=str(exc))
@@ -276,9 +372,9 @@ def run_request(db: Session, req: SupportRequest, actor: str) -> SupportRequest:
     return req
 
 
-def reprocess(db: Session, req: SupportRequest, actor: str) -> SupportRequest:
+def reprocess(db: Session, req: SupportRequest, actor: str, live: bool = False) -> SupportRequest:
     """Explicit re-run for rejected/stale/error/unsupported requests: closes old proposals, starts fresh."""
     transition(db, req, "received", actor, "Reprocess requested")
     db.query(Proposal).filter(Proposal.request_id == req.id, Proposal.status == "open").update({"status": "closed"})
     db.flush()
-    return run_request(db, req, actor)
+    return run_request(db, req, actor, live=live)
