@@ -70,6 +70,7 @@ export function NewRequestDialog({ ws, mode, onClose, onCreated }: {
           <p className="mt-1 text-sm text-zinc-600">
             The server issues a customer session for the account you pick; the message text can never switch accounts.
             {mode === "demo" && " In demo mode only the seeded scenario messages are processed. Anything else is recorded and clearly marked as not processed."}
+            {mode === "live" && " Live mode: the message is sent to the live model as untrusted data, within the configured size, rate and budget limits."}
           </p>
         </div>
         <label className="grid gap-1.5 text-sm font-medium text-zinc-700">Customer (synthetic)

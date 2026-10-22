@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { ProposalContent, RequestDetail, TicketAction } from "../api";
+import type { ProposalContent, ProposalUsage, RequestDetail, TicketAction } from "../api";
 import { categoryLabel } from "./Inbox";
 import { ProposalEditor } from "./ProposalEditor";
 import { Timeline } from "./Timeline";
@@ -22,6 +22,18 @@ function TicketActionView({ ta }: { ta: TicketAction }) {
       <dt className="text-zinc-500">Status</dt><dd>{ta.status?.replace("_", " ")}</dd>
       <dt className="text-zinc-500">Body</dt><dd className="text-zinc-700">{ta.body}</dd>
     </dl>
+  );
+}
+
+function UsageLine({ u }: { u: ProposalUsage }) {
+  if (!u?.provider) return null;
+  const ms = u.latency_ms != null ? (u.latency_ms >= 1000 ? `${(u.latency_ms / 1000).toFixed(1)}s` : `${u.latency_ms}ms`) : "n/a";
+  return (
+    <p className="text-xs text-zinc-500" data-testid="proposal-usage">
+      {u.provider === "live"
+        ? `Produced by ${u.model} · ${(u.input_tokens ?? 0).toLocaleString("en-US")} input / ${(u.output_tokens ?? 0).toLocaleString("en-US")} output tokens · ${u.tool_steps} tool call${u.tool_steps === 1 ? "" : "s"} · ${u.api_calls} model call${u.api_calls === 1 ? "" : "s"}${u.retries ? ` · ${u.retries} retr${u.retries === 1 ? "y" : "ies"}` : ""} · ${ms}`
+        : `Produced by simulated fixtures · no model tokens · ${ms}`}
+    </p>
   );
 }
 
@@ -76,7 +88,8 @@ export function RequestPane(props: {
 
         {d.state_reason && ["unsupported", "error", "failed", "rejected", "stale"].includes(d.state) && (
           <div className={`rounded-lg px-4 py-3 text-sm ${d.state === "rejected" ? "bg-zinc-100 text-zinc-700" : "bg-red-50 text-red-800"}`} role="status">
-            <p className="font-medium">{d.state === "unsupported" ? "Not processed" : d.state === "rejected" ? "Rejected" : "Problem"}</p>
+            <p className="font-medium">{d.state === "unsupported" ? "Not processed" : d.state === "rejected" ? "Rejected"
+              : d.state === "error" && d.ai_runs.at(-1)?.provider === "live" ? "Live provider error (no simulated output was used)" : "Problem"}</p>
             <p className="mt-0.5">{d.state_reason}</p>
             {!d.is_template && can.run && <Button className="mt-2" onClick={props.onRun} disabled={busy}>Reprocess</Button>}
           </div>
@@ -91,13 +104,14 @@ export function RequestPane(props: {
               </div>
               <div className="flex items-center gap-2 text-xs text-zinc-500">
                 <span data-testid="proposal-version">Version {p.version.version} of {p.versions.length}</span>
-                <span className="rounded-md bg-zinc-900 px-1.5 py-0.5 font-medium text-white">{c.provider_label}</span>
+                <span className={`rounded-md px-1.5 py-0.5 font-medium text-white ${c.simulated ? "bg-zinc-900" : "bg-teal-800"}`} data-testid="provider-label">{c.provider_label}</span>
               </div>
             </div>
 
             <div className="space-y-1">
               <p className="text-sm text-zinc-900">{c.summary}</p>
               <p className="text-sm text-zinc-600"><span className="font-medium text-zinc-700">{categoryLabel(c.category)}, {c.priority} priority.</span> {c.justification}</p>
+              <UsageLine u={p.usage} />
             </div>
 
             {c.risk_flags.length > 0 && (

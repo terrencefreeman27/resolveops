@@ -45,10 +45,22 @@ export type TimelineEvent = {
   summary: Record<string, unknown>; duration_ms: number | null; error: string | null; created_at: string;
 };
 
+export type ProposalUsage = {
+  provider?: "simulated" | "live"; label?: string; model?: string | null; latency_ms?: number;
+  input_tokens?: number; output_tokens?: number; cache_read_input_tokens?: number; cache_creation_input_tokens?: number;
+  api_calls?: number; tool_steps?: number; retries?: number;
+};
+
+export type AiRun = {
+  id: string; provider: "simulated" | "live"; model: string | null; status: string; latency_ms: number | null;
+  input_tokens: number; output_tokens: number; tool_steps: number; api_calls: number; error: string | null; created_at: string;
+};
+
 export type RequestDetail = RequestSummary & {
   body: string;
+  ai_runs: AiRun[];
   proposal: null | {
-    id: string; provider: string; status: string; current_version: number;
+    id: string; provider: string; status: string; current_version: number; usage: ProposalUsage;
     version: { id: string; version: number; content: ProposalContent; action_hash: string; author: string;
                edit_note: string | null; created_at: string };
     versions: { id: string; version: number; author: string; edit_note: string | null; created_at: string }[];
@@ -64,7 +76,8 @@ export type RequestDetail = RequestSummary & {
 
 export type Scenario = { key: string; label: string; description: string };
 export type Meta = {
-  mode: "demo" | "live"; provider_label: string; live_configured: boolean;
+  mode: "demo" | "live"; effective_mode: "demo" | "live"; provider_label: string; live_model: string | null;
+  live_configured: boolean; live_for_visitors: boolean;
   reviewer: { email: string; name: string } | null;
   workspaces: { slug: string; name: string; profile: Record<string, unknown>; demo_scenarios: Scenario[]; ticket_groups: string[] }[];
 };
@@ -72,6 +85,17 @@ export type Meta = {
 export type Passage = {
   chunk_id: string; doc_slug: string; doc_title: string; version: number; version_status: string;
   section: string; text: string; active: boolean; document_content: string;
+};
+
+type UsageTotals = { runs: number; errors: number; input_tokens: number; output_tokens: number; total_tokens: number };
+export type AiStatus = {
+  mode: "demo" | "live"; provider_label: string; model: string; effort: string; refusal_fallback: boolean;
+  key_configured: boolean; live_for_visitors: boolean;
+  budget: { monthly_token_budget: number; tokens_used: number; tokens_remaining: number; monthly_usd_budget: number | null;
+            cost_usd: number | null; pricing: null | { input_per_mtok_usd: number; output_per_mtok_usd: number; source: string };
+            period_start: string };
+  usage_this_month: { live: UsageTotals & { cost_usd: number | null }; simulated: UsageTotals };
+  limits: Record<string, number>;
 };
 
 export class ApiError extends Error {
@@ -121,5 +145,6 @@ export const api = {
     call<{ customer: Customer }>("POST", `${w(ws)}/customer-session`, { customer_id: customerId }),
   submit: (ws: string, subject: string, body: string) =>
     call<RequestDetail>("POST", `${w(ws)}/requests`, { subject, body }),
+  aiStatus: (ws: string) => call<AiStatus>("GET", `${w(ws)}/ai/status`),
   tickets: (ws: string) => call<{ tickets: Ticket[] }>("GET", `${w(ws)}/tickets`),
 };

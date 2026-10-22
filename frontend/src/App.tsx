@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { api, ApiError, type Meta, type Passage, type RequestDetail, type RequestSummary } from "./api";
 import { LoginDialog, NewRequestDialog } from "./components/Dialogs";
+import { AiStatusDialog } from "./components/AiStatusDialog";
 import { EvidencePane } from "./components/EvidencePane";
 import { Inbox, type Filters } from "./components/Inbox";
 import { PassageModal } from "./components/PassageModal";
@@ -18,7 +19,7 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
-  const [dialog, setDialog] = useState<"login" | "new" | null>(null);
+  const [dialog, setDialog] = useState<"login" | "new" | "ai" | null>(null);
   const [fatal, setFatal] = useState<string | null>(null);
 
   const ws = meta?.workspaces[0];
@@ -79,11 +80,7 @@ export default function App() {
   const isReviewer = !!meta?.reviewer;
   return (
     <div className="flex flex-col xl:h-[100dvh]">
-      <div className={`px-4 py-1.5 text-center text-sm font-medium ${meta?.mode === "live" ? "bg-teal-800 text-white" : "bg-amber-300 text-amber-950"}`} data-testid="mode-banner">
-        {meta ? (meta.mode === "demo"
-          ? "Demo mode: Simulated AI. Outputs are deterministic fixtures on synthetic data; tickets are internal only."
-          : `Live mode: ${meta.provider_label}`) : "Connecting"}
-      </div>
+      <ModeBanner meta={meta} />
 
       <header className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-zinc-200 bg-white px-4 py-2.5">
         <div className="mr-2">
@@ -108,6 +105,7 @@ export default function App() {
               catch (e) { setError((e as Error).message); } finally { setBusy(false); }
             }}>Reset my demo</Button>
           )}
+          {isReviewer && <Button variant="ghost" data-testid="ai-status-open" onClick={() => setDialog("ai")}>AI status</Button>}
           {isReviewer
             ? <Button onClick={async () => { await api.logout(); setSelectedId(null); await loadMeta(); }}>Sign out</Button>
             : <Button onClick={() => setDialog("login")}>Reviewer sign-in</Button>}
@@ -153,7 +151,30 @@ export default function App() {
 
       {passage && <PassageModal passage={passage} onClose={() => setPassage(null)} />}
       {dialog === "login" && <LoginDialog onClose={() => setDialog(null)} onDone={async () => { setSelectedId(null); await loadMeta(); await loadRequests(); }} />}
-      {dialog === "new" && slug && meta && <NewRequestDialog ws={slug} mode={meta.mode} onClose={() => setDialog(null)} onCreated={async (id) => { setSelectedId(id); await loadRequests(); }} />}
+      {dialog === "ai" && slug && <AiStatusDialog ws={slug} onClose={() => setDialog(null)} />}
+      {dialog === "new" && slug && meta && <NewRequestDialog ws={slug} mode={meta.effective_mode} onClose={() => setDialog(null)} onCreated={async (id) => { setSelectedId(id); await loadRequests(); }} />}
+    </div>
+  );
+}
+
+function ModeBanner({ meta }: { meta: Meta | null }) {
+  // What this caller's requests actually use: visitors stay on simulated AI even when the server runs live.
+  let tone = "bg-amber-300 text-amber-950";
+  let text = "Connecting";
+  if (meta?.mode === "demo") {
+    text = "Demo mode: Simulated AI. Outputs are deterministic fixtures on synthetic data; tickets are internal only.";
+  } else if (meta && meta.effective_mode === "demo") {
+    text = "Demo mode for visitors: Simulated AI. Live model calls are limited to signed-in reviewers.";
+  } else if (meta && !meta.live_configured) {
+    tone = "bg-red-700 text-white";
+    text = `Live mode: ANTHROPIC_API_KEY not configured. Requests will stop with a configuration error until the key is set on the server. Nothing is simulated.`;
+  } else if (meta) {
+    tone = "bg-teal-800 text-white";
+    text = `Live mode: ${meta.provider_label}. Proposals come from a real model; nothing executes without reviewer approval.`;
+  }
+  return (
+    <div className={`px-4 py-1.5 text-center text-sm font-medium ${tone}`} data-testid="mode-banner" data-mode={meta?.effective_mode ?? ""}>
+      {text}
     </div>
   );
 }
