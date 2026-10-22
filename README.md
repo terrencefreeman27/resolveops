@@ -11,10 +11,16 @@ analytics, the default) and **Lumen Ledger** (B2B invoicing, different plans and
 customers and people are synthetic. Reviewers can create further workspaces through an
 onboarding flow and import their own Markdown or plain-text documentation.
 
-> Status: **Milestone 4** (optional GitHub Issues adapter, built and tested against a fake HTTP
-> layer only, **unverified against real GitHub**; M3 workspaces and document lifecycle; demo mode
-> verified, live mode built but not yet run against the real API). See `docs/PLAN.md` for the milestones,
-> `docs/DECISIONS.md` for design decisions, and `docs/SPEC.md` for the full specification.
+> Status: **Milestone 5, the final one** (evaluation, dashboard, polish, documentation). Demo mode is verified
+> end to end. **Live mode, the GitHub adapter, the live evaluation and the prompt-only baseline have not been run
+> against the real services**, because no API key or GitHub token was available. See the
+> [what is simulated or unverified](docs/INTERVIEW_WALKTHROUGH.md#8-what-is-simulated-or-unverified) list.
+>
+> Docs: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) (diagrams) · [`docs/DECISIONS.md`](docs/DECISIONS.md)
+> (design decisions and tradeoffs) · [`eval/RESULTS.md`](eval/RESULTS.md) (evaluation) ·
+> [`docs/VERIFICATION.md`](docs/VERIFICATION.md) (SPEC §15 checklist with evidence) ·
+> [`docs/DEMO_SCRIPT.md`](docs/DEMO_SCRIPT.md) · [`docs/INTERVIEW_WALKTHROUGH.md`](docs/INTERVIEW_WALKTHROUGH.md) ·
+> [`docs/SPEC.md`](docs/SPEC.md) · [`docs/PLAN.md`](docs/PLAN.md)
 
 ## Quick start
 
@@ -36,11 +42,13 @@ automatically (an existing database gets any missing demo workspace on the next 
 | Full reset (drop the DB volume) | `make reset` (`docker compose down -v && docker compose up -d --build`) |
 | Backend tests (real Postgres, in container) | `make test` (`docker compose exec api pytest -q`) |
 | Frontend typecheck + build | `make test-web` (`cd frontend && npm ci && npm run typecheck && npm run build`) |
-| Browser check (stack must be running) | `cd frontend && npm run e2e` |
+| Browser checks (stack must be running) | `make e2e` (`cd frontend && npm run e2e`) |
+| Evaluation: AI eval (demo), live status, backend checks | `make eval` (see [Evaluation](#evaluation)) |
+| Live AI eval + prompt-only baseline (needs a key) | `make eval-live` |
 
 The browser check uses `playwright-core` and expects a Playwright Chromium build in the local
 cache (`npx playwright install chromium` if you don't have one). It writes screenshots to
-`docs/screenshots/`.
+`docs/screenshots/`. Some checks assume freshly seeded data, so run it after `make reset`.
 
 ## Trying it
 
@@ -54,6 +62,9 @@ cache (`npx playwright install chromium` if you don't have one). It writes scree
   3. **Escalate product issue**: Snowflake connector failing with NS-CONN-504. An escalation
      rule and the known-issue doc produce a high-priority engineering ticket on approval.
 - **Reset my demo** deletes only your sandbox's rows. Other visitors are unaffected.
+- **Dashboard** (header button, or `#dashboard`): requests by category and state, approval outcomes, ticket
+  executions, simulated and live AI usage shown separately, and the latest evaluation results labelled by mode.
+  Visitors see only their own sandbox. Reviewers see the workspace queue (`docs/DECISIONS.md` D31).
 - **Switch company** with the workspace selector under the ResolveOps name. Lumen Ledger's
   inbox contains the *same* access-after-upgrade and "charged twice" wording as Northstar; the
   answers differ because they come from Lumen's account data and documents (see below).
@@ -133,6 +144,9 @@ cannot turn it back into a resolve. The UI shows the check, the disagreeing pass
 changed.
 
 ## How it works
+
+Diagrams (containers, state machine, request path, tool gate, evidence and staleness checks):
+[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
 ```
 browser ─► web (nginx + React build) ─/api─► api (FastAPI, Python 3.12) ─► Postgres 17 + pgvector
@@ -249,27 +263,71 @@ blocking). 401/403/404/410/422 fail at once with a recorded error. A failed GitH
 **Retry** and an explicit **Use internal ticket instead** action, which is refused if GitHub already
 has an issue for that execution. Details and limits: `docs/DECISIONS.md` D28–D30.
 
-## Known limitations (M1–M4)
+## Evaluation
 
-- The live provider has been tested only against a fake Anthropic client and recorded-format
-  fixtures; the live smoke test (`pytest -m live`) has not been run against the real API yet.
-- The live concurrency limit is per API process (single-instance deployment assumed).
-- The GitHub Issues adapter has not been run against real GitHub (no test repository or token was
-  available); see its section above. Notes stay internal; GitHub issues are not updated after creation.
-- Evaluation dataset and dashboard (M5) are a later milestone.
-- Onboarding imports documents, rules and company details. It does not import customers or
-  subscriptions, so a new workspace can test retrieval and rules (step 6) but has no customers
-  to run full requests against until data is loaded by other means. Demo-mode proposals exist
-  only for seeded scenarios (`sim_fixtures`). Other text is labelled as not processed.
-- Documents are uploaded as text in a JSON body (the browser reads the file). There is no
-  multipart parser, which avoids a new dependency. The server enforces type, byte size and count.
-- Conflict detection only sees facts that documents declare with policy markers. It does not
-  infer contradictions from prose. The relevance threshold was calibrated on the seeded data
-  (answered scenarios score 0.79–0.89, the undocumented Peppol question 0.69), so the margin is
-  modest and should be re-checked in the M5 evaluation.
-- Stale invalidation covers document versions a proposal *retrieved or cited* and rule changes.
-  Changes to company details or ticket groups do not stale proposals (removing a ticket group
-  that escalation rules still route to is refused).
-- Escalation-rule matching is simple keyword/category/plan matching.
-- No login rate limiting yet. Session cookies are `Secure` only when `COOKIE_SECURE=true`
-  (needed behind HTTPS).
+The full write-up, with every number and caveat, is in [`eval/RESULTS.md`](eval/RESULTS.md). The dataset datasheet
+is [`eval/datasets/v1/README.md`](eval/datasets/v1/README.md). The stack must be running.
+
+```bash
+make eval
+# = docker compose exec -e EVAL_GIT_COMMIT=$(git rev-parse --short HEAD) api python -m eval.run_ai_eval --mode demo
+#   docker compose exec -e EVAL_GIT_COMMIT=$(git rev-parse --short HEAD) api python -m eval.run_ai_eval --mode live
+#   docker compose exec -e EVAL_GIT_COMMIT=$(git rev-parse --short HEAD) api python -m eval.run_backend_eval
+```
+
+Each run writes `eval/results/<suite>-<mode>-<date>.json`, and the dashboard shows the latest file per suite and mode.
+Results at commit `da484e2` (2026-10-22):
+
+- **AI task eval, demo mode: Simulated, not evidence of AI performance.** Of 50 cases, 30 were evaluated,
+  5 were refused at the gate and 15 are unsupported in demo mode (no fixture; excluded from rates). Correct next
+  action 32/35. Clarify-when-expected 2/5: three honest fixture failures. Citations valid 67/67. Must-not
+  violations 0. Execution steps (double, concurrent and lost-response approvals, stale refusal) 7/7. A
+  raw-message retrieval probe found the 0.72 evidence threshold too strict for unfocused queries.
+- **AI task eval, live mode: not run** (no `ANTHROPIC_API_KEY`). The prompt-only baseline is also **not run**.
+  Command: `make eval-live`.
+- **Deterministic backend checks: 64/64 passed** across 10 categories (authorization, isolation, unauthorized
+  actions, approval versioning, stale evidence, evidence guard, duplicates, injection, failures without fallback).
+
+## Known limitations
+
+What is **simulated or unverified** (details: [`docs/INTERVIEW_WALKTHROUGH.md`](docs/INTERVIEW_WALKTHROUGH.md#8-what-is-simulated-or-unverified)):
+- **Live Claude** has never been called. The live provider is tested only with a scripted fake client, and the
+  `pytest -m live` smoke test has not been run.
+- **GitHub Issues** has been tested only against a fake HTTP transport. The `github_live` smoke test has not been run.
+- **Live evaluation and the prompt-only baseline** have not been run. **No LLM judge** exists. Citation-support
+  labels and all dataset labels were written by the build agent and **have not been reviewed by a human**.
+- **Demo mode** answers only the seeded wordings, from fixtures. It cannot show how a model handles new text.
+
+Product and engineering limits:
+- The live concurrency limit is held in memory per API process (single-instance deployment assumed). Rate limits
+  and the budget count live runs in the database, but the check-then-run is not protected by a distributed lock.
+- Execution is synchronous inside the approve request. There is no job queue or background worker, so a slow
+  adapter holds the HTTP request (bounded by attempt timeouts).
+- The evidence threshold (0.72) was calibrated on fixture queries. Raw customer wording often scores lower and
+  would be escalated (see `eval/RESULTS.md`). Conflict detection only sees facts that documents declare with
+  policy markers; it does not infer contradictions from prose.
+- Stale invalidation covers document versions a proposal *retrieved or cited*, and rule changes. Changes to
+  company details or ticket groups do not stale proposals (removing a ticket group that escalation rules still
+  route to is refused).
+- Onboarding imports documents, rules and company details, but not customers or subscriptions. A new
+  workspace can therefore dry-run retrieval and rules but cannot run full requests. Documents are uploaded as
+  text in a JSON body (no multipart parser).
+- Escalation-rule matching is simple keyword, category and plan matching. GitHub issues are not updated after
+  creation. Draft replies are never sent: there is no email or chat channel.
+- There is no login rate limiting. Session cookies are `Secure` only when `COOKIE_SECURE=true` (needed behind HTTPS).
+
+### What a real pilot would still require
+
+1. **A real identity provider** (SSO/OIDC) for reviewers and customers, instead of local demo passwords and
+   synthetic customer sessions; role-based reviewer permissions; login rate limiting.
+2. **Live model evaluation on real (consented, de-identified) tickets**, with human-reviewed labels and a second
+   labeller for agreement. Re-calibrate the evidence threshold on live query logs. Run the prompt-only baseline,
+   and decide whether to add an LLM judge (itself validated against human judgements).
+3. **A real ticketing system integration** (Zendesk, ServiceNow, Jira and so on), verified end to end, with
+   webhooks for status sync. Update existing issues, not only create them.
+4. **Multi-instance operation**: shared rate limiting and concurrency (e.g. Redis), a durable job queue for
+   execution with retries outside the request path, and health and alerting.
+5. **PII handling**: data classification, redaction before prompts and logs, retention and deletion policies,
+   access audit export, a data-processing agreement with the model provider, and region constraints.
+6. **Operational controls**: monitoring of live cost against budget, prompt and version management, and an
+   incident runbook for provider outages, which already fail closed into the `error` state.
