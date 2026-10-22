@@ -25,6 +25,12 @@ function TicketActionView({ ta }: { ta: TicketAction }) {
   );
 }
 
+export function versionNote(cv: { status: string; current_version: number | null; document_status: string } | undefined, v: number) {
+  if (!cv || cv.status === "active") return "";
+  if (cv.document_status === "deleted") return ` · v${v}, deleted`;
+  return cv.current_version ? ` · v${v}, superseded by v${cv.current_version}` : ` · v${v}, ${cv.status}`;
+}
+
 function UsageLine({ u }: { u: ProposalUsage }) {
   if (!u?.provider) return null;
   const ms = u.latency_ms != null ? (u.latency_ms >= 1000 ? `${(u.latency_ms / 1000).toFixed(1)}s` : `${u.latency_ms}ms`) : "n/a";
@@ -86,7 +92,16 @@ export function RequestPane(props: {
           </div>
         )}
 
-        {d.state_reason && ["unsupported", "error", "failed", "rejected", "stale"].includes(d.state) && (
+        {d.state === "stale" && (
+          <div className="rounded-lg bg-orange-50 px-4 py-3 text-sm text-orange-900 ring-1 ring-inset ring-orange-200" role="status" data-testid="stale-banner">
+            <p className="font-medium">Stale: version {p?.version.version} relied on documentation or rules that have changed</p>
+            <p className="mt-0.5">{p?.stale_reason ?? d.state_reason}</p>
+            <p className="mt-1 text-orange-800">It can't be approved or executed. Reprocess re-runs the workflow against current documents and rules and adds a new version for review.</p>
+            {!d.is_template && can.run && <Button className="mt-2" variant="primary" onClick={props.onRun} disabled={busy} data-testid="reprocess">Reprocess with current documentation</Button>}
+          </div>
+        )}
+
+        {d.state_reason && ["unsupported", "error", "failed", "rejected"].includes(d.state) && (
           <div className={`rounded-lg px-4 py-3 text-sm ${d.state === "rejected" ? "bg-zinc-100 text-zinc-700" : "bg-red-50 text-red-800"}`} role="status">
             <p className="font-medium">{d.state === "unsupported" ? "Not processed" : d.state === "rejected" ? "Rejected"
               : d.state === "error" && d.ai_runs.at(-1)?.provider === "live" ? "Live provider error (no simulated output was used)" : "Problem"}</p>
@@ -113,6 +128,20 @@ export function RequestPane(props: {
               <p className="text-sm text-zinc-600"><span className="font-medium text-zinc-700">{categoryLabel(c.category)}, {c.priority} priority.</span> {c.justification}</p>
               <UsageLine u={p.usage} />
             </div>
+
+            {c.evidence_check && c.evidence_check.status !== "sufficient" && (
+              <div className="rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-900 ring-1 ring-inset ring-amber-200" data-testid="evidence-check" data-status={c.evidence_check.status}>
+                <p className="font-medium">Evidence check: {c.evidence_check.status === "conflicting" ? "documents conflict" : "not enough documentation"}</p>
+                {c.evidence_check.status === "insufficient" && <p className="mt-0.5">No passage reached the relevance threshold ({c.evidence_check.threshold.toFixed(2)}; best {c.evidence_check.best_score?.toFixed(2) ?? "none"}).</p>}
+                {c.evidence_check.conflicts.map((x) => (
+                  <ul key={x.key} className="mt-1 list-disc pl-5">{x.values.map((v) => (
+                    <li key={v.chunk_id}><button className="underline decoration-amber-400 underline-offset-2" onClick={() => props.onCite(v.chunk_id)}>{v.doc_title} v{v.version}, {v.section}</button>: {x.key} = {v.value}</li>
+                  ))}</ul>
+                ))}
+                {c.evidence_check.effect && <p className="mt-1 font-medium">{c.evidence_check.effect}</p>}
+                <p className="mt-1 text-xs text-amber-800">Checked by application code, not by the model. A proposal with unsupported evidence can be clarified or escalated, never resolved.</p>
+              </div>
+            )}
 
             {c.risk_flags.length > 0 && (
               <div className="rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-900 ring-1 ring-inset ring-amber-200">
@@ -146,7 +175,7 @@ export function RequestPane(props: {
                       {c.citations.map((ct, i) => (
                         <button key={ct.chunk_id} onClick={() => props.onCite(ct.chunk_id)} title={ct.claim}
                           className="rounded-md bg-teal-50 px-2 py-0.5 text-xs font-medium text-teal-800 hover:bg-teal-100">
-                          [{i + 1}] {ct.doc_title}, {ct.section}
+                          [{i + 1}] {ct.doc_title}, {ct.section}{versionNote(p.citation_versions?.[ct.document_version_id], ct.version)}
                         </button>
                       ))}
                     </div>

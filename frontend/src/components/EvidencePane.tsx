@@ -1,4 +1,5 @@
 import type { RequestDetail } from "../api";
+import { versionNote } from "./RequestPane";
 import { PanelHeading, Tag, timeAgo } from "./ui";
 
 export function EvidencePane({ detail: d, onCite }: { detail: RequestDetail | null; onCite: (id: string) => void }) {
@@ -34,6 +35,8 @@ export function EvidencePane({ detail: d, onCite }: { detail: RequestDetail | nu
               <li key={ct.chunk_id}>
                 <button onClick={() => onCite(ct.chunk_id)} className="w-full rounded-md bg-white p-2.5 text-left ring-1 ring-inset ring-zinc-200 hover:ring-teal-600" data-testid="citation">
                   <span className="text-xs font-medium text-teal-800">[{i + 1}] {ct.doc_title} v{ct.version}</span>
+                  {versionNote(d.proposal?.citation_versions?.[ct.document_version_id], ct.version) && (
+                    <span className="ml-1 text-xs font-medium text-orange-700" data-testid="citation-superseded">{versionNote(d.proposal?.citation_versions?.[ct.document_version_id], ct.version).replace(/^ · v\d+, /, "")}</span>)}
                   <span className="block text-sm font-medium text-zinc-900">{ct.section}</span>
                   <span className="mt-0.5 block text-xs text-zinc-600">{ct.claim}</span>
                 </button>

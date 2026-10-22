@@ -3,7 +3,7 @@ import { StateBadge, Tag, timeAgo } from "./ui";
 
 export type Filters = { state: string; category: string };
 
-const STATES = ["", "awaiting_review", "completed", "failed", "rejected", "unsupported", "error"];
+const STATES = ["", "awaiting_review", "stale", "completed", "failed", "rejected", "unsupported", "error"];
 const CATEGORIES = ["", "access", "billing", "product_issue"];
 const CATEGORY_LABEL: Record<string, string> = { access: "Access", billing: "Billing", product_issue: "Product issue" };
 

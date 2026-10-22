@@ -19,7 +19,10 @@ export function PassageModal({ passage, onClose }: { passage: Passage; onClose: 
           <p className="text-xs text-zinc-500">{passage.doc_slug}, version {passage.version}</p>
           <h2 className="text-base font-semibold text-zinc-900">{passage.doc_title}: {passage.section}</h2>
           <div className="mt-1 flex gap-1.5">
-            <Tag tone={passage.active ? "teal" : "amber"}>{passage.active ? "Active version" : `Not active (${passage.version_status})`}</Tag>
+            <span data-testid="passage-version-status"><Tag tone={passage.active ? "teal" : "amber"}>{passage.active ? "Active version"
+              : passage.document_status === "deleted" ? "Document deleted; showing the cited version"
+              : passage.current_version && passage.current_version !== passage.version ? `Superseded by v${passage.current_version}; showing the cited v${passage.version}`
+              : `Not active (${passage.version_status})`}</Tag></span>
           </div>
         </div>
         <Button variant="ghost" onClick={() => ref.current?.close()} aria-label="Close passage">Close</Button>
