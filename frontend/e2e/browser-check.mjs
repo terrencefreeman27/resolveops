@@ -129,6 +129,7 @@ try {
   check("audit records approval and execution", events.includes("approval.granted") && events.includes("execution.succeeded"));
   await A.page.getByTestId("activity").locator("summary").first().click();
   await A.page.getByTestId("activity").locator("summary").first().evaluate((el) => el.scrollIntoView({ block: "start" }));
+  await A.page.waitForTimeout(200); // let the disclosure chevron finish rotating before the screenshot
   await shot(A.page, "06-escalation-timeline");
 
   // 6. Two visitor sessions are isolated.
