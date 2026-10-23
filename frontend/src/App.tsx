@@ -162,7 +162,7 @@ export default function App() {
         setTab("request");
       }
       const msg = okMessage?.(d);
-      if (msg) setNotice(msg, d);
+      if (msg) (d.state === "failed" ? setError : setNotice)(msg, d); // a failed execution is actionable: keep it until resolved
       await loadRequests();
       return true;
     } catch (e) {
