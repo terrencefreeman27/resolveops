@@ -4,6 +4,7 @@ import { chromium } from "playwright-core";
 import { mkdir } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { m3 } from "./m3-checks.mjs";
+import { openAccountMenu, runScenario } from "./ui-helpers.mjs";
 import { m4 } from "./m4-checks.mjs";
 import { m5 } from "./m5-checks.mjs";
 
@@ -67,7 +68,7 @@ try {
     && optIn.status === 422 && status.status === 403, `effective=${vMeta.effective_mode} optIn=${optIn.status} status=${status.status}`);
 
   // 2. Scenario 1: access issue resolved with account facts + docs.
-  await A.page.getByTestId("scenario-access_reporting_after_upgrade").click();
+  await runScenario(A.page, "access_reporting_after_upgrade");
   await A.page.getByTestId("proposal").waitFor();
   const reply = await A.page.getByTestId("draft-reply").innerText();
   check("access reply uses account facts", reply.includes("Viewer") && reply.includes("Jordan Patel") && reply.includes("Analyst"));
@@ -99,7 +100,7 @@ try {
   await shot(A.page, "04-access-approved");
 
   // 4. Scenario 2: billing clarification.
-  await A.page.getByTestId("scenario-billing_charged_twice").click();
+  await runScenario(A.page, "billing_charged_twice");
   await A.page.getByTestId("proposal").getByText("Ask for clarification").waitFor();
   const r2 = await A.page.getByTestId("draft-reply").innerText();
   check("billing reply lists real invoices and asks to confirm", r2.includes("$1,200.00") && r2.includes("$205.33") && r2.includes("confirm"));
@@ -109,7 +110,7 @@ try {
   check("clarification approval completes without a ticket", true);
 
   // 5. Scenario 3: escalation creates exactly one ticket + audit records; double approve refused.
-  await A.page.getByTestId("scenario-connector_outage").click();
+  await runScenario(A.page, "connector_outage");
   await A.page.getByTestId("proposal").getByText("Escalate", { exact: true }).waitFor();
   const id3 = await currentId(A.page);
   const v3 = (await apiCall(A.page, "GET", `/api/w/northstar/requests/${id3}`)).data.proposal.version;
@@ -133,11 +134,12 @@ try {
   check("visitor B does not see visitor A's requests", !bList.some((r) => [id1, id3].includes(r.id)) && bList.every((r) => r.is_template));
   expectedHttp.add(`HTTP 404 GET /api/w/northstar/requests/${id3}`);
   check("visitor B cannot open A's request", (await apiCall(B.page, "GET", `/api/w/northstar/requests/${id3}`)).status === 404);
-  await B.page.getByTestId("scenario-billing_charged_twice").click();
+  await runScenario(B.page, "billing_charged_twice");
   await B.page.getByTestId("proposal").waitFor();
   const idB = await currentId(B.page);
 
   // 7. Reset only resets the current session.
+  await openAccountMenu(A.page);
   await A.page.getByTestId("reset-demo").click();
   await A.page.getByTestId("notice").getByText("reset").waitFor();
   const aAfter = (await apiCall(A.page, "GET", "/api/w/northstar/requests")).data.requests.filter((r) => !r.is_template);
@@ -158,7 +160,7 @@ try {
 
   // 9. Mobile layout: no horizontal overflow.
   await A.page.setViewportSize({ width: 390, height: 844 });
-  await A.page.getByTestId("scenario-access_reporting_after_upgrade").click();
+  await runScenario(A.page, "access_reporting_after_upgrade");
   await A.page.getByTestId("proposal").waitFor();
   const overflow = await A.page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
   check("mobile 390px has no horizontal overflow", overflow <= 0, `${overflow}px`);

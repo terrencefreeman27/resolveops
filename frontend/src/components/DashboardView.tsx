@@ -8,9 +8,9 @@ const CATEGORY_LABEL: Record<string, string> = {
 
 function Section({ title, note, children, testid }: { title: string; note?: string; children: React.ReactNode; testid?: string }) {
   return (
-    <section className="rounded-lg border border-zinc-200 bg-white p-4" data-testid={testid}>
-      <h2 className="text-sm font-semibold text-zinc-900">{title}</h2>
-      {note && <p className="mt-0.5 text-xs text-zinc-500">{note}</p>}
+    <section className="rounded-lg border border-line bg-surface p-4" data-testid={testid}>
+      <h2 className="text-sm font-semibold text-fg">{title}</h2>
+      {note && <p className="mt-0.5 text-xs text-fg-subtle">{note}</p>}
       <div className="mt-3">{children}</div>
     </section>
   );
@@ -19,9 +19,9 @@ function Section({ title, note, children, testid }: { title: string; note?: stri
 function Stat({ label, value, hint }: { label: string; value: string | number; hint?: string }) {
   return (
     <div className="min-w-0">
-      <p className="text-xs text-zinc-500">{label}</p>
-      <p className="mt-0.5 text-xl font-semibold tabular-nums text-zinc-900">{value}</p>
-      {hint && <p className="text-xs text-zinc-500">{hint}</p>}
+      <p className="text-xs text-fg-subtle">{label}</p>
+      <p className="mt-0.5 text-xl font-semibold tabular-nums text-fg">{value}</p>
+      {hint && <p className="text-xs text-fg-subtle">{hint}</p>}
     </div>
   );
 }
@@ -29,16 +29,16 @@ function Stat({ label, value, hint }: { label: string; value: string | number; h
 /** Counts as a table with one single-hue bar per row; the number is always printed, so the bar is never the only encoding. */
 function CountTable({ rows, label, caption }: { rows: [string, number][]; label: (k: string) => string; caption: string }) {
   const max = Math.max(1, ...rows.map(([, n]) => n));
-  if (!rows.length) return <p className="text-sm text-zinc-500">No requests yet.</p>;
+  if (!rows.length) return <p className="text-sm text-fg-subtle">No requests yet.</p>;
   return (
     <table className="w-full text-sm">
       <caption className="sr-only">{caption}</caption>
       <tbody>
         {rows.map(([k, n]) => (
           <tr key={k} title={`${label(k)}: ${n}`}>
-            <th scope="row" className="w-40 py-1 pr-3 text-left font-normal text-zinc-700">{label(k)}</th>
-            <td className="py-1"><div className="h-2 rounded-r bg-teal-600" style={{ width: `${(n / max) * 100}%`, minWidth: 4 }} /></td>
-            <td className="w-10 py-1 pl-3 text-right tabular-nums text-zinc-900">{n}</td>
+            <th scope="row" className="w-40 py-1 pr-3 text-left font-normal text-fg-muted">{label(k)}</th>
+            <td className="py-1"><div className="h-2 rounded-r bg-accent" style={{ width: `${(n / max) * 100}%`, minWidth: 4 }} /></td>
+            <td className="w-10 py-1 pl-3 text-right tabular-nums text-fg">{n}</td>
           </tr>
         ))}
       </tbody>
@@ -51,26 +51,26 @@ const ms = (v: number | null) => (v === null ? "—" : `${v} ms`);
 
 function Runs({ kind, b }: { kind: "simulated" | "live"; b: RunBlock }) {
   return (
-    <div data-testid={`runs-${kind}`} className="rounded-md bg-zinc-50 p-3">
+    <div data-testid={`runs-${kind}`} className="rounded-md bg-canvas p-3">
       <div className="flex items-center gap-2">
-        <h3 className="text-sm font-medium text-zinc-900">{kind === "simulated" ? "Simulated AI" : "Live model"}</h3>
+        <h3 className="text-sm font-medium text-fg">{kind === "simulated" ? "Simulated AI" : "Live model"}</h3>
         <Tag tone={kind === "live" ? "teal" : "zinc"}>{kind === "live" ? "live" : "simulated"}</Tag>
       </div>
       <dl className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-sm sm:grid-cols-4">
-        <div><dt className="text-xs text-zinc-500">Runs</dt><dd className="tabular-nums">{b.runs}</dd></div>
-        <div><dt className="text-xs text-zinc-500">Errors</dt><dd className="tabular-nums">{b.errors}</dd></div>
-        <div><dt className="text-xs text-zinc-500">Median</dt><dd className="tabular-nums">{ms(b.latency_ms_median)}</dd></div>
-        <div><dt className="text-xs text-zinc-500">p95</dt><dd className="tabular-nums">{ms(b.latency_ms_p95)}</dd></div>
+        <div><dt className="text-xs text-fg-subtle">Runs</dt><dd className="tabular-nums">{b.runs}</dd></div>
+        <div><dt className="text-xs text-fg-subtle">Errors</dt><dd className="tabular-nums">{b.errors}</dd></div>
+        <div><dt className="text-xs text-fg-subtle">Median</dt><dd className="tabular-nums">{ms(b.latency_ms_median)}</dd></div>
+        <div><dt className="text-xs text-fg-subtle">p95</dt><dd className="tabular-nums">{ms(b.latency_ms_p95)}</dd></div>
         {kind === "live" && <>
-          <div><dt className="text-xs text-zinc-500">Input tokens</dt><dd className="tabular-nums">{b.input_tokens ?? 0}</dd></div>
-          <div><dt className="text-xs text-zinc-500">Output tokens</dt><dd className="tabular-nums">{b.output_tokens ?? 0}</dd></div>
-          <div className="col-span-2"><dt className="text-xs text-zinc-500">Estimated cost</dt>
+          <div><dt className="text-xs text-fg-subtle">Input tokens</dt><dd className="tabular-nums">{b.input_tokens ?? 0}</dd></div>
+          <div><dt className="text-xs text-fg-subtle">Output tokens</dt><dd className="tabular-nums">{b.output_tokens ?? 0}</dd></div>
+          <div className="col-span-2"><dt className="text-xs text-fg-subtle">Estimated cost</dt>
             <dd data-testid="cost">{b.cost?.usd != null ? `$${b.cost.usd}` : (b.cost?.note ?? "pricing not configured")}</dd></div>
         </>}
       </dl>
-      {b.note && <p className="mt-2 text-xs text-zinc-500">{b.note}</p>}
+      {b.note && <p className="mt-2 text-xs text-fg-subtle">{b.note}</p>}
       {kind === "live" && b.cost?.assumptions && (
-        <p className="mt-2 text-xs text-zinc-500">Pricing assumptions: input ${String(b.cost.assumptions.input_per_mtok_usd)}/MTok,
+        <p className="mt-2 text-xs text-fg-subtle">Pricing assumptions: input ${String(b.cost.assumptions.input_per_mtok_usd)}/MTok,
           output ${String(b.cost.assumptions.output_per_mtok_usd)}/MTok ({String(b.cost.assumptions.source)}); excludes {String(b.cost.assumptions.excludes)}.</p>
       )}
     </div>
@@ -82,26 +82,26 @@ function EvalCard({ s }: { s: EvalSuite }) {
   const notRun = s.status !== "run";
   const tone = notRun ? "zinc" : s.mode === "demo" ? "amber" : "teal";
   return (
-    <div className="rounded-md border border-zinc-200 p-3" data-testid={`eval-${s.suite}-${s.mode.split(" ")[0]}`}>
+    <div className="rounded-md border border-line p-3" data-testid={`eval-${s.suite}-${s.mode.split(" ")[0]}`}>
       <div className="flex flex-wrap items-center gap-2">
-        <h3 className="text-sm font-medium text-zinc-900">{s.suite === "ai" ? "AI task eval" : "Backend checks"}</h3>
+        <h3 className="text-sm font-medium text-fg">{s.suite === "ai" ? "AI task eval" : "Backend checks"}</h3>
         <Tag tone={tone}>{notRun ? "Not run" : s.mode}</Tag>
-        {s.label && <span className="text-xs font-medium text-zinc-700">{s.label}</span>}
+        {s.label && <span className="text-xs font-medium text-fg-muted">{s.label}</span>}
       </div>
-      <p className="mt-1 text-xs text-zinc-500">{s.file} · commit {s.git_commit}{s.dataset_version ? ` · dataset ${s.dataset_version}` : ""}</p>
-      {notRun && s.command && <p className="mt-2 text-xs text-zinc-600">Command: <code className="break-all rounded bg-zinc-100 px-1">{s.command}</code></p>}
+      <p className="mt-1 text-xs text-fg-subtle">{s.file} · commit {s.git_commit}{s.dataset_version ? ` · dataset ${s.dataset_version}` : ""}</p>
+      {notRun && s.command && <p className="mt-2 text-xs text-fg-muted">Command: <code className="break-all rounded bg-sunken px-1">{s.command}</code></p>}
       {s.suite === "ai" && h && (
         <dl className="mt-2 grid grid-cols-1 gap-x-4 gap-y-1 text-sm sm:grid-cols-2">
-          <div><dt className="text-xs text-zinc-500">Coverage</dt><dd>{Object.entries(h.coverage ?? {}).map(([k, v]) => `${k.replace(/_/g, " ")} ${v}`).join(" · ")}</dd></div>
-          <div><dt className="text-xs text-zinc-500">Correct next action (scored cases)</dt><dd className="tabular-nums">{pct(h.next_action)}</dd></div>
-          <div><dt className="text-xs text-zinc-500">Classification</dt><dd className="tabular-nums">{pct(h.classification)}</dd></div>
-          <div><dt className="text-xs text-zinc-500">Section recall (mean)</dt><dd className="tabular-nums">{h.recall_section_mean ?? "n/a"}</dd></div>
-          <div><dt className="text-xs text-zinc-500">Citations valid (exist, retrieved, current)</dt><dd className="tabular-nums">{h.citations_valid}</dd></div>
-          <div><dt className="text-xs text-zinc-500">Citation support (agent-labelled, unreviewed)</dt><dd>{Object.entries(h.citation_support_labels ?? {}).map(([k, v]) => `${k.replace(/_/g, " ")} ${v}`).join(" · ")}</dd></div>
-          <div><dt className="text-xs text-zinc-500">Clarify when expected</dt><dd className="tabular-nums">{pct(h.clarify_when_expected)}</dd></div>
-          <div><dt className="text-xs text-zinc-500">Escalate when expected</dt><dd className="tabular-nums">{pct(h.escalate_when_expected)}</dd></div>
-          <div><dt className="text-xs text-zinc-500">Must-not violations</dt><dd className="tabular-nums">{h.must_not_failures}</dd></div>
-          <div><dt className="text-xs text-zinc-500">Prompt-only baseline</dt><dd>{s.baseline ?? "not run"}</dd></div>
+          <div><dt className="text-xs text-fg-subtle">Coverage</dt><dd>{Object.entries(h.coverage ?? {}).map(([k, v]) => `${k.replace(/_/g, " ")} ${v}`).join(" · ")}</dd></div>
+          <div><dt className="text-xs text-fg-subtle">Correct next action (scored cases)</dt><dd className="tabular-nums">{pct(h.next_action)}</dd></div>
+          <div><dt className="text-xs text-fg-subtle">Classification</dt><dd className="tabular-nums">{pct(h.classification)}</dd></div>
+          <div><dt className="text-xs text-fg-subtle">Section recall (mean)</dt><dd className="tabular-nums">{h.recall_section_mean ?? "n/a"}</dd></div>
+          <div><dt className="text-xs text-fg-subtle">Citations valid (exist, retrieved, current)</dt><dd className="tabular-nums">{h.citations_valid}</dd></div>
+          <div><dt className="text-xs text-fg-subtle">Citation support (agent-labelled, unreviewed)</dt><dd>{Object.entries(h.citation_support_labels ?? {}).map(([k, v]) => `${k.replace(/_/g, " ")} ${v}`).join(" · ")}</dd></div>
+          <div><dt className="text-xs text-fg-subtle">Clarify when expected</dt><dd className="tabular-nums">{pct(h.clarify_when_expected)}</dd></div>
+          <div><dt className="text-xs text-fg-subtle">Escalate when expected</dt><dd className="tabular-nums">{pct(h.escalate_when_expected)}</dd></div>
+          <div><dt className="text-xs text-fg-subtle">Must-not violations</dt><dd className="tabular-nums">{h.must_not_failures}</dd></div>
+          <div><dt className="text-xs text-fg-subtle">Prompt-only baseline</dt><dd>{s.baseline ?? "not run"}</dd></div>
         </dl>
       )}
       {s.suite === "backend" && h?.categories && (
@@ -109,7 +109,7 @@ function EvalCard({ s }: { s: EvalSuite }) {
           <caption className="sr-only">Backend checks by category</caption>
           <tbody>
             {Object.entries(h.categories).map(([k, v]) => (
-              <tr key={k}><th scope="row" className="py-0.5 pr-3 text-left font-normal text-zinc-700">{k.replace(/_/g, " ")}</th><td className="text-right tabular-nums">{v}</td></tr>
+              <tr key={k}><th scope="row" className="py-0.5 pr-3 text-left font-normal text-fg-muted">{k.replace(/_/g, " ")}</th><td className="text-right tabular-nums">{v}</td></tr>
             ))}
           </tbody>
         </table>
@@ -124,15 +124,15 @@ export function DashboardView({ ws, onOpenInbox }: { ws: string; onOpenInbox: ()
   const load = () => api.dashboard(ws).then((x) => { setD(x); setErr(null); }).catch((e: Error) => setErr(e.message));
   useEffect(() => { if (ws) load(); }, [ws]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (err) return <main className="p-6 text-sm text-red-800" role="alert">{err}</main>;
-  if (!d) return <main className="p-6 text-sm text-zinc-500">Loading dashboard…</main>;
+  if (err) return <main className="p-6 text-sm text-danger" role="alert">{err}</main>;
+  if (!d) return <main className="p-6 text-sm text-fg-subtle">Loading dashboard…</main>;
   const o = d.approval_outcomes;
   return (
-    <main className="mx-auto w-full max-w-6xl flex-1 space-y-4 p-4 xl:overflow-y-auto" data-testid="dashboard">
+    <main className="mx-auto w-full max-w-6xl space-y-4 p-4 sm:p-6" data-testid="dashboard">
       <div className="flex flex-wrap items-end justify-between gap-2">
         <div>
-          <h1 className="text-lg font-semibold text-zinc-900">Dashboard</h1>
-          <p className="text-sm text-zinc-600" data-testid="dashboard-scope">Scope: {d.scope}. No savings or business impact is estimated.</p>
+          <h1 className="text-lg font-semibold text-fg">Dashboard</h1>
+          <p className="text-sm text-fg-muted" data-testid="dashboard-scope">Scope: {d.scope}. No savings or business impact is estimated.</p>
         </div>
         <div className="flex gap-2"><Button variant="ghost" onClick={load}>Refresh</Button><Button onClick={onOpenInbox}>Back to inbox</Button></div>
       </div>
@@ -160,7 +160,7 @@ export function DashboardView({ ws, onOpenInbox }: { ws: string; onOpenInbox: ()
             <Stat label="Failed" value={d.executions.failed} hint={`${d.executions.attempts_total} attempt(s) total`} />
           </div>
           {d.executions.recent_failures.length > 0 && (
-            <ul className="mt-3 space-y-1 text-xs text-red-800">
+            <ul className="mt-3 space-y-1 text-xs text-danger">
               {d.executions.recent_failures.map((f, i) => <li key={i}><span className="font-medium">Failed</span> · {f.adapter} · {f.attempts} attempt(s): {f.error}</li>)}
             </ul>
           )}
@@ -178,7 +178,7 @@ export function DashboardView({ ws, onOpenInbox }: { ws: string; onOpenInbox: ()
         note="Latest result file per suite and mode, from eval/results. These describe the synthetic v1 dataset, not this workspace's traffic. Demo results are simulated and are not evidence of AI performance.">
         {d.evaluation.available && d.evaluation.suites?.length
           ? <div className="grid gap-3 lg:grid-cols-3">{d.evaluation.suites.map((s) => <EvalCard key={s.file} s={s} />)}</div>
-          : <p className="text-sm text-zinc-500">{d.evaluation.note ?? "No evaluation results yet."}</p>}
+          : <p className="text-sm text-fg-subtle">{d.evaluation.note ?? "No evaluation results yet."}</p>}
       </Section>
     </main>
   );

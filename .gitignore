@@ -5,3 +5,8 @@ __pycache__/
 node_modules/
 frontend/dist/
 .DS_Store
+
+# Design research and before/after captures (kept locally in ~/Projects/resolveops-design-captures; references are third-party pages)
+docs/design/references/
+docs/design/before/
+docs/design/after/

@@ -1,6 +1,7 @@
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { api, type AiStatus } from "../api";
-import { Button, Tag } from "./ui";
+import { X } from "lucide-react";
+import { IconButton, Tag } from "./ui";
 
 const n = (v: number) => v.toLocaleString("en-US");
 
@@ -19,8 +20,8 @@ const LIMIT_LABELS: [string, string, (v: number) => string][] = [
 function Row({ label, children, testId }: { label: string; children: ReactNode; testId?: string }) {
   return (
     <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-0.5 py-1.5" data-testid={testId}>
-      <dt className="text-zinc-500">{label}</dt>
-      <dd className="text-right font-medium text-zinc-900">{children}</dd>
+      <dt className="text-fg-subtle">{label}</dt>
+      <dd className="text-right font-medium text-fg">{children}</dd>
     </div>
   );
 }
@@ -37,22 +38,22 @@ export function AiStatusDialog({ ws, onClose }: { ws: string; onClose: () => voi
 
   return (
     <dialog ref={ref} onClose={onClose} data-testid="ai-status"
-      className="m-auto w-[min(34rem,calc(100vw-2rem))] rounded-xl p-0 shadow-xl backdrop:bg-zinc-900/40">
+      className="m-auto w-[min(34rem,calc(100vw-2rem))] rounded-xl p-0 shadow-sheet">
       <div className="max-h-[85dvh] space-y-5 overflow-y-auto p-5">
         <div className="flex items-start justify-between gap-3">
           <div>
             <h2 className="text-base font-semibold">AI provider status</h2>
-            <p className="mt-1 text-sm text-zinc-600">Server configuration for this workspace. Credentials stay on the server; only whether a key is present is shown.</p>
+            <p className="mt-1 text-sm text-fg-muted">Server configuration for this workspace. Credentials stay on the server; only whether a key is present is shown.</p>
           </div>
-          <Button variant="ghost" onClick={() => ref.current?.close()} aria-label="Close AI status">Close</Button>
+          <IconButton icon={X} label="Close AI status" onClick={() => ref.current?.close()} />
         </div>
-        {error && <p className="text-sm text-red-700" role="alert">{error}</p>}
-        {!s && !error && <p className="text-sm text-zinc-500">Loading</p>}
+        {error && <p className="text-sm text-danger" role="alert">{error}</p>}
+        {!s && !error && <p className="text-sm text-fg-subtle">Loading</p>}
         {s && b && (
           <>
-            <dl className="divide-y divide-zinc-100 text-sm">
+            <dl className="divide-y divide-line text-sm">
               <Row label="Mode" testId="ai-status-mode">{s.mode === "live" ? <Tag tone="teal">Live</Tag> : <Tag tone="amber">Demo (simulated)</Tag>}</Row>
-              <Row label="Model">{s.model} <span className="font-normal text-zinc-500">· effort {s.effort}</span></Row>
+              <Row label="Model">{s.model} <span className="font-normal text-fg-subtle">· effort {s.effort}</span></Row>
               <Row label="API key configured" testId="ai-status-key">
                 {s.key_configured ? <Tag tone="teal">Yes</Tag> : <Tag tone={s.mode === "live" ? "red" : "zinc"}>No</Tag>}
               </Row>
@@ -61,20 +62,20 @@ export function AiStatusDialog({ ws, onClose }: { ws: string; onClose: () => voi
               <Row label="GitHub Issues configured" testId="ai-status-github">
                 {s.github.configured ? <Tag tone="teal">Yes</Tag> : <Tag>No</Tag>}
               </Row>
-              <Row label="GitHub destination" testId="ai-status-github-repo">{s.github.configured && s.github.repo ? <span className="font-mono">{s.github.repo}</span> : <span className="font-normal text-zinc-500">{s.github.reason}</span>}</Row>
+              <Row label="GitHub destination" testId="ai-status-github-repo">{s.github.configured && s.github.repo ? <span className="font-mono">{s.github.repo}</span> : <span className="font-normal text-fg-subtle">{s.github.reason}</span>}</Row>
             </dl>
             {s.mode === "live" && !s.key_configured && (
-              <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-800" role="status">
+              <p className="rounded-lg bg-danger-soft px-3 py-2 text-sm text-danger" role="status">
                 ANTHROPIC_API_KEY is not configured. Live requests go to an error state with this message; no simulated output is substituted.
               </p>
             )}
 
             <section>
-              <h3 className="text-xs font-semibold text-zinc-500">Live budget this month</h3>
-              <div className="mt-2 h-2 overflow-hidden rounded-full bg-zinc-100" role="progressbar" aria-valuenow={Math.round(pct)} aria-valuemin={0} aria-valuemax={100} aria-label="Token budget used">
-                <div className={`h-full ${pct >= 90 ? "bg-red-600" : "bg-teal-700"}`} style={{ width: `${pct}%` }} />
+              <h3 className="text-xs font-semibold text-fg-subtle">Live budget this month</h3>
+              <div className="mt-2 h-2 overflow-hidden rounded-full bg-sunken" role="progressbar" aria-valuenow={Math.round(pct)} aria-valuemin={0} aria-valuemax={100} aria-label="Token budget used">
+                <div className={`h-full ${pct >= 90 ? "bg-danger" : "bg-accent"}`} style={{ width: `${pct}%` }} />
               </div>
-              <dl className="mt-1 divide-y divide-zinc-100 text-sm">
+              <dl className="mt-1 divide-y divide-line text-sm">
                 <Row label="Tokens used" testId="ai-status-budget">{n(b.tokens_used)} of {n(b.monthly_token_budget)}</Row>
                 <Row label="Tokens remaining">{n(b.tokens_remaining)}</Row>
                 <Row label="Cost">{b.pricing ? `$${(b.cost_usd ?? 0).toFixed(2)}${b.monthly_usd_budget != null ? ` of $${b.monthly_usd_budget.toFixed(2)}` : ""}` : "Not estimated (no pricing configured)"}</Row>
@@ -83,16 +84,16 @@ export function AiStatusDialog({ ws, onClose }: { ws: string; onClose: () => voi
             </section>
 
             <section>
-              <h3 className="text-xs font-semibold text-zinc-500">Runs this month</h3>
-              <dl className="mt-1 divide-y divide-zinc-100 text-sm">
+              <h3 className="text-xs font-semibold text-fg-subtle">Runs this month</h3>
+              <dl className="mt-1 divide-y divide-line text-sm">
                 <Row label="Live (Claude)">{s.usage_this_month.live.runs} runs · {s.usage_this_month.live.errors} errors</Row>
                 <Row label="Simulated">{s.usage_this_month.simulated.runs} runs · no model tokens</Row>
               </dl>
             </section>
 
             <section>
-              <h3 className="text-xs font-semibold text-zinc-500">Limits</h3>
-              <dl className="mt-1 divide-y divide-zinc-100 text-sm">
+              <h3 className="text-xs font-semibold text-fg-subtle">Limits</h3>
+              <dl className="mt-1 divide-y divide-line text-sm">
                 {LIMIT_LABELS.filter(([k]) => k in s.limits).map(([k, label, fmt]) => <Row key={k} label={label}>{fmt(s.limits[k])}</Row>)}
               </dl>
             </section>

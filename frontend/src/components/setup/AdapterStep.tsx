@@ -14,14 +14,14 @@ export function AdapterStep({ ws, onNext }: { ws: string; onNext: () => void }) 
       <fieldset className="grid max-w-2xl gap-2" data-testid="adapter-list">
         <legend className="sr-only">Ticket adapter</legend>
         {adapters.map((a) => (
-          <label key={a.name} className={`flex items-start gap-3 rounded-lg p-3 ring-1 ${selected === a.name ? "ring-teal-600" : "ring-zinc-200"} ${a.available ? "cursor-pointer" : "cursor-not-allowed opacity-70"}`}>
+          <label key={a.name} className={`flex items-start gap-3 rounded-lg p-3 ring-1 ${selected === a.name ? "ring-accent" : "ring-line"} ${a.available ? "cursor-pointer" : "cursor-not-allowed opacity-70"}`}>
             <input type="radio" name="adapter" className="mt-1" value={a.name} checked={selected === a.name} disabled={!a.available} data-testid={`adapter-${a.name}`}
               onChange={async () => {
                 try { const r = await api.selectAdapter(ws, a.name); setSelected(r.selected); setMsg({ tone: "ok", text: `${a.label} selected.` }); }
                 catch (e) { setMsg({ tone: "error", text: (e as Error).message }); }
               }} />
-            <span><span className="block text-sm font-medium text-zinc-900">{a.label} {!a.available && <span className="ml-1 rounded bg-zinc-100 px-1.5 py-0.5 text-xs font-medium text-zinc-600">Not configured</span>}</span>
-              <span className="block text-sm text-zinc-600">{a.detail}</span></span>
+            <span><span className="block text-sm font-medium text-fg">{a.label} {!a.available && <span className="ml-1 rounded bg-sunken px-1.5 py-0.5 text-xs font-medium text-fg-muted">Not configured</span>}</span>
+              <span className="block text-sm text-fg-muted">{a.detail}</span></span>
           </label>
         ))}
       </fieldset>

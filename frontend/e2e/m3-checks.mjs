@@ -1,5 +1,6 @@
 // Milestone 3 browser checks: reviewer onboarding, document lifecycle + stale proposals, second company,
 // and visitors locked out of onboarding. Called from browser-check.mjs with its helpers.
+import { runScenario } from "./ui-helpers.mjs";
 
 const latestId = (page, ws) => page.evaluate(async (ws) => {
   const d = await (await fetch(`/api/w/${ws}/requests`)).json();
@@ -89,7 +90,7 @@ export async function m3({ visitor, apiCall, check, OUT, expectedHttp }) {
   // C. Replace a policy doc → pending proposal stale → approve refused → reprocess gives a new version.
   await R.page.getByTestId("workspace-switcher").selectOption("northstar");
   await R.page.getByTestId("open-inbox").click();
-  await R.page.getByTestId("scenario-access_reporting_after_upgrade").click();
+  await runScenario(R.page, "access_reporting_after_upgrade");
   await R.page.getByTestId("proposal").waitFor();
   const reqId = await latestId(R.page, "northstar");
   const before = (await apiCall(R.page, "GET", `/api/w/northstar/requests/${reqId}`)).data;
@@ -135,12 +136,12 @@ export async function m3({ visitor, apiCall, check, OUT, expectedHttp }) {
 
   // D. Switch company: the same request gets a different, evidence-based answer.
   const C = await visitor();
-  await C.page.getByTestId("scenario-access_reporting_after_upgrade").click();
+  await runScenario(C.page, "access_reporting_after_upgrade");
   await C.page.getByTestId("proposal").waitFor();
   const ns = (await apiCall(C.page, "GET", `/api/w/northstar/requests/${await latestId(C.page, "northstar")}`)).data;
   await C.page.getByTestId("workspace-switcher").selectOption("lumen");
   await C.page.getByTestId("inbox").getByText("Seeded, not run").first().waitFor();
-  await C.page.getByTestId("scenario-access_reporting_after_upgrade").click();
+  await runScenario(C.page, "access_reporting_after_upgrade");
   await C.page.getByTestId("draft-reply").getByText("Scale").waitFor();
   const ll = (await apiCall(C.page, "GET", `/api/w/lumen/requests/${await latestId(C.page, "lumen")}`)).data;
   const nsDocs = new Set(ns.proposal.version.content.citations.map((c) => c.document_id));
@@ -149,7 +150,7 @@ export async function m3({ visitor, apiCall, check, OUT, expectedHttp }) {
     ns.body === ll.body && llDocs.length > 0 && llDocs.every((d) => !nsDocs.has(d))
     && ns.proposal.version.content.draft_reply.includes("Analyst") && ll.proposal.version.content.draft_reply.includes("Scale"));
   await snap(C.page, "22-lumen-same-request");
-  await C.page.getByTestId("scenario-downgrade_timing_conflict").click();
+  await runScenario(C.page, "downgrade_timing_conflict");
   await C.page.getByTestId("evidence-check").waitFor();
   const ev = await C.page.getByTestId("evidence-check").getAttribute("data-status");
   check("conflicting documents are flagged and the proposal escalates", ev === "conflicting"

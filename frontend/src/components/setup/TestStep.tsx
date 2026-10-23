@@ -31,21 +31,21 @@ export function TestStep({ ws }: { ws: string }) {
 
       {res && ec && (
         <div className="mt-6 grid max-w-3xl gap-4" data-testid="test-result">
-          <div className="rounded-lg p-4 ring-1 ring-zinc-200">
+          <div className="rounded-lg p-4 ring-1 ring-line">
             <div className="flex flex-wrap items-center gap-2">
               <Tag tone={ec.status === "sufficient" ? "teal" : "amber"}>Evidence: {ec.status}</Tag>
-              <span className="text-xs text-zinc-500">threshold {ec.threshold.toFixed(2)} · best match {ec.best_score?.toFixed(2) ?? "none"} · {ec.relevant_passages} relevant passage(s)</span>
+              <span className="text-xs text-fg-subtle">threshold {ec.threshold.toFixed(2)} · best match {ec.best_score?.toFixed(2) ?? "none"} · {ec.relevant_passages} relevant passage(s)</span>
             </div>
-            <p className="mt-2 text-sm text-zinc-900" data-testid="test-outcome"><span className="font-medium">Allowed outcome:</span> {res.allowed_outcome}</p>
-            {res.rule_hits.map((h) => <p key={h.key} className="mt-1 text-sm text-zinc-700">Rule matched: <span className="font-medium">{h.name}</span> — {h.effect}</p>)}
-            {ec.conflicts.map((c) => <p key={c.key} className="mt-1 text-sm text-amber-800">Conflict on {c.key}: {c.values.map((v) => `${v.doc_title} v${v.version} says "${v.value}"`).join("; ")}</p>)}
-            <p className="mt-2 text-xs text-zinc-500">{res.note}</p>
+            <p className="mt-2 text-sm text-fg" data-testid="test-outcome"><span className="font-medium">Allowed outcome:</span> {res.allowed_outcome}</p>
+            {res.rule_hits.map((h) => <p key={h.key} className="mt-1 text-sm text-fg-muted">Rule matched: <span className="font-medium">{h.name}</span> — {h.effect}</p>)}
+            {ec.conflicts.map((c) => <p key={c.key} className="mt-1 text-sm text-warn">Conflict on {c.key}: {c.values.map((v) => `${v.doc_title} v${v.version} says "${v.value}"`).join("; ")}</p>)}
+            <p className="mt-2 text-xs text-fg-subtle">{res.note}</p>
           </div>
           <ol className="space-y-2">
             {res.passages.map((p) => (
-              <li key={p.chunk_id} className="rounded-md px-3 py-2 ring-1 ring-zinc-200" data-testid="test-passage">
-                <p className="text-sm font-medium text-zinc-900">{p.doc_title} v{p.version}: {p.section} <span className={`ml-1 text-xs font-normal ${p.relevant ? "text-teal-700" : "text-zinc-400"}`}>score {p.score.toFixed(2)}{p.relevant ? "" : " (below threshold)"}</span></p>
-                <p className="mt-0.5 text-sm text-zinc-600">{p.excerpt}</p>
+              <li key={p.chunk_id} className="rounded-md px-3 py-2 ring-1 ring-line" data-testid="test-passage">
+                <p className="text-sm font-medium text-fg">{p.doc_title} v{p.version}: {p.section} <span className={`ml-1 text-xs font-normal ${p.relevant ? "text-accent" : "text-fg-subtle"}`}>score {p.score.toFixed(2)}{p.relevant ? "" : " (below threshold)"}</span></p>
+                <p className="mt-0.5 text-sm text-fg-muted">{p.excerpt}</p>
               </li>
             ))}
           </ol>

@@ -1,85 +1,163 @@
+import { BookOpenText, ExternalLink, FileText, History, Ticket, UserRound } from "lucide-react";
+import type { ReactNode } from "react";
 import type { RequestDetail } from "../api";
-import { versionNote } from "./RequestPane";
-import { PanelHeading, Tag, timeAgo } from "./ui";
+import { humanize, humanizeInline, humanizeList } from "../labels";
+import { versionNote } from "./ProposalParts";
+import { Disclosure, HelpTip, timeAgo } from "./ui";
+
+type Fact = { label: string; value: string; source: string };
+const GROUPS: { title: string; test: (f: Fact) => boolean }[] = [
+  { title: "Subscription", test: (f) => /^(account|plan|plan change|seats|plan features|status)$/i.test(f.label) },
+  { title: "People", test: (f) => /admin|user|role|member|contact/i.test(f.label) },
+  { title: "Billing", test: (f) => /invoice|payment|charge|refund|credit/i.test(f.label) },
+  { title: "Integrations", test: (f) => /connector|integration|sync/i.test(f.label) },
+  { title: "Support history", test: (f) => /ticket|conversation/i.test(f.label) },
+];
+
+function groupFacts(facts: Fact[]) {
+  const out: { title: string; facts: Fact[] }[] = GROUPS.map((g) => ({ title: g.title, facts: [] as Fact[] }));
+  const other: Fact[] = [];
+  for (const f of facts) {
+    const i = GROUPS.findIndex((g) => g.test(f));
+    (i >= 0 ? out[i].facts : other).push(f);
+  }
+  if (other.length) out.push({ title: "Other", facts: other });
+  return out.filter((g) => g.facts.length);
+}
+
+/** "Invoice INV-2026-110421" → label "Invoice", id "INV-2026-110421"; "Connector Snowflake (prod)" → "Snowflake (prod)". */
+function factLabel(f: Fact): ReactNode {
+  const inv = f.label.match(/^Invoice (\S+)$/);
+  if (inv) return <span className="font-mono text-2xs">{inv[1]}</span>;
+  const con = f.label.match(/^Connector (.+)$/);
+  if (con) return con[1];
+  return f.label;
+}
+
+function Section({ title, icon: Icon, count, help, children, defaultOpen = true, testId }: {
+  title: string; icon: typeof FileText; count?: number; help?: ReactNode; children: ReactNode; defaultOpen?: boolean; testId?: string;
+}) {
+  return (
+    <section className="relative border-b border-line px-4 py-3 last:border-b-0" data-testid={testId}>
+      <Disclosure defaultOpen={defaultOpen} icon={Icon} className={help ? "[&>summary]:pr-7" : ""}
+        title={<span className="inline-flex items-center gap-1.5">{title}{count != null && <span className="text-xs font-normal tabular-nums text-fg-subtle">{count}</span>}</span>}>
+        {children}
+      </Disclosure>
+      {help && <div className="absolute right-4 top-[1.0625rem]">{help}</div>}
+    </section>
+  );
+}
 
 export function EvidencePane({ detail: d, onCite }: { detail: RequestDetail | null; onCite: (id: string) => void }) {
-  if (!d) return <aside className="hidden border-l border-zinc-200 bg-zinc-50 xl:block" />;
+  if (!d) {
+    return (
+      <aside className="hidden h-full bg-canvas px-5 py-6 xl:block" aria-label="Request details">
+        <p className="text-ui text-fg-subtle">Account facts, sources and tickets for the selected request appear here.</p>
+      </aside>
+    );
+  }
   const c = d.proposal?.version.content;
-  type Entry = { at: string; text: string; tone: "zinc" | "amber" | "teal" | "red"; link?: { href: string; label: string } };
+  type Entry = { at: string; text: string; detail?: string; tone: "neutral" | "warn" | "ok" | "danger"; link?: { href: string; label: string } };
   const history: Entry[] = [
-    ...(d.proposal?.versions ?? []).map((v) => ({ at: v.created_at, text: `Version ${v.version} by ${v.author}${v.edit_note ? ` (${v.edit_note})` : ""}`, tone: "zinc" as const })),
-    ...d.approvals.map((a) => ({ at: a.created_at, text: `${a.decision === "approved" ? "Approved" : "Rejected"} by ${a.actor}${a.status === "invalidated" ? `, invalidated: ${a.invalidated_reason}` : ""}${a.reason ? `: ${a.reason}` : ""}`, tone: a.status === "invalidated" ? ("amber" as const) : ("teal" as const) })),
-    ...d.executions.map((e) => ({ at: e.created_at, text: `Execution ${e.status} via ${e.adapter} adapter after ${e.attempts} attempt(s), key ${e.idempotency_key}${e.last_error ? `: ${e.last_error}` : ""}`, tone: e.status === "failed" ? ("red" as const) : ("zinc" as const),
+    ...(d.proposal?.versions ?? []).map((v) => ({ at: v.created_at, text: `Version ${v.version} by ${v.author}${v.edit_note ? ` (${v.edit_note})` : ""}`, tone: "neutral" as const })),
+    ...d.approvals.map((a) => ({ at: a.created_at, text: `${a.decision === "approved" ? "Approved" : "Rejected"} by ${a.actor}${a.status === "invalidated" ? `, invalidated: ${a.invalidated_reason}` : ""}${a.reason ? `: ${a.reason}` : ""}`, tone: a.status === "invalidated" ? ("warn" as const) : ("ok" as const) })),
+    ...d.executions.map((e) => ({ at: e.created_at, text: `Execution ${e.status} via ${e.adapter} adapter after ${e.attempts} attempt(s)${e.last_error ? `: ${e.last_error}` : ""}`,
+      detail: `key ${e.idempotency_key}`, tone: e.status === "failed" ? ("danger" as const) : ("neutral" as const),
       link: e.external_url ? { href: e.external_url, label: `GitHub issue #${e.external_number}` } : undefined })),
   ].sort((a, b) => a.at.localeCompare(b.at));
+  const dot = { neutral: "bg-line-strong", warn: "bg-[#d48a1c]", ok: "bg-ok", danger: "bg-danger" };
 
   return (
-    <aside className="min-h-0 space-y-6 overflow-y-auto border-l border-zinc-200 bg-zinc-50 px-4 py-5" data-testid="evidence-pane">
-      <section>
-        <PanelHeading aside={<span className="text-xs text-zinc-500">from tools, not the model</span>}>Account facts</PanelHeading>
+    <aside className="pane-scroll h-full min-h-0 overflow-y-auto bg-canvas" data-testid="evidence-pane" aria-label="Request details">
+      <Section title="Customer" icon={UserRound} testId="facts"
+        help={<HelpTip label="Where account facts come from" align="end">Facts come from the account tools (customer lookup, subscription, existing tickets) for the authorized customer, not from the model.</HelpTip>}>
         {c ? (
-          <dl className="space-y-2 text-sm">
-            {c.account_facts.map((f) => (
-              <div key={f.label}>
-                <dt className="text-xs text-zinc-500">{f.label}</dt>
-                <dd className="text-zinc-900">{f.value}</dd>
+          <div className="space-y-3 pb-1 pt-1">
+            {groupFacts(c.account_facts).map((g) => (
+              <div key={g.title}>
+                <h4 className="pb-1 text-2xs font-semibold text-fg-subtle">{g.title}</h4>
+                <dl className="space-y-1.5">
+                  {g.facts.map((f) => (
+                    <div key={f.label} className="grid grid-cols-[minmax(5.5rem,38%)_minmax(0,1fr)] gap-x-3 text-ui" title={`Source: ${humanize(f.source)}`}>
+                      <dt className="text-fg-subtle [overflow-wrap:anywhere]">{factLabel(f)}</dt>
+                      <dd className="text-fg [overflow-wrap:anywhere]">{f.label === "Plan features" ? humanizeList(f.value) : humanizeInline(f.value)}</dd>
+                    </div>
+                  ))}
+                </dl>
               </div>
             ))}
-          </dl>
-        ) : <p className="text-sm text-zinc-500">Facts appear after the workflow looks up the authorized customer.</p>}
-      </section>
+          </div>
+        ) : <p className="pb-1 text-ui text-fg-subtle">Facts appear after the workflow looks up the authorized customer.</p>}
+      </Section>
 
-      <section>
-        <PanelHeading>Sources</PanelHeading>
+      <Section title="Sources" icon={BookOpenText} count={c?.citations.length ?? 0}
+        help={<HelpTip label="About sources" align="end">Passages from this workspace's documentation that the draft cites. Select one to read it in context. Superseded versions stay readable.</HelpTip>}>
         {c && c.citations.length > 0 ? (
-          <ol className="space-y-2">
-            {c.citations.map((ct, i) => (
-              <li key={ct.chunk_id}>
-                <button onClick={() => onCite(ct.chunk_id)} className="w-full rounded-md bg-white p-2.5 text-left ring-1 ring-inset ring-zinc-200 hover:ring-teal-600" data-testid="citation">
-                  <span className="text-xs font-medium text-teal-800">[{i + 1}] {ct.doc_title} v{ct.version}</span>
-                  {versionNote(d.proposal?.citation_versions?.[ct.document_version_id], ct.version) && (
-                    <span className="ml-1 text-xs font-medium text-orange-700" data-testid="citation-superseded">{versionNote(d.proposal?.citation_versions?.[ct.document_version_id], ct.version).replace(/^ · v\d+, /, "")}</span>)}
-                  <span className="block text-sm font-medium text-zinc-900">{ct.section}</span>
-                  <span className="mt-0.5 block text-xs text-zinc-600">{ct.claim}</span>
-                </button>
+          <ol className="space-y-0.5 pb-1">
+            {c.citations.map((ct, i) => {
+              const note = versionNote(d.proposal?.citation_versions?.[ct.document_version_id], ct.version);
+              return (
+                <li key={ct.chunk_id}>
+                  <button onClick={() => onCite(ct.chunk_id)} data-testid="citation" title={ct.claim}
+                    className="grid w-full grid-cols-[1.25rem_minmax(0,1fr)] gap-x-2 rounded-md px-1.5 py-1.5 text-left transition-colors hover:bg-surface hover:shadow-xs">
+                    <span className="mt-px grid size-5 place-items-center rounded bg-accent-soft text-2xs font-semibold tabular-nums text-accent-strong">{i + 1}</span>
+                    <span className="min-w-0">
+                      <span className="block text-ui font-medium leading-snug text-fg [overflow-wrap:anywhere]">{ct.section}</span>
+                      <span className="mt-0.5 flex min-w-0 items-center gap-1.5 text-xs text-fg-subtle">
+                        <FileText aria-hidden className="size-3 shrink-0" strokeWidth={1.75} />
+                        <span className="truncate">{ct.doc_title}</span>
+                        <span className="shrink-0 tabular-nums">v{ct.version}</span>
+                      </span>
+                      {note && <span className="mt-0.5 block text-xs font-medium text-warn" data-testid="citation-superseded">{note.replace(/^ · v\d+, /, "")}</span>}
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
+          </ol>
+        ) : <p className="pb-1 text-ui text-fg-subtle">No citations yet.</p>}
+      </Section>
+
+      <Section title="Tickets" icon={Ticket} count={d.tickets.length}>
+        {d.tickets.length ? (
+          <div className="space-y-2 pb-1">
+            {d.tickets.map((t) => (
+              <div key={t.id} className="rounded-md bg-surface px-3 py-2.5 text-ui shadow-xs ring-1 ring-line" data-testid="ticket">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-mono text-xs font-semibold text-fg">{t.number}</span>
+                  <span className="text-xs font-medium text-accent-strong">{humanize(t.status)}</span>
+                </div>
+                <p className="mt-1 text-fg [overflow-wrap:anywhere]">{t.subject}</p>
+                <p className="mt-0.5 text-xs text-fg-subtle">{t.group} · {humanize(t.priority)} priority · via {t.adapter} adapter{t.sandbox ? " · Demo sandbox" : ""}</p>
+                {t.external_url && (
+                  <a href={t.external_url} target="_blank" rel="noopener noreferrer" data-testid="ticket-external-link"
+                    className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-accent-strong underline underline-offset-2 hover:text-accent">
+                    GitHub issue #{t.external_number}<ExternalLink aria-hidden className="size-3" /><span className="sr-only"> (opens in a new tab)</span>
+                  </a>
+                )}
+              </div>
+            ))}
+          </div>
+        ) : <p className="pb-1 text-ui text-fg-subtle">No ticket has been created or changed for this request.</p>}
+      </Section>
+
+      <Section title="Review history" icon={History} count={history.length} defaultOpen={false} testId="history-section">
+        {history.length ? (
+          <ol className="space-y-2 pb-1 text-ui" data-testid="history">
+            {history.map((h, i) => (
+              <li key={i} className="grid grid-cols-[0.5rem_minmax(0,1fr)] gap-x-2.5">
+                <span aria-hidden className={`mt-1.5 size-1.5 rounded-full ${dot[h.tone]}`} />
+                <div className="min-w-0">
+                  <p className={`[overflow-wrap:anywhere] ${h.tone === "danger" ? "text-danger" : h.tone === "warn" ? "text-warn" : "text-fg"}`}>
+                    {h.text}{h.link && <> · <a href={h.link.href} target="_blank" rel="noopener noreferrer" className="font-medium text-accent-strong underline underline-offset-2">{h.link.label}</a></>}
+                  </p>
+                  <p className="text-xs text-fg-subtle">{timeAgo(h.at)}{h.detail && <> · <span className="font-mono text-2xs [overflow-wrap:anywhere]">{h.detail}</span></>}</p>
+                </div>
               </li>
             ))}
           </ol>
-        ) : <p className="text-sm text-zinc-500">No citations yet.</p>}
-      </section>
-
-      <section>
-        <PanelHeading>Tickets</PanelHeading>
-        {d.tickets.length ? d.tickets.map((t) => (
-          <div key={t.id} className="mb-2 rounded-md bg-white p-2.5 text-sm ring-1 ring-inset ring-zinc-200" data-testid="ticket">
-            <div className="flex items-center justify-between gap-2">
-              <span className="font-mono text-xs font-semibold text-zinc-900">{t.number}</span>
-              <span className="flex gap-1">{t.sandbox && <Tag>Demo sandbox</Tag>}<Tag tone="teal">{t.status.replace("_", " ")}</Tag></span>
-            </div>
-            <p className="mt-1 text-zinc-800">{t.subject}</p>
-            <p className="text-xs text-zinc-500">{t.group}, {t.priority} priority, {t.adapter} adapter</p>
-            {t.external_url && (
-              <a href={t.external_url} target="_blank" rel="noopener noreferrer" data-testid="ticket-external-link"
-                className="mt-1 inline-block text-xs font-medium text-teal-800 underline underline-offset-2 hover:text-teal-900">
-                GitHub issue #{t.external_number}<span className="sr-only"> (opens in a new tab)</span>
-              </a>
-            )}
-          </div>
-        )) : <p className="text-sm text-zinc-500">No ticket has been created or changed for this request.</p>}
-      </section>
-
-      <section>
-        <PanelHeading>Action history</PanelHeading>
-        {history.length ? (
-          <ul className="space-y-1.5 text-sm" data-testid="history">
-            {history.map((h, i) => (
-              <li key={i} className={h.tone === "red" ? "text-red-800" : h.tone === "amber" ? "text-amber-800" : "text-zinc-700"}>
-                {h.text}{h.link && <> · <a href={h.link.href} target="_blank" rel="noopener noreferrer" className="font-medium text-teal-800 underline underline-offset-2">{h.link.label}</a></>} <span className="text-xs text-zinc-400">{timeAgo(h.at)}</span>
-              </li>
-            ))}
-          </ul>
-        ) : <p className="text-sm text-zinc-500">No review actions yet.</p>}
-      </section>
+        ) : <p className="pb-1 text-ui text-fg-subtle">No review actions yet.</p>}
+      </Section>
     </aside>
   );
 }

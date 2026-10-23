@@ -1,6 +1,7 @@
 // Milestone 4 browser checks: the GitHub Issues adapter is visibly "not configured" (with the server's
 // reason) for reviewers, the status panel shows only yes/no + destination, and visitors never get a
 // GitHub execution. Runs against the default stack (GITHUB_ADAPTER_ENABLED unset). Called from browser-check.mjs.
+import { runScenario } from "./ui-helpers.mjs";
 
 export async function m4({ visitor, apiCall, check, OUT, expectedHttp }) {
   const snap = (page, name) => page.screenshot({ path: `${OUT}${name}.png` });
@@ -36,12 +37,13 @@ export async function m4({ visitor, apiCall, check, OUT, expectedHttp }) {
 
   // C. Visitor: an escalation executes through the internal adapter; GitHub endpoints are refused.
   const V = await visitor();
-  await V.page.getByTestId("scenario-connector_outage").click();
+  await runScenario(V.page, "connector_outage");
   await V.page.getByTestId("proposal").getByText("Escalate", { exact: true }).waitFor();
   await V.page.getByTestId("approve").click();
   await V.page.getByTestId("notice").getByText("Ticket").waitFor();
   const card = await V.page.getByTestId("ticket").first().innerText();
   const links = await V.page.getByTestId("ticket-external-link").count();
+  await V.page.getByTestId("history-section").locator("summary").click(); // review history is collapsed by default
   const history = await V.page.getByTestId("history").innerText();
   check("visitor escalation uses the internal adapter, no GitHub link",
     card.includes("internal adapter") && links === 0 && history.includes("via internal adapter") && !/github/i.test(history), card.split("\n")[0]);

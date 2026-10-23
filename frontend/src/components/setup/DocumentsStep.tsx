@@ -67,33 +67,33 @@ export function DocumentsStep({ ws, mode, onNext }: { ws: string; mode: "import"
       )}
 
       {mode === "import" && (
-        <div className="mb-5 rounded-lg border border-dashed border-zinc-300 p-4">
+        <div className="mb-5 rounded-lg border border-dashed border-line-strong p-4">
           <div className="flex flex-wrap items-center gap-3">
             <input ref={fileRef} type="file" accept={ACCEPT} multiple className="sr-only" data-testid="doc-file" onChange={(e) => { send(e.target.files); e.target.value = ""; }} />
             <Button variant="primary" disabled={busy} onClick={() => fileRef.current?.click()}>Choose .md or .txt files</Button>
-            <p className="text-sm text-zinc-600">
+            <p className="text-sm text-fg-muted">
               Supported: <span className="font-medium">.md, .markdown, .txt</span>
               {limits && <> · up to {(limits.max_upload_bytes / 1000).toLocaleString("en-US")} KB each · {limits.max_documents} documents per workspace</>}
             </p>
           </div>
-          <p className="mt-2 text-xs text-zinc-500">Optional: mark a policy fact inside a section with <code className="rounded bg-zinc-100 px-1">{"<!-- policy refunds.window_days: 30 -->"}</code>. If two current documents state different values for the same key, ResolveOps escalates instead of answering.</p>
+          <p className="mt-2 text-xs text-fg-subtle">Optional: mark a policy fact inside a section with <code className="rounded bg-sunken px-1">{"<!-- policy refunds.window_days: 30 -->"}</code>. If two current documents state different values for the same key, ResolveOps escalates instead of answering.</p>
         </div>
       )}
       {msg && <div className="mb-4"><Alert tone={msg.tone} testId={msg.tone === "ok" ? "setup-ok" : "setup-error"}>{msg.text}</Alert></div>}
 
-      <div className="overflow-x-auto rounded-lg ring-1 ring-zinc-200">
+      <div className="overflow-x-auto rounded-lg ring-1 ring-line">
         <table className="w-full min-w-[36rem] text-left text-sm" data-testid="doc-table">
-          <thead className="bg-zinc-50 text-xs text-zinc-500"><tr><th className="px-3 py-2 font-medium">Document</th><th className="px-3 py-2 font-medium">Version</th><th className="px-3 py-2 font-medium">Import status</th><th className="px-3 py-2 font-medium">Lifecycle</th><th className="px-3 py-2" /></tr></thead>
-          <tbody className="divide-y divide-zinc-100">
-            {docs.length === 0 && <tr><td colSpan={5} className="px-3 py-6 text-center text-zinc-500">No documents yet.</td></tr>}
+          <thead className="bg-canvas text-xs text-fg-subtle"><tr><th className="px-3 py-2 font-medium">Document</th><th className="px-3 py-2 font-medium">Version</th><th className="px-3 py-2 font-medium">Import status</th><th className="px-3 py-2 font-medium">Lifecycle</th><th className="px-3 py-2" /></tr></thead>
+          <tbody className="divide-y divide-line">
+            {docs.length === 0 && <tr><td colSpan={5} className="px-3 py-6 text-center text-fg-subtle">No documents yet.</td></tr>}
             {docs.map((d) => {
               const v = latest(d);
               return (
                 <tr key={d.id} data-testid="doc-row" data-slug={d.slug}>
-                  <td className="px-3 py-2"><p className="font-medium text-zinc-900">{d.title}</p><p className="text-xs text-zinc-500">{v?.filename ?? d.slug}</p></td>
+                  <td className="px-3 py-2"><p className="font-medium text-fg">{d.title}</p><p className="text-xs text-fg-subtle">{v?.filename ?? d.slug}</p></td>
                   <td className="px-3 py-2 tabular-nums">v{v?.version}</td>
-                  <td className="px-3 py-2"><Pill className={IMPORT_STYLE[v?.import_status] ?? ""} testId="import-status">{v?.import_status}</Pill>{v?.import_error && <p className="mt-0.5 text-xs text-red-700">{v.import_error}</p>}</td>
-                  <td className="px-3 py-2 text-zinc-700">{d.status === "deleted" ? "deleted" : v?.status}</td>
+                  <td className="px-3 py-2"><Pill className={IMPORT_STYLE[v?.import_status] ?? ""} testId="import-status">{v?.import_status}</Pill>{v?.import_error && <p className="mt-0.5 text-xs text-danger">{v.import_error}</p>}</td>
+                  <td className="px-3 py-2 text-fg-muted">{d.status === "deleted" ? "deleted" : v?.status}</td>
                   <td className="px-3 py-2 text-right"><Button variant="ghost" onClick={() => view(d.id)} data-testid="doc-view">View</Button></td>
                 </tr>
               );
@@ -103,14 +103,14 @@ export function DocumentsStep({ ws, mode, onNext }: { ws: string; mode: "import"
       </div>
 
       {open && (
-        <article className="mt-5 rounded-lg ring-1 ring-zinc-200" data-testid="doc-detail">
-          <header className="flex flex-wrap items-start justify-between gap-3 border-b border-zinc-200 px-4 py-3">
+        <article className="mt-5 rounded-lg ring-1 ring-line" data-testid="doc-detail">
+          <header className="flex flex-wrap items-start justify-between gap-3 border-b border-line px-4 py-3">
             <div>
-              <h3 className="text-base font-semibold text-zinc-900">{open.title}</h3>
-              <p className="text-xs text-zinc-500">id {open.id.slice(0, 8)} · showing v{open.version.version} ({open.version.status}) · {open.version.format}</p>
+              <h3 className="text-base font-semibold text-fg">{open.title}</h3>
+              <p className="text-xs text-fg-subtle">id {open.id.slice(0, 8)} · showing v{open.version.version} ({open.version.status}) · {open.version.format}</p>
               <div className="mt-1 flex flex-wrap gap-1">
                 {open.versions.map((v) => (
-                  <button key={v.id} onClick={() => view(open.id, v.version)} className={`rounded px-1.5 py-0.5 text-xs ${v.version === open.version.version ? "bg-teal-700 text-white" : "bg-zinc-100 text-zinc-700 hover:bg-zinc-200"}`}>v{v.version} {v.status}</button>
+                  <button key={v.id} onClick={() => view(open.id, v.version)} className={`rounded px-1.5 py-0.5 text-xs ${v.version === open.version.version ? "bg-accent text-white" : "bg-sunken text-fg-muted hover:bg-sunken"}`}>v{v.version} {v.status}</button>
                 ))}
               </div>
             </div>
@@ -127,16 +127,16 @@ export function DocumentsStep({ ws, mode, onNext }: { ws: string; mode: "import"
             )}
           </header>
           {Object.keys(open.version.policy_facts).length > 0 && (
-            <p className="border-b border-zinc-100 px-4 py-2 text-xs text-zinc-600">Policy facts: {Object.entries(open.version.policy_facts).map(([k, v]) => `${k} = ${v}`).join(" · ")}</p>
+            <p className="border-b border-line px-4 py-2 text-xs text-fg-muted">Policy facts: {Object.entries(open.version.policy_facts).map(([k, v]) => `${k} = ${v}`).join(" · ")}</p>
           )}
-          <ol className="divide-y divide-zinc-100" data-testid="doc-sections">
+          <ol className="divide-y divide-line" data-testid="doc-sections">
             {open.sections.map((s) => (
               <li key={s.chunk_id} className="px-4 py-3">
-                <p className="text-sm font-medium text-zinc-900">{s.section} {!s.active && <span className="ml-1 text-xs font-normal text-amber-700">(not in retrieval)</span>}</p>
-                <p className="mt-1 whitespace-pre-wrap text-sm text-zinc-700">{s.text}</p>
+                <p className="text-sm font-medium text-fg">{s.section} {!s.active && <span className="ml-1 text-xs font-normal text-warn">(not in retrieval)</span>}</p>
+                <p className="mt-1 whitespace-pre-wrap text-sm text-fg-muted">{s.text}</p>
               </li>
             ))}
-            {open.sections.length === 0 && <li className="px-4 py-3 text-sm text-zinc-500">No sections ({open.version.import_status}).</li>}
+            {open.sections.length === 0 && <li className="px-4 py-3 text-sm text-fg-subtle">No sections ({open.version.import_status}).</li>}
           </ol>
         </article>
       )}

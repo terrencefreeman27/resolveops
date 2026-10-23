@@ -1,5 +1,6 @@
 // Milestone 5 browser checks: dashboard scoping and labelling, layout at 1440/1024/390, accessibility basics.
 // Called from browser-check.mjs. Screenshots go to docs/screenshots/.
+import { runScenario } from "./ui-helpers.mjs";
 
 const noOverflow = (page) => page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
 
@@ -21,7 +22,7 @@ export async function m5({ visitor, apiCall, check, OUT }) {
 
   // A. Visitor: run + approve a scenario, then the dashboard counts exactly that sandbox's activity.
   const A = await visitor();
-  await A.page.getByTestId("scenario-connector_outage").click();
+  await runScenario(A.page, "connector_outage");
   await A.page.getByTestId("proposal").waitFor();
   await A.page.getByTestId("approve").click();
   await A.page.getByTestId("notice").getByText(/Ticket NS-/).waitFor();
@@ -69,7 +70,7 @@ export async function m5({ visitor, apiCall, check, OUT }) {
   }
   await A.page.getByTestId("open-inbox").click();
   await A.page.setViewportSize({ width: 1440, height: 900 });
-  await A.page.getByTestId("scenario-access_reporting_after_upgrade").click();
+  await runScenario(A.page, "access_reporting_after_upgrade");
   await A.page.getByTestId("proposal").getByText("Analyst", { exact: false }).first().waitFor();
   const o1440 = await noOverflow(A.page);
   check("workspace 1440px has no horizontal overflow", o1440 <= 0, `${o1440}px`);

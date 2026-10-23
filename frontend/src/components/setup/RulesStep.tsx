@@ -39,10 +39,10 @@ export function RulesStep({ ws, onNext }: { ws: string; onNext: () => void }) {
         Rules are evaluated by application code, not by the model. A matching escalation rule always wins: the proposal escalates to the rule's group and priority. Changing rules re-checks pending proposals and marks any whose matching rules changed as stale.
       </StepHeader>
       <ul className="mb-5 space-y-2" data-testid="rule-list">
-        {rules.length === 0 && <li className="text-sm text-zinc-500">No rules yet.</li>}
+        {rules.length === 0 && <li className="text-sm text-fg-subtle">No rules yet.</li>}
         {rules.map((r) => (
-          <li key={r.id} className="flex flex-wrap items-start justify-between gap-2 rounded-md px-3 py-2 ring-1 ring-zinc-200" data-testid="rule">
-            <div><p className="text-sm font-medium text-zinc-900">{r.name}{!r.enabled && <span className="ml-1 text-xs font-normal text-zinc-500">(disabled)</span>}</p><p className="text-sm text-zinc-600">{describe(r)}</p></div>
+          <li key={r.id} className="flex flex-wrap items-start justify-between gap-2 rounded-md px-3 py-2 ring-1 ring-line" data-testid="rule">
+            <div><p className="text-sm font-medium text-fg">{r.name}{!r.enabled && <span className="ml-1 text-xs font-normal text-fg-subtle">(disabled)</span>}</p><p className="text-sm text-fg-muted">{describe(r)}</p></div>
             <div className="flex gap-1">
               <Button variant="ghost" onClick={async () => {
                 const body = { name: r.name, description: r.description, categories: r.condition.categories ?? [], keywords_any: r.condition.keywords_any ?? [],
@@ -60,16 +60,16 @@ export function RulesStep({ ws, onNext }: { ws: string; onNext: () => void }) {
         ))}
       </ul>
 
-      <form className="grid max-w-2xl gap-4 rounded-lg bg-zinc-50 p-4 ring-1 ring-zinc-200" data-testid="rule-form" onSubmit={async (e) => {
+      <form className="grid max-w-2xl gap-4 rounded-lg bg-canvas p-4 ring-1 ring-line" data-testid="rule-form" onSubmit={async (e) => {
         e.preventDefault(); setBusy(true); setMsg(null);
         const body = { ...form, keywords_any: keywords.split(",").map((k) => k.trim()).filter(Boolean) };
         try { const x = await api.createRule(ws, body); setMsg({ tone: "ok", text: `Rule "${x.name}" added.${stale(x.proposals_marked_stale)}` }); setKeywords(""); setForm({ ...form, name: "" }); await load(); }
         catch (err) { setMsg({ tone: "error", text: (err as Error).message }); } finally { setBusy(false); }
       }}>
-        <p className="text-sm font-semibold text-zinc-900">Add a rule</p>
+        <p className="text-sm font-semibold text-fg">Add a rule</p>
         <Field label="Rule name"><input className={field} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required minLength={2} data-testid="rule-name" /></Field>
         <Field label="Message mentions any of" hint="Comma-separated, case-insensitive."><input className={field} value={keywords} onChange={(e) => setKeywords(e.target.value)} placeholder="refund, chargeback" data-testid="rule-keywords" /></Field>
-        <fieldset className="flex flex-wrap gap-3 text-sm text-zinc-700"><legend className="mb-1 text-sm font-medium">Only for categories (optional)</legend>
+        <fieldset className="flex flex-wrap gap-3 text-sm text-fg-muted"><legend className="mb-1 text-sm font-medium">Only for categories (optional)</legend>
           {Object.entries(CATEGORY_LABEL).map(([k, label]) => (
             <label key={k} className="flex items-center gap-1.5"><input type="checkbox" checked={form.categories.includes(k)} onChange={(e) => setForm({ ...form, categories: e.target.checked ? [...form.categories, k] : form.categories.filter((x) => x !== k) })} />{label}</label>
           ))}
