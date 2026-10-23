@@ -10,7 +10,7 @@ below ran in demo mode, and every live or GitHub item is marked unverified.
 | Env file | `cp .env.example .env` | created (no `.env` existed) |
 | Clean start | `make reset` (`docker compose down -v && docker compose up -d --build`) | db healthy, api healthy, web `200` on http://localhost:8080 |
 | Re-seed | `make seed` | `seed: Northstar Analytics loaded` / `seed: Lumen Ledger loaded` |
-| Backend tests | `make test` | **121 passed**, 5 deselected (opt-in `live` / `github_live` smoke tests that need real credentials) |
+| Backend tests | `make test` | **127 passed**, 5 deselected (opt-in `live` / `github_live` smoke tests that need real credentials; `live` passed 4/4 against the real API on 2026-10-23) |
 | Frontend | `make test-web` (`npm ci && npm run typecheck && npm run build`) | typecheck clean; production build OK (308.6 kB JS, 90.9 kB gzip) |
 | Browser checks | `make e2e` (CLI `playwright-core`, headless Chromium) | **50/50 passed** (40 from M1–M4 plus 10 new M5 dashboard, width and accessibility checks) |
 | Evaluation | `make eval` | AI eval demo: run (Simulated, not evidence of AI performance). AI eval live: **run 2026-10-23** (Haiku 5.5; next action 72–74%, 0 safety violations; see `eval/RESULTS.md`). Backend checks: **64/64 passed**. Results in `eval/results/*-2026-10-22.json` at commit `d6b8d5c` |
