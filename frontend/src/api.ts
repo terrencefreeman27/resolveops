@@ -41,6 +41,10 @@ export type RequestSummary = {
   state_reason: string | null; category: string | null; priority: string | null; resolution: string | null;
   scenario_key: string | null; is_template: boolean; source_request_id: string | null;
   received_at: string; updated_at: string; customer: Customer | null;
+  /** Short excerpt of the customer's message (whitespace collapsed). */
+  preview: string;
+  /** Next action of the current proposal version, if the request has been processed. */
+  next_action: ProposalContent["next_action"] | null;
 };
 
 export type Ticket = {
@@ -71,6 +75,8 @@ export type RequestDetail = RequestSummary & {
   ai_runs: AiRun[];
   proposal: null | {
     id: string; provider: string; status: string; current_version: number; usage: ProposalUsage;
+    /** Adapter the executor would use for the current version (null when there is no ticket action). */
+    planned_adapter: "internal" | "github" | null;
     stale_reason: string | null; stale_at: string | null; citation_versions: Record<string, CitationVersion>;
     version: { id: string; version: number; content: ProposalContent; action_hash: string; author: string;
                edit_note: string | null; created_at: string };
@@ -79,7 +85,7 @@ export type RequestDetail = RequestSummary & {
   approvals: { id: string; decision: string; actor: string; status: string; reason: string | null;
                invalidated_reason: string | null; version_id: string; created_at: string }[];
   executions: { id: string; status: string; attempts: number; last_error: string | null; adapter: string;
-                action_type: string; idempotency_key: string; ticket_id: string | null; created_at: string;
+                action_type: string; idempotency_key: string; ticket_id: string | null; created_at: string; finished_at: string | null;
                 external_number: number | null; external_url: string | null }[];
   tickets: Ticket[];
   timeline: TimelineEvent[];
