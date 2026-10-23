@@ -34,9 +34,9 @@ class Settings(BaseSettings):
     execution_attempt_timeout_s: float = 5.0
 
     # --- live mode (Claude). See docs/DECISIONS.md D16-D20 and README "Live mode". ---
-    live_model: str = "claude-opus-5-5"
+    live_model: str = "claude-haiku-5-5"
     live_effort: Literal["low", "medium", "high", "xhigh", "max"] = "medium"
-    live_refusal_fallback: bool = True  # server-side fallback on safety refusals (beta header)
+    live_refusal_fallback: bool = True  # server-side fallback on safety refusals; only sent to models that support it (see FALLBACK_MODELS)
     live_allow_visitors: bool = False  # public visitors never use live mode unless deliberately enabled
     live_max_output_tokens: int = 8000  # per model call (includes adaptive thinking)
     live_max_tool_steps: int = 6  # model turns that may call tools, per request

@@ -16,7 +16,8 @@ services:
 
   api:
     build: ./backend
-    # Optional LIVE_* settings (limits, budget, model) come from .env; see .env.example.
+    # ANTHROPIC_API_KEY and the optional LIVE_* settings come only from ./.env (git-ignored), never from the
+    # host shell, so a key exported for other tools is not picked up. Only this service receives them.
     env_file:
       - path: .env
         required: false
@@ -26,7 +27,6 @@ services:
       SEED_ON_START: "true"
       SEED_REVIEWER_EMAIL: ${SEED_REVIEWER_EMAIL:-reviewer@northstar.example}
       SEED_REVIEWER_PASSWORD: ${SEED_REVIEWER_PASSWORD:-northstar-demo}
-      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
     depends_on:
       db:
         condition: service_healthy

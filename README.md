@@ -174,8 +174,9 @@ browser ─► web (nginx + React build) ─/api─► api (FastAPI, Python 3.12
 
 ### Live mode (Milestone 2) — enable deliberately
 
-Live mode sends **signed-in reviewers'** requests to Claude (`claude-opus-5-5`, official `anthropic`
-SDK). Public visitors stay on simulated AI unless `LIVE_ALLOW_VISITORS=true`. Do not enable it on a
+Live mode sends **signed-in reviewers'** requests to Claude (`claude-haiku-5-5` by default, official
+`anthropic` SDK). The key is read only by the `api` container, only from `./.env` (never from your shell
+environment), and is excluded from Git and from both Docker build contexts. Public visitors stay on simulated AI unless `LIVE_ALLOW_VISITORS=true`. Do not enable it on a
 public deployment without reviewing the limits below.
 
 1. Put these lines in `.env` (gitignored; never commit a key):
@@ -183,7 +184,7 @@ public deployment without reviewing the limits below.
    AI_MODE=live
    ANTHROPIC_API_KEY=<your key>
    # optional, defaults shown
-   LIVE_MODEL=claude-opus-5-5
+   LIVE_MODEL=claude-haiku-5-5   # no server-side refusal fallback on Haiku 5.5; refusals end in the error state
    LIVE_EFFORT=medium
    LIVE_MONTHLY_TOKEN_BUDGET=2000000
    LIVE_RATE_PER_REVIEWER_PER_MIN=5
@@ -191,10 +192,11 @@ public deployment without reviewing the limits below.
    LIVE_MAX_CONCURRENCY=2
    LIVE_MAX_TOOL_STEPS=6
    LIVE_MAX_OUTPUT_TOKENS=8000
-   # USD budget is enforced only if BOTH prices are set (no prices are assumed):
-   # LIVE_PRICE_INPUT_PER_MTOK=...
-   # LIVE_PRICE_OUTPUT_PER_MTOK=...
-   # LIVE_MONTHLY_USD_BUDGET=...
+   # USD budget is enforced only if BOTH prices are set (no prices are assumed). Haiku 5.5 list price,
+   # checked 2026-10-23, for prompts up to 100K tokens (higher above 100K):
+   LIVE_PRICE_INPUT_PER_MTOK=0.10
+   LIVE_PRICE_OUTPUT_PER_MTOK=0.50
+   LIVE_MONTHLY_USD_BUDGET=5
    ```
 2. `docker compose up -d --force-recreate api`
 3. Sign in as the reviewer, open **AI status** (mode, model, key configured yes/no, budget, limits),

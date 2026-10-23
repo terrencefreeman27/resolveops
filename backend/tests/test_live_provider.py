@@ -38,8 +38,8 @@ def test_live_happy_path_produces_valid_proposal_with_valid_citations(live, revi
     assert d["state"] == "awaiting_review", d["state_reason"]
     p = d["proposal"]
     c = p["version"]["content"]
-    assert p["provider"] == "Live — Claude claude-opus-5-5"
-    assert c["provider_label"] == "Live — Claude claude-opus-5-5" and c["simulated"] is False
+    assert p["provider"] == "Live — Claude claude-haiku-5-5"
+    assert c["provider_label"] == "Live — Claude claude-haiku-5-5" and c["simulated"] is False
     assert c["next_action"] == "resolve" and "Jordan Patel" in c["draft_reply"]
     # Citations survived server validation: each cites a chunk retrieved for this request.
     assert c["citations"] and all(x["doc_slug"] == "roles-and-permissions" for x in c["citations"])
@@ -55,7 +55,7 @@ def test_live_happy_path_produces_valid_proposal_with_valid_citations(live, revi
     # Usage from the API usage fields is recorded on the proposal and the run.
     inp, out = fixture_tokens("access_reporting_after_upgrade")
     u = p["usage"]
-    assert (u["provider"], u["model"], u["input_tokens"], u["output_tokens"]) == ("live", "claude-opus-5-5", inp, out)
+    assert (u["provider"], u["model"], u["input_tokens"], u["output_tokens"]) == ("live", "claude-haiku-5-5", inp, out)
     assert u["tool_steps"] == 5 and u["api_calls"] == 4 and u["latency_ms"] >= 0
     runs = d["ai_runs"]
     assert len(runs) == 1 and runs[0]["provider"] == "live" and runs[0]["status"] == "succeeded"
@@ -63,7 +63,7 @@ def test_live_happy_path_produces_valid_proposal_with_valid_citations(live, revi
     # Request shape: allowlisted tools only, structured output, untrusted wrapping, no secrets in the prompt.
     first = fake.calls[0]
     assert {t["name"] for t in first["tools"]} == ALLOWLIST and all(t["strict"] for t in first["tools"])
-    assert first["model"] == "claude-opus-5-5" and first["thinking"] == {"type": "adaptive"}
+    assert first["model"] == "claude-haiku-5-5" and first["thinking"] == {"type": "adaptive"}
     assert first["output_config"]["format"]["type"] == "json_schema"
     assert first["max_tokens"] == live.settings.live_max_output_tokens
     assert "<customer_message>" in first["messages"][0]["content"]
@@ -185,3 +185,21 @@ def test_per_request_token_cap(live, reviewer):
     d = run(reviewer)
     assert d["state"] == "error" and "per-request token limit" in d["state_reason"]
     assert d["ai_runs"][0]["input_tokens"] > 0  # spent tokens still count toward the budget
+
+
+def test_haiku_5_5_requests_send_no_refusal_fallback(live, reviewer, db):
+    # Claude Haiku 5.5 has no server-side fallback, so the fallbacks parameter and its beta header must
+    # never be sent to it, even though LIVE_REFUSAL_FALLBACK defaults to true.
+    assert live.settings.live_model == "claude-haiku-5-5" and live.settings.live_refusal_fallback is True
+    fake = live.script(load_fixture("access_reporting_after_upgrade"))
+    assert run(reviewer)["state"] == "awaiting_review"
+    assert all("fallbacks" not in c and "betas" not in c for c in fake.calls)
+
+
+def test_fallback_still_sent_to_models_that_support_it(live, reviewer, db):
+    live.set(live_model="claude-opus-5-5")
+    fake = live.script(load_fixture("access_reporting_after_upgrade"))
+    run(reviewer)
+    first = fake.calls[0]
+    assert first["model"] == "claude-opus-5-5" and first["fallbacks"] == "default"
+    assert first["betas"] == ["server-side-fallback-2026-07-01"]

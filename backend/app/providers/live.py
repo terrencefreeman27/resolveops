@@ -34,6 +34,10 @@ from .live_guard import ToolGate
 from .live_prompt import FINAL_OUTPUT_SCHEMA, SYSTEM_PROMPT, TOOL_DEFINITIONS, first_user_message
 
 FALLBACK_BETA = "server-side-fallback-2026-07-01"
+# Models that accept server-side refusal fallbacks (`fallbacks: "default"`). Claude Haiku 5.5 has no
+# server-side fallback (Anthropic Haiku 5.5 migration guide), so the parameter is never sent to it;
+# a refusal there ends the request in the error state like any other refusal.
+FALLBACK_MODELS = frozenset({"claude-fable-5-1", "claude-opus-5-5", "claude-opus-5", "claude-sonnet-5-5"})
 RETRYABLE_STATUS = {408, 409, 429}
 
 
@@ -101,7 +105,7 @@ class LiveProvider(AIProvider):
                            "format": {"type": "json_schema", "schema": FINAL_OUTPUT_SCHEMA}},
             cache_control={"type": "ephemeral"},
         )
-        if s.live_refusal_fallback:
+        if s.live_refusal_fallback and self.model in FALLBACK_MODELS:
             params |= {"betas": [FALLBACK_BETA], "fallbacks": "default"}
         return params
 

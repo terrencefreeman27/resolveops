@@ -186,6 +186,6 @@ def test_visitors_never_use_live_mode(live, visitor):
 
 def test_reviewer_meta_reports_live(live, reviewer):
     m = reviewer.get("/api/meta").json()
-    assert m["effective_mode"] == "live" and m["provider_label"] == "Live — Claude claude-opus-5-5"
+    assert m["effective_mode"] == "live" and m["provider_label"] == "Live — Claude claude-haiku-5-5"
     assert m["live_configured"] is True
     assert live.settings.anthropic_api_key not in json.dumps(m)

@@ -29,7 +29,7 @@ def usage(inp: int = 1000, out: int = 200, cache_read: int = 0) -> SimpleNamespa
                            cache_creation_input_tokens=0)
 
 
-def response(content: list, stop_reason: str, inp: int = 1000, out: int = 200, model: str = "claude-opus-5-5",
+def response(content: list, stop_reason: str, inp: int = 1000, out: int = 200, model: str = "claude-haiku-5-5",
              stop_details=None) -> SimpleNamespace:
     return SimpleNamespace(content=content, stop_reason=stop_reason, stop_details=stop_details,
                            usage=usage(inp, out), model=model)

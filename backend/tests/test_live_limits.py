@@ -95,7 +95,7 @@ def test_usage_recorded_and_simulated_kept_separate(live, reviewer, visitor, db)
     d = run(reviewer).json()
     u = d["proposal"]["usage"]
     assert u["provider"] == "live" and u["input_tokens"] == 1500 + 4000 and u["output_tokens"] == 120 + 600
-    assert u["tool_steps"] == 1 and u["model"] == "claude-opus-5-5"
+    assert u["tool_steps"] == 1 and u["model"] == "claude-haiku-5-5"
     v = visitor.post(f"{WS}/scenarios/access_reporting_after_upgrade/run").json()
     vu = v["proposal"]["usage"]
     assert vu["provider"] == "simulated" and vu["input_tokens"] == 0 and vu["model"] is None
@@ -109,7 +109,7 @@ def test_status_panel_shows_config_never_the_key(live, reviewer, visitor):
     s = reviewer.get(f"{WS}/ai/status")
     assert s.status_code == 200
     body = s.json()
-    assert body["mode"] == "live" and body["model"] == "claude-opus-5-5" and body["key_configured"] is True
+    assert body["mode"] == "live" and body["model"] == "claude-haiku-5-5" and body["key_configured"] is True
     assert body["budget"]["tokens_used"] > 0 and body["budget"]["pricing"] is None
     assert body["limits"]["max_tool_steps"] == live.settings.live_max_tool_steps
     assert body["usage_this_month"]["live"]["runs"] >= 1

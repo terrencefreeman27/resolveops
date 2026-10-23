@@ -311,3 +311,10 @@ embeddings provider (Anthropic has no embeddings API). **Revisit:** same trigger
 - Result JSON files are committed alongside `eval/RESULTS.md`, so the numbers quoted in the docs can be checked.
   Each file records the git commit (passed as `EVAL_GIT_COMMIT`, because the container has no `.git`), the mode,
   and the dataset version.
+
+
+## D34 — Live default model switched to `claude-haiku-5-5` (2026-10-23)
+- **Decision:** `LIVE_MODEL` defaults to `claude-haiku-5-5` (released 2026-10-07; Anthropic models overview and Haiku 5.5 migration guide). It is built for high-volume classification, extraction and routing, which matches support triage, at $0.10 / $0.50 per MTok for prompts up to 100K tokens. D16's request shape is compatible: adaptive thinking with `output_config.effort` (default `medium`), no sampling parameters, no prefill, `tool_choice` auto with strict tools, structured output.
+- **Change:** Haiku 5.5 has **no server-side refusal fallback**, so `fallbacks`/its beta header are now sent only to models in `FALLBACK_MODELS` (Fable 5.1, Opus 5.5, Opus 5, Sonnet 5.5). A Haiku refusal ends the request in the error state with the refusal category, as before.
+- **Key scope:** `docker-compose.yml` no longer interpolates `ANTHROPIC_API_KEY` from the host shell; the `api` container reads it only from `./.env` via `env_file`. `backend/.dockerignore` and `frontend/.dockerignore` exclude `.env*` from build contexts.
+- **Revisit when:** the live eval shows Haiku's classification/next-action accuracy is materially below Sonnet 5.5 on the 50-case set — `LIVE_MODEL` is config, so compare both.
