@@ -12,8 +12,9 @@ customers and people are synthetic. Reviewers can create further workspaces thro
 onboarding flow and import their own Markdown or plain-text documentation.
 
 > Status: **Milestone 5, the final one** (evaluation, dashboard, polish, documentation). Demo mode is verified
-> end to end. **Live mode, the GitHub adapter, the live evaluation and the prompt-only baseline have not been run
-> against the real services**, because no API key or GitHub token was available. See the
+> end to end. **Live mode was verified against the real Anthropic API on 2026-10-23** (Claude Haiku 5.5: smoke
+> test 4/4, live evaluation run twice, prompt-only baseline run). **The GitHub adapter has not been run against
+> real GitHub** (no test repo or token). See the
 > [what is simulated or unverified](docs/INTERVIEW_WALKTHROUGH.md#8-what-is-simulated-or-unverified) list.
 >
 > Docs: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) (diagrams) · [`docs/DECISIONS.md`](docs/DECISIONS.md)
@@ -285,7 +286,11 @@ Results at commit `d6b8d5c` (2026-10-22):
   action 32/35. Clarify-when-expected 2/5: three honest fixture failures. Citations valid 67/67. Must-not
   violations 0. Execution steps (double, concurrent and lost-response approvals, stale refusal) 7/7. A
   raw-message retrieval probe found the 0.72 evidence threshold too strict for unfocused queries.
-- **AI task eval, live mode: not run** (no `ANTHROPIC_API_KEY`). The prompt-only baseline is also **not run**.
+- **AI task eval, live mode (Claude Haiku 5.5, 2 runs, 2026-10-23):** correct next action 72–74% of all 50 cases,
+  classification 88–90%, citations 100% valid (exist, retrieved, current), refuse-when-expected 9/9, 0 safety
+  ("must not") violations, 0 under-escalations, 5–6 over-escalations, median latency ~11 s, about $0.08 per full
+  run. **Prompt-only baseline** (same model, message only): about 50% correct next action, 92% classification.
+  Labels are agent-written and not human-reviewed; see [`eval/RESULTS.md`](eval/RESULTS.md) for caveats.
   Command: `make eval-live`.
 - **Deterministic backend checks: 64/64 passed** across 10 categories (authorization, isolation, unauthorized
   actions, approval versioning, stale evidence, evidence guard, duplicates, injection, failures without fallback).
@@ -293,10 +298,11 @@ Results at commit `d6b8d5c` (2026-10-22):
 ## Known limitations
 
 What is **simulated or unverified** (details: [`docs/INTERVIEW_WALKTHROUGH.md`](docs/INTERVIEW_WALKTHROUGH.md#8-what-is-simulated-or-unverified)):
-- **Live Claude** has never been called. The live provider is tested only with a scripted fake client, and the
-  `pytest -m live` smoke test has not been run.
+- **Live Claude** was verified on 2026-10-23 with `claude-haiku-5-5` only (smoke test 4/4, two eval runs). Other
+  models are configurable but untested live.
 - **GitHub Issues** has been tested only against a fake HTTP transport. The `github_live` smoke test has not been run.
-- **Live evaluation and the prompt-only baseline** have not been run. **No LLM judge** exists. Citation-support
+- **Live evaluation and the prompt-only baseline** ran on 50 synthetic cases, two runs; treat as a smoke-level
+  signal, not a benchmark. **No LLM judge** exists. Citation-support
   labels and all dataset labels were written by the build agent and **have not been reviewed by a human**.
 - **Demo mode** answers only the seeded wordings, from fixtures. It cannot show how a model handles new text.
 

@@ -5,15 +5,15 @@
 | Dataset | v1, 50 synthetic labelled cases (`eval/datasets/v1/`, labels written by the build agent and **not yet human-reviewed**) |
 | Git commit | `d6b8d5c` (recorded in each result file) |
 | Run date | 2026-10-22 |
-| Result files | `eval/results/ai-demo-2026-10-22.json`, `ai-live-2026-10-22.json`, `backend-deterministic-2026-10-22.json` |
+| Result files | `eval/results/ai-demo-2026-10-22.json`, `ai-live-2026-10-23.json` (live run 2, used below), `ai-live-2026-10-23-run1-token-undercount.json` (live run 1), `backend-deterministic-2026-10-22.json`; `ai-live-2026-10-22.json` is the earlier "not run" record |
 
 Three result sets. They answer different questions and must not be mixed:
 
 | Suite | Mode | Status | What it is evidence of |
 |---|---|---|---|
 | AI task eval | **demo** | run | That the pipeline *around* the AI works (tools, retrieval, guards, approval, execution) on cases the simulated fixtures cover. **Simulated — not evidence of AI performance.** |
-| AI task eval | **live** | **not run** | Nothing yet. No `ANTHROPIC_API_KEY` exists in this environment. |
-| Prompt-only baseline | live | **not run** | Nothing yet (needs the key; its outputs were not simulated). |
+| AI task eval | **live** | **run** (2026-10-23, `claude-haiku-5-5`, 2 runs) | How the real model performs inside the full workflow on 50 synthetic, agent-labelled cases. See section 2 for caveats. |
+| Prompt-only baseline | live | **run** (same 2 runs) | The same model with only the customer message. Measures the value of context and guards, not model capability. |
 | Backend checks | deterministic | run | Authorization, approval and execution guarantees enforced by ordinary code. Real pass/fail. |
 
 ## 1. AI task eval, demo mode: Simulated, not evidence of AI performance
@@ -96,8 +96,8 @@ in demo).
 **What the injection cases show in demo mode, and what they don't.** The simulated provider ignores message and
 document content beyond the exact-match key. So "the injection didn't change the answer" is true *by
 construction* here. What *is* tested is the code path: no approval, execution or ticket exists after the run;
-no other customer's identifiers appear; the reviewer still has to approve. Whether a live model resists the
-injected text is **unverified** until the live eval runs.
+no other customer's identifiers appear; the reviewer still has to approve. In the live eval (section 2), the injection
+cases produced no approval, execution or foreign data with a real model; two were over-escalated.
 
 ### Citation validity vs. support
 
@@ -110,19 +110,55 @@ injected text is **unverified** until the live eval runs.
   not every sentence of the reply: ev-015's wrong "Pro to Pro" sentence carries no citation and is not caught by
   this check. **No LLM judge was run** and none is implemented.
 
-## 2. AI task eval, live mode: not run
+## 2. AI task eval, live mode: run with Claude Haiku 5.5
 
 ```
-docker compose exec -e EVAL_GIT_COMMIT=$(git rev-parse --short HEAD) api python -m eval.run_ai_eval --mode live
+make eval-live   # = docker compose exec -e EVAL_GIT_COMMIT=$(git rev-parse --short HEAD) api python -m eval.run_ai_eval --mode live
 ```
 
-Status: **not run** (`ai-live-2026-10-22.json` records the reason and this command). It needs `ANTHROPIC_API_KEY`
-in `.env` (then `docker compose up -d`). For this process only, the live run allows the case actors to reach the
-live model (`LIVE_ALLOW_VISITORS`) and lifts the per-minute rate limits. The monthly token budget and the
-per-request caps stay in force. It reports the same metrics plus latency and token usage from the API's usage
-fields.
+Run on 2026-10-23 with `claude-haiku-5-5` (effort `medium`), dataset v1, twice: run 1 at commit `046df9f`, run 2
+at `2ed9104`. Run 1 under-reported input tokens (prompt-cache tokens were not summed — a bug this run exposed and
+`2ed9104` fixed); its accuracy numbers are unaffected. For this process only, the eval lets case actors reach the
+live model and lifts per-minute rate limits; budgets and per-request caps stay on.
 
-**Prompt-only baseline (`eval/baseline.py`), not run.** It runs automatically with `--mode live`.
+| Metric | Run 1 | Run 2 |
+|---|---|---|
+| Correct next action, all 50 cases (incl. 5 refused at the code gate) | 37/50 (74%) | 36/50 (72%) |
+| Correct next action, cases that produced a proposal | 26/37 (70%) | 25/37 (68%) |
+| Classification accuracy | 37/42 (88%) | 38/42 (90%) |
+| Retrieval recall vs labelled sources (doc / section) | 0.92 / 0.81 | 0.91 / 0.84 |
+| Citations valid (exists, retrieved for this request, current version) | 97/97 | 92/92 |
+| Clarify when expected | 7/8 | 6/8 |
+| Escalate when expected | 13/15 | 14/15 |
+| Refuse when expected | 9/9 | 9/9 |
+| Over-escalations (escalated a case labelled resolve/clarify) | 5 | 6 |
+| Under-escalations | 0 | 0 |
+| "Must not" violations (execution without approval, auto-approval, cross-customer facts, duplicate tickets, executing on stale evidence, promising refunds, simulated fallback) | 0 | 0 |
+| Median / max latency per request | 11.2 s / 19.6 s | 10.8 s / 16.8 s |
+| Tokens (run 2): input incl. cache, output | — | 796,940 (516,681 cache reads, 279,885 cache writes, 374 uncached) / 80,556 |
+
+**Approximate cost of run 2:** about $0.08 for the workflow plus $0.005 for the baseline, at Haiku 5.5 list prices
+(input $0.10, cache read $0.01, cache write $0.125, output $0.50 per MTok; prompts under 100K tokens). Computed
+from the usage fields above; not taken from an invoice.
+
+**Prompt-only baseline (same model, same runs):** correct next action 21/40 (run 1) and 20/40 (run 2), about
+50%; classification 36/39 (92%) both runs. The baseline classifies about as well as the workflow, but chooses the
+right next action far less often, because it cannot see account facts, company policy or escalation rules.
+
+**How to read this honestly:**
+- The labels (expected category, next action, sources) were written by the build agent and **have not been
+  human-reviewed**; some "misses" may be label disagreements rather than model errors.
+- 50 synthetic cases and two runs: results move by a case or two between runs (see the table). Treat them as a
+  smoke-level signal, not a benchmark.
+- The workflow's errors lean toward caution: all misses on escalation are over-escalations, none are
+  under-escalations, and no run violated a safety rule. The safety properties are enforced by code (approval,
+  tool gate, citation guard), so they are expected to hold regardless of the model.
+- Citation validity is an existence/provenance check. Whether each passage actually **supports** its claim was
+  not graded in these runs (no LLM judge; the 29 agent-written support labels cover demo-mode citations).
+- Per-case causes of the over-escalations have not been analysed yet. One known contributor is the evidence
+  threshold (section 1), which was calibrated on focused queries.
+
+**What the baseline and the workflow each receive** (`eval/baseline.py` runs automatically with `--mode live`):
 - The *baseline* receives a generic support system prompt, the company name, and the customer's subject and
   message. Nothing else: no tools, no retrieval, no documents, no account facts, no escalation rules, and none of
   the server guards. Same model, effort and output limit as the live workflow.
@@ -159,4 +195,4 @@ Caveat: tests in `test_live_*.py` drive the live-provider code with a **scripted
 GitHub tests use a **fake HTTP transport**. They prove what the server does with those responses, not how the real
 services behave. The result file marks each test's kind.
 
-The full backend suite (121 tests; 5 opt-in live/GitHub smoke tests are deselected by default) is run separately with `make test`. See `docs/VERIFICATION.md`.
+The full backend suite (127 tests; 5 opt-in live/GitHub smoke tests are deselected by default) is run separately with `make test`. See `docs/VERIFICATION.md`.

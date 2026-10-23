@@ -129,10 +129,10 @@ tools decide.
 | Feature | Status |
 |---|---|
 | Demo-mode AI | **Simulated.** Deterministic fixtures for the seeded wordings only. Retrieval, tools, rules, evidence checks, approval, execution and audit are real. |
-| Live Claude provider | **Built, never called.** Tested with a scripted fake SDK client (`tests/live_fakes.py`). `pytest -m live` has not been run. |
+| Live Claude provider | **Verified against the real API** on 2026-10-23 with `claude-haiku-5-5`: `pytest -m live` 4/4. Also covered by a scripted fake client (`tests/live_fakes.py`) for failure cases. |
 | GitHub Issues adapter | **Built, never called.** Tested with a fake HTTP transport. `pytest -m github_live` has not been run. |
-| Live AI evaluation | **Not run** (`make eval-live`; needs `ANTHROPIC_API_KEY`). |
-| Prompt-only baseline | **Not run** (live only; outputs are never simulated). |
+| Live AI evaluation | **Run twice** (Haiku 5.5): next action 72–74%, classification 88–90%, 0 safety violations. Labels not human-reviewed. See `eval/RESULTS.md`. |
+| Prompt-only baseline | **Run** (same model, message only): ~50% next action, 92% classification. Not a capability comparison; see `eval/RESULTS.md`. |
 | LLM judge for citation support | **Not implemented and not run.** Support labels are by the build agent, not human-reviewed. |
 | Dataset labels | **Not human-reviewed.** |
 | Cost estimates | Shown only if `LIVE_PRICE_*` is set. No prices are assumed. |
