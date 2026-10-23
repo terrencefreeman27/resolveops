@@ -101,10 +101,12 @@ export function PanelHeading({ children, aside, id }: { children: ReactNode; asi
 export function Disclosure({ title, meta, defaultOpen = false, children, testId, className = "", icon: Icon }: {
   title: ReactNode; meta?: ReactNode; defaultOpen?: boolean; children: ReactNode; testId?: string; className?: string; icon?: LucideIcon;
 }) {
+  // Own open state for the chevron: a CSS group selector would also match an open *ancestor* disclosure.
+  const [open, setOpen] = useState(defaultOpen);
   return (
-    <details open={defaultOpen} className={`group/d ${className}`} data-testid={testId}>
+    <details open={defaultOpen} className={className} data-testid={testId} onToggle={(e) => setOpen(e.currentTarget.open)}>
       <summary className="flex cursor-pointer select-none items-center gap-2 rounded-md py-1.5 text-ui font-medium text-fg transition-colors hover:text-accent-strong">
-        <ChevronRight aria-hidden className="size-4 shrink-0 text-fg-subtle transition-transform duration-150 group-open/d:rotate-90" strokeWidth={1.75} />
+        <ChevronRight aria-hidden className={`size-4 shrink-0 text-fg-subtle transition-transform duration-150 ${open ? "rotate-90" : ""}`} strokeWidth={1.75} />
         {Icon && <Icon aria-hidden className="size-4 shrink-0 text-fg-subtle" strokeWidth={1.75} />}
         <span className="min-w-0 flex-1 truncate">{title}</span>
         {meta && <span className="shrink-0 text-xs font-normal text-fg-subtle">{meta}</span>}
