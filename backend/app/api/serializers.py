@@ -5,6 +5,8 @@ from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from ..context import Actor, scope_clause
+from ..review import _adapter_name
+from ..schemas import ProposalContent
 from ..models import (AiRun, Approval, AuditLog, Customer, Document, DocumentVersion, Execution, Proposal,
                       ProposalVersion, SupportRequest, Ticket)
 
@@ -26,13 +28,24 @@ def citation_status(db: Session, version_ids) -> dict:
     return {vid: {"status": st, "document_status": dst, "current_version": cv} for vid, st, dst, cv in rows}
 
 
-def request_summary(r: SupportRequest, customer: Customer | None) -> dict:
+PREVIEW_CHARS = 180
+
+
+def message_preview(body: str | None) -> str:
+    """Short single-line excerpt of the customer's own message for list rows (whitespace collapsed)."""
+    text = " ".join((body or "").split())
+    return text if len(text) <= PREVIEW_CHARS else text[:PREVIEW_CHARS - 1].rstrip() + "\u2026"
+
+
+def request_summary(r: SupportRequest, customer: Customer | None, next_action: str | None = None) -> dict:
     return {
         "id": str(r.id), "subject": r.subject, "from_name": r.from_name, "from_email": r.from_email,
         "state": r.state, "state_reason": r.state_reason, "category": r.category, "priority": r.priority,
         "resolution": r.resolution, "scenario_key": r.scenario_key, "is_template": r.is_template,
         "source_request_id": str(r.source_request_id) if r.source_request_id else None,
         "received_at": iso(r.received_at), "updated_at": iso(r.updated_at),
+        # Additive, read-only fields for the inbox: same rows, same scoping as the list itself.
+        "preview": message_preview(r.body), "next_action": next_action,
         "customer": None if customer is None else {
             "id": str(customer.id), "company_name": customer.company_name, "account_ref": customer.account_ref,
             "is_synthetic": customer.is_synthetic},
@@ -70,11 +83,15 @@ def request_detail(db: Session, actor: Actor, r: SupportRequest) -> dict:
         cur = next(v for v in versions if v.version == proposal.current_version)
         cited = {c["document_version_id"] for c in cur.content.get("citations", [])}
         statuses = citation_status(db, [uuid.UUID(x) for x in cited])
+        out["next_action"] = cur.content.get("next_action")
         out["proposal"] = {
             "id": str(proposal.id), "provider": proposal.provider, "status": proposal.status, "usage": proposal.usage,
             "stale_reason": proposal.stale_reason, "stale_at": iso(proposal.stale_at),
             "citation_versions": {str(k): v for k, v in statuses.items()},
             "current_version": proposal.current_version,
+            # Where approval of this version would execute (same rule the executor applies), so the UI's
+            # approval copy names the real destination instead of guessing it.
+            "planned_adapter": planned_adapter(db, r, cur.content),
             "version": {"id": str(cur.id), "version": cur.version, "content": cur.content,
                         "action_hash": cur.action_hash, "author": cur.author, "edit_note": cur.edit_note,
                         "created_at": iso(cur.created_at)},
@@ -107,6 +124,28 @@ def request_detail(db: Session, actor: Actor, r: SupportRequest) -> dict:
     out["allowed_actions"] = allowed_actions(r, proposal is not None and proposal.status != "closed",
                                              out["executions"][-1]["adapter"] if out["executions"] else None)
     return out
+
+
+def planned_adapter(db: Session, r: SupportRequest, content: dict) -> str | None:
+    if (content.get("ticket_action") or {}).get("type", "none") == "none":
+        return None
+    try:
+        return _adapter_name(db, r, ProposalContent.model_validate(content))
+    except Exception:  # noqa: BLE001 - a malformed historical version must not break the read
+        return None
+
+
+def latest_next_actions(db: Session, request_ids) -> dict:
+    """request_id -> next_action of the current version of each request's latest proposal."""
+    if not request_ids:
+        return {}
+    rows = db.execute(
+        select(Proposal.request_id, ProposalVersion.content["next_action"].astext, Proposal.created_at)
+        .join(ProposalVersion, (ProposalVersion.proposal_id == Proposal.id)
+              & (ProposalVersion.version == Proposal.current_version))
+        .where(Proposal.request_id.in_(list(request_ids)))
+        .order_by(Proposal.created_at)).all()
+    return {rid: na for rid, na, _ in rows}  # later proposals overwrite earlier ones
 
 
 def visible_requests_clause(actor: Actor):

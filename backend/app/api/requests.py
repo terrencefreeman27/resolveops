@@ -15,7 +15,7 @@ from ..models import Chunk, Customer, CustomerSession, Document, DocumentVersion
 from ..schemas import ApproveIn, EditProposalIn, RejectIn, SubmitRequestIn
 from ..security import token_hash
 from ..workflow import reprocess, run_request
-from .serializers import citation_status, request_detail, request_summary, visible_requests_clause
+from .serializers import citation_status, latest_next_actions, request_detail, request_summary, visible_requests_clause
 
 router = APIRouter(prefix="/api/w/{ws}")
 
@@ -68,7 +68,8 @@ def list_requests(state: str | None = None, category: str | None = None,
         q = q.where(SupportRequest.category == category)
     rows = db.scalars(q.order_by(SupportRequest.is_template, SupportRequest.received_at.desc())).all()
     customers = {c.id: c for c in db.scalars(select(Customer).where(Customer.workspace_id == actor.workspace_id))}
-    return {"requests": [request_summary(r, customers.get(r.customer_id)) for r in rows]}
+    actions = latest_next_actions(db, [r.id for r in rows])
+    return {"requests": [request_summary(r, customers.get(r.customer_id), actions.get(r.id)) for r in rows]}
 
 
 @router.get("/requests/{request_id}")
