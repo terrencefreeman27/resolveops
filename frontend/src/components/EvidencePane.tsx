@@ -1,28 +1,54 @@
 import { BookOpenText, ExternalLink, FileText, History, Ticket, UserRound } from "lucide-react";
 import type { ReactNode } from "react";
 import type { RequestDetail } from "../api";
-import { humanize, humanizeInline, humanizeList } from "../labels";
+import { categoryLabel, humanize, humanizeInline, humanizeList } from "../labels";
 import { versionNote } from "./ProposalParts";
 import { Disclosure, HelpTip, timeAgo } from "./ui";
 
 type Fact = { label: string; value: string; source: string };
-const GROUPS: { title: string; test: (f: Fact) => boolean }[] = [
-  { title: "Subscription", test: (f) => /^(account|plan|plan change|seats|plan features|status)$/i.test(f.label) },
-  { title: "People", test: (f) => /admin|user|role|member|contact/i.test(f.label) },
-  { title: "Billing", test: (f) => /invoice|payment|charge|refund|credit/i.test(f.label) },
-  { title: "Integrations", test: (f) => /connector|integration|sync/i.test(f.label) },
-  { title: "Support history", test: (f) => /ticket|conversation/i.test(f.label) },
+type GroupKey = "subscription" | "seats" | "billing" | "product" | "history";
+const GROUPS: { key: GroupKey; title: string; test: (f: Fact) => boolean }[] = [
+  { key: "billing", title: "Invoices and charges", test: (f) => /invoice|payment|charge|refund|credit/i.test(f.label) },
+  { key: "seats", title: "Seats and permissions", test: (f) => /^seats$|admin|user|role|member|permission|contact/i.test(f.label) },
+  { key: "subscription", title: "Subscription", test: (f) => /^(plan|plan change|plan features|status|subscription)$/i.test(f.label) },
+  { key: "product", title: "Product configuration", test: (f) => /connector|integration|sync|sso|configuration|service/i.test(f.label) },
+  { key: "history", title: "Previous tickets", test: (f) => /ticket|conversation/i.test(f.label) },
 ];
+/** Which account details matter first for each request category; the rest stay one click away. */
+const RELEVANT: Record<string, GroupKey[]> = {
+  billing: ["billing", "subscription"],
+  access: ["seats", "subscription"],
+  product_issue: ["product", "history"],
+};
 
-function groupFacts(facts: Fact[]) {
-  const out: { title: string; facts: Fact[] }[] = GROUPS.map((g) => ({ title: g.title, facts: [] as Fact[] }));
+function groupFacts(facts: Fact[], category: string | null | undefined) {
+  const out = GROUPS.map((g) => ({ key: g.key as GroupKey | "other", title: g.title, facts: [] as Fact[] }));
   const other: Fact[] = [];
+  let account: Fact | null = null;
   for (const f of facts) {
+    if (/^account$/i.test(f.label)) { account = f; continue; }
     const i = GROUPS.findIndex((g) => g.test(f));
     (i >= 0 ? out[i].facts : other).push(f);
   }
-  if (other.length) out.push({ title: "Other", facts: other });
-  return out.filter((g) => g.facts.length);
+  if (other.length) out.push({ key: "other", title: "Other account details", facts: other });
+  const present = out.filter((g) => g.facts.length);
+  const order = RELEVANT[category ?? ""];
+  if (!order) return { account, primary: present, more: [] };
+  const primary = order.map((k) => present.find((g) => g.key === k)).filter((g): g is (typeof present)[number] => !!g);
+  return { account, primary, more: present.filter((g) => !primary.includes(g)) };
+}
+
+function FactList({ facts }: { facts: Fact[] }) {
+  return (
+    <dl className="space-y-1.5">
+      {facts.map((f) => (
+        <div key={f.label} className="grid grid-cols-[minmax(5.5rem,38%)_minmax(0,1fr)] gap-x-3 text-ui" title={`Source: ${humanize(f.source)}`}>
+          <dt className="text-fg-subtle [overflow-wrap:anywhere]">{factLabel(f)}</dt>
+          <dd className="text-fg [overflow-wrap:anywhere]">{f.label === "Plan features" ? humanizeList(f.value) : humanizeInline(f.value)}</dd>
+        </div>
+      ))}
+    </dl>
+  );
 }
 
 /** "Invoice INV-2026-110421" → label "Invoice", id "INV-2026-110421"; "Connector Snowflake (prod)" → "Snowflake (prod)". */
@@ -32,6 +58,34 @@ function factLabel(f: Fact): ReactNode {
   const con = f.label.match(/^Connector (.+)$/);
   if (con) return con[1];
   return f.label;
+}
+
+function CustomerFacts({ facts, category }: { facts: Fact[]; category: string | null | undefined }) {
+  const g = groupFacts(facts, category);
+  return (
+    <div className="space-y-3 pb-1 pt-1">
+      {g.account && <p className="text-ui font-medium text-fg [overflow-wrap:anywhere]" title={`Source: ${humanize(g.account.source)}`}>{g.account.value}</p>}
+      {g.more.length > 0 && g.primary.length > 0 && <p className="text-xs font-medium text-accent-strong" data-testid="facts-relevance">Relevant to this {categoryLabel(category).toLowerCase()} request</p>}
+      <div className="space-y-3" data-testid="facts-primary">
+        {g.primary.map((grp) => (
+          <div key={grp.key} data-group={grp.key}>
+            <h4 className="pb-1 text-2xs font-semibold text-fg-subtle">{grp.title}</h4>
+            <FactList facts={grp.facts} />
+          </div>
+        ))}
+      </div>
+      {g.more.length > 0 && (
+        <div className="border-t border-line pt-2" data-testid="facts-more">
+          <p className="pb-0.5 text-2xs font-semibold text-fg-subtle">More account details</p>
+          {g.more.map((grp) => (
+            <Disclosure key={grp.key} title={<span className="text-xs">{grp.title}</span>} meta={String(grp.facts.length)} className="text-xs" testId={`facts-group-${grp.key}`}>
+              <div className="pb-1.5 pl-6"><FactList facts={grp.facts} /></div>
+            </Disclosure>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
 
 function Section({ title, icon: Icon, count, help, children, defaultOpen = true, testId }: {
@@ -71,23 +125,8 @@ export function EvidencePane({ detail: d, onCite }: { detail: RequestDetail | nu
     <aside className="pane-scroll h-full min-h-0 overflow-y-auto bg-canvas" data-testid="evidence-pane" aria-label="Request details">
       <Section title="Customer" icon={UserRound} testId="facts"
         help={<HelpTip label="Where account facts come from" align="end">Facts come from the account tools (customer lookup, subscription, existing tickets) for the authorized customer, not from the model.</HelpTip>}>
-        {c ? (
-          <div className="space-y-3 pb-1 pt-1">
-            {groupFacts(c.account_facts).map((g) => (
-              <div key={g.title}>
-                <h4 className="pb-1 text-2xs font-semibold text-fg-subtle">{g.title}</h4>
-                <dl className="space-y-1.5">
-                  {g.facts.map((f) => (
-                    <div key={f.label} className="grid grid-cols-[minmax(5.5rem,38%)_minmax(0,1fr)] gap-x-3 text-ui" title={`Source: ${humanize(f.source)}`}>
-                      <dt className="text-fg-subtle [overflow-wrap:anywhere]">{factLabel(f)}</dt>
-                      <dd className="text-fg [overflow-wrap:anywhere]">{f.label === "Plan features" ? humanizeList(f.value) : humanizeInline(f.value)}</dd>
-                    </div>
-                  ))}
-                </dl>
-              </div>
-            ))}
-          </div>
-        ) : <p className="pb-1 text-ui text-fg-subtle">Facts appear after the workflow looks up the authorized customer.</p>}
+        {c ? <CustomerFacts facts={c.account_facts} category={d.category ?? c.category} />
+          : <p className="pb-1 text-ui text-fg-subtle">Facts appear after the workflow looks up the authorized customer.</p>}
       </Section>
 
       <Section title="Sources" icon={BookOpenText} count={c?.citations.length ?? 0}

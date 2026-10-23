@@ -1,9 +1,11 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { LoaderCircle, Play, Unplug, X } from "lucide-react";
+import { completedTitle } from "./labels";
+import { executionResult } from "./components/Activity";
 import { api, ApiError, type Meta, type Passage, type RequestDetail, type RequestSummary, type Scenario } from "./api";
 import { LoginDialog, NewRequestDialog } from "./components/Dialogs";
 import { AiStatusDialog } from "./components/AiStatusDialog";
-import { FlashBar, Rail, TopBar, type View } from "./components/AppShell";
+import { FlashBar, Rail, TopBar, type Flash, type View } from "./components/AppShell";
 import { EvidencePane } from "./components/EvidencePane";
 import { Inbox, type Filters } from "./components/Inbox";
 import { PassageModal } from "./components/PassageModal";
@@ -15,24 +17,18 @@ import { Button, IconButton } from "./components/ui";
 type Tab = "inbox" | "request" | "details";
 const viewFromHash = (): View => (location.hash === "#setup" ? "setup" : location.hash === "#dashboard" ? "dashboard" : "inbox");
 
-const WORKFLOW_STEPS = ["Classify the request", "Look up the authorized account", "Search workspace documentation", "Draft a proposal for review"];
-
 function Processing({ label }: { label: string }) {
+  // No step list or progress bar: the server runs the workflow in one request and reports what actually
+  // executed afterwards (see Activity). Showing steps here would claim progress we can't observe.
   return (
     <section className="flex h-full items-start justify-center overflow-y-auto bg-surface px-6 pt-16" role="status" aria-live="polite" data-testid="processing">
       <div className="w-full max-w-md">
         <div className="flex items-center gap-2.5">
           <LoaderCircle aria-hidden className="size-5 animate-spin text-accent" strokeWidth={2} />
-          <h1 className="text-lg font-semibold text-fg">Running “{label}”</h1>
+          <h1 className="text-lg font-semibold text-fg [overflow-wrap:anywhere]">Processing “{label}”</h1>
         </div>
-        <p className="mt-1.5 text-ui text-fg-muted">The workflow runs end to end and stops at a proposal. Nothing is sent or changed until you approve.</p>
-        <ol className="mt-5 space-y-2">
-          {WORKFLOW_STEPS.map((s) => (
-            <li key={s} className="flex items-center gap-3 text-ui text-fg-muted">
-              <span className="anim-skeleton size-2 rounded-full bg-accent-line" />{s}
-            </li>
-          ))}
-        </ol>
+        <p className="mt-1.5 text-ui leading-relaxed text-fg-muted">The workflow classifies the request, looks up the authorized account, searches this workspace's documentation and drafts a proposal. It stops there: nothing is sent or changed until you approve.</p>
+        <p className="mt-3 text-xs text-fg-subtle">The steps that ran, with their results and timing, appear under Activity when it finishes.</p>
       </div>
     </section>
   );
@@ -77,8 +73,16 @@ export default function App() {
   const [busyAction, setBusyAction] = useState<string | null>(null);
   const [running, setRunning] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
+  // Notifications. Request-specific ones carry the request id and subject: success notices are cleared
+  // when you navigate to another request; errors stay (labelled with their request) until dismissed or resolved.
+  const [error, setErrorFlash] = useState<Flash | null>(null);
+  const [notice, setNoticeFlash] = useState<Flash | null>(null);
+  const setError = (text: string | null, req?: { id: string; subject: string } | null) =>
+    setErrorFlash(text ? { text, requestId: req?.id, subject: req?.subject } : null);
+  const setNotice = (text: string | null, req?: { id: string; subject: string } | null) =>
+    setNoticeFlash(text ? { text, requestId: req?.id, subject: req?.subject } : null);
+  const inFlight = useRef(false);
+  const selectedRef = useRef<string | null>(null);
   const [dialog, setDialog] = useState<"login" | "new" | "ai" | null>(null);
   const [fatal, setFatal] = useState<string | null>(null);
   const [wsSlug, setWsSlug] = useState<string>(() => localStorage.getItem("ro_ws") ?? "");
@@ -86,6 +90,7 @@ export default function App() {
   const [tab, setTab] = useState<Tab>("inbox");
   const [drawer, setDrawer] = useState(false);
 
+  selectedRef.current = selectedId;
   const ws = meta?.workspaces.find((w) => w.slug === wsSlug) ?? meta?.workspaces[0];
   const slug = ws?.slug ?? "";
 
@@ -108,7 +113,10 @@ export default function App() {
     clearList();
     localStorage.setItem("ro_ws", next); setWsSlug(next); setSelectedId(null); setDetail(null); setError(null); setNotice(null); setTab("inbox");
   };
-  const select = (id: string) => { setSelectedId(id); setTab("request"); };
+  const select = (id: string) => {
+    if (notice?.requestId && notice.requestId !== id) setNoticeFlash(null);
+    setSelectedId(id); setTab("request");
+  };
 
   const loadMeta = useCallback(async () => {
     try {
@@ -138,33 +146,42 @@ export default function App() {
     });
   }, [slug, selectedId, view]);
 
-  async function act(kind: string, fn: () => Promise<RequestDetail>, okMessage?: (d: RequestDetail) => string | null) {
-    setBusy(true); setBusyAction(kind); setError(null); setNotice(null);
+  async function act(kind: string, fn: () => Promise<RequestDetail>, okMessage?: (d: RequestDetail) => string | null,
+    target?: { id: string; subject: string }) {
+    if (inFlight.current) return false; // one review action at a time: no duplicate submissions
+    inFlight.current = true;
+    setBusy(true); setBusyAction(kind); setNotice(null);
+    if (!error?.requestId || error.requestId === target?.id) setError(null);
     try {
       const d = await fn();
-      setDetail(d);
-      setSelectedId(d.id);
-      setTab("request");
+      // If the reviewer moved to another request while this was running, stay there; the notice then
+      // names the request it refers to instead of appearing to describe the open one.
+      if (!target || selectedRef.current === target.id) {
+        setDetail(d);
+        setSelectedId(d.id);
+        setTab("request");
+      }
       const msg = okMessage?.(d);
-      if (msg) setNotice(msg);
+      if (msg) setNotice(msg, d);
       await loadRequests();
       return true;
     } catch (e) {
-      setError((e as Error).message);
-      if (selectedId) api.request(slug, selectedId).then(setDetail).catch(() => undefined);
+      const msg = (e as Error).message;
+      setError(kind === "edit" ? `${msg} Your edits are still in the editor.` : msg, target ?? null);
+      if (target) api.request(slug, target.id).then((d) => setDetail((cur) => (cur?.id === d.id ? d : cur))).catch(() => undefined);
       return false;
-    } finally { setBusy(false); setBusyAction(null); setRunning(null); }
+    } finally { inFlight.current = false; setBusy(false); setBusyAction(null); setRunning(null); }
   }
   const runScenario = (s: Scenario) => {
     if (view !== "inbox") go("inbox");
     setRunning(s.label); setTab("request");
-    return act("scenario", () => api.runScenario(slug, s.key), (d) => d.state === "awaiting_review" ? `${s.label}: proposal ready for review.` : null);
+    return act("scenario", () => api.runScenario(slug, s.key), (d) => d.state === "awaiting_review" ? "Proposal ready for review." : null);
   };
   const cite = async (id: string) => { try { setPassage(await api.passage(slug, id)); } catch (e) { setError((e as Error).message); } };
 
   const outcome = (d: RequestDetail) =>
-    d.state === "completed" ? (d.tickets.length ? `Approved. Ticket ${d.tickets.map((t) => t.number).join(", ")} recorded.` : "Approved. Reply draft recorded; no ticket change.")
-    : d.state === "failed" ? "Execution failed. Details are in the timeline; you can retry safely." : null;
+    d.state === "completed" ? `Approved. ${completedTitle(d.executions.at(-1)?.action_type, d.tickets, executionResult(d))}.`
+    : d.state === "failed" ? "Execution failed. Details are under Activity; retrying is safe." : null;
 
   if (fatal) {
     return (
@@ -179,6 +196,7 @@ export default function App() {
     );
   }
 
+  const target = detail ? { id: detail.id, subject: detail.subject } : undefined;
   const signedIn = !!meta?.reviewer;
   const isReviewer = signedIn && !!ws?.is_member; // reviewer access is per workspace
   const scenarios = ws?.demo_scenarios ?? [];
@@ -198,7 +216,9 @@ export default function App() {
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         <TopBar meta={meta} ws={ws} slug={slug} onWorkspace={switchWorkspace} query={query} setQuery={setQuery} showInboxTools={view === "inbox"}
           scenarios={scenarios} busy={busy} onRunScenario={runScenario} onNewRequest={() => setDialog("new")} />
-        <FlashBar error={error} notice={notice} onDismiss={() => { setError(null); setNotice(null); }} />
+        <FlashBar error={error} notice={notice} currentId={selectedId}
+          onOpen={(id) => { if (view !== "inbox") go("inbox"); select(id); }}
+          onDismiss={() => { setError(null); setNotice(null); }} />
 
         {view === "dashboard" ? (
           <div className="pane-scroll min-h-0 flex-1 overflow-y-auto">
@@ -225,7 +245,7 @@ export default function App() {
                 <Inbox requests={requests} selectedId={selectedId} onSelect={select} filters={filters} setFilters={setFilters}
                   scopeLabel={isReviewer ? "Workspace queue" : "Your session"}
                   scopeHelp={isReviewer ? "Requests in this workspace's real queue. Changes here are visible to other reviewers." : "Requests you created in your private demo sandbox. Only this browser session can see them; Reset my demo clears them."}
-                  loading={loading} query={query} scenarios={scenarios} />
+                  loading={loading} query={query} />
               </div>
               <div className={`${tab === "request" ? "block" : "hidden"} min-h-0 lg:block`}>
                 {running ? <Processing label={running} />
@@ -235,13 +255,14 @@ export default function App() {
                     detail={detail} groups={ws?.ticket_groups ?? []} busy={busy} busyAction={busyAction}
                     onOpenDetails={() => setDrawer(true)}
                     onCite={cite}
-                    onRun={() => act("run", () => api.run(slug, detail.id))}
+                    onRun={() => act("run", () => api.run(slug, detail.id),
+                      (d) => d.state === "awaiting_review" ? "Proposal ready for review." : null, target)}
                     onEdit={(changes) => act("edit", () => api.edit(slug, detail.id, { base_version: detail.proposal!.current_version, ...changes }),
-                      (d) => `Saved version ${d.proposal?.current_version}. It needs a new approval.`)}
-                    onApprove={() => act("approve", () => api.approve(slug, detail.id, detail.proposal!.version.id, detail.proposal!.version.action_hash), outcome)}
-                    onReject={(reason) => act("reject", () => api.reject(slug, detail.id, detail.proposal!.version.id, reason), () => "Proposal rejected.")}
-                    onRetry={() => act("retry", () => api.retry(slug, detail.id), outcome)}
-                    onEscalateInternal={() => act("escalate", () => api.escalateInternal(slug, detail.id), outcome)}
+                      (d) => `Saved version ${d.proposal?.current_version}. It needs a new approval.`, target)}
+                    onApprove={() => act("approve", () => api.approve(slug, detail.id, detail.proposal!.version.id, detail.proposal!.version.action_hash), outcome, target)}
+                    onReject={(reason) => act("reject", () => api.reject(slug, detail.id, detail.proposal!.version.id, reason), () => "Proposal rejected. No ticket was changed.", target)}
+                    onRetry={() => act("retry", () => api.retry(slug, detail.id), outcome, target)}
+                    onEscalateInternal={() => act("escalate", () => api.escalateInternal(slug, detail.id), outcome, target)}
                   />
                 ) : <EmptyRequest scenarios={scenarios} busy={busy} onRun={runScenario} />}
               </div>

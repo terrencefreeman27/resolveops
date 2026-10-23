@@ -161,15 +161,22 @@ export class ApiError extends Error {
 }
 
 async function call<T>(method: string, path: string, body?: unknown): Promise<T> {
-  const res = await fetch(path, {
-    method,
-    credentials: "same-origin",
-    headers: { "X-ResolveOps": "1", ...(body !== undefined ? { "Content-Type": "application/json" } : {}) },
-    body: body !== undefined ? JSON.stringify(body) : undefined,
-  });
+  let res: Response;
+  try {
+    res = await fetch(path, {
+      method,
+      credentials: "same-origin",
+      headers: { "X-ResolveOps": "1", ...(body !== undefined ? { "Content-Type": "application/json" } : {}) },
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+    });
+  } catch {
+    throw new ApiError(0, "Could not reach the server. Check your connection and try again.");
+  }
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
-    const detail = typeof data.detail === "string" ? data.detail : `Request failed (${res.status})`;
+    const detail = typeof data.detail === "string" ? data.detail
+      : res.status >= 500 ? `The server could not complete this request (${res.status}). Try again in a moment.`
+      : `Request failed (${res.status})`;
     throw new ApiError(res.status, detail);
   }
   return data as T;

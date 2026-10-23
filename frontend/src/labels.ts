@@ -47,15 +47,11 @@ export function humanizeList(value: string): string {
 export const STATE_LABEL: Record<string, string> = {
   received: "Received", classified: "Classified", context_resolved: "Context resolved", retrieved: "Retrieved",
   awaiting_review: "Awaiting review", approved: "Approved", executing: "Executing", completed: "Completed",
-  failed: "Execution failed", error: "Error", stale: "Stale evidence", rejected: "Rejected", unsupported: "Unsupported",
+  failed: "Execution failed", error: "Processing error", stale: "Stale evidence", rejected: "Rejected", unsupported: "Not supported",
 };
 export const stateLabel = (s: string) => STATE_LABEL[s] ?? humanize(s);
 
 export type Tone = "neutral" | "accent" | "warn" | "danger" | "ok";
-export const STATE_TONE: Record<string, Tone> = {
-  awaiting_review: "accent", approved: "accent", executing: "accent", completed: "ok",
-  failed: "danger", error: "danger", stale: "warn", rejected: "neutral", unsupported: "neutral",
-};
 
 export function categoryLabel(c: string | null | undefined) {
   return c ? humanize(c) : "Unclassified";

@@ -25,7 +25,7 @@ function iconFor(e: TimelineEvent): LucideIcon {
   return Play;
 }
 
-type Passage = { chunk_id: string; doc: string; version: number; section: string; score: number };
+export type Passage = { chunk_id: string; doc: string; version: number; section: string; score: number };
 
 function title(e: TimelineEvent) {
   if (e.tool_name) return humanize(e.tool_name);
@@ -33,7 +33,7 @@ function title(e: TimelineEvent) {
 }
 
 /** One-line summary shown on the collapsed row. */
-function brief(e: TimelineEvent): string {
+export function brief(e: TimelineEvent): string {
   const s = e.summary as Record<string, unknown>;
   if (e.event === "state.changed") return `${stateLabel(String(s.from))} → ${stateLabel(String(s.to))}`;
   if (e.tool_name === "search_knowledge_base" && s.result) {
@@ -117,22 +117,7 @@ function Step({ e, onCite }: { e: TimelineEvent; onCite: (id: string) => void })
   );
 }
 
-export function Timeline({ events, onCite }: { events: TimelineEvent[]; onCite: (id: string) => void }) {
-  const errors = events.filter((e) => e.error).length;
-  const tools = events.filter((e) => e.event.startsWith("tool.")).length;
-  const total = events.reduce((n, e) => n + (e.duration_ms ?? 0), 0);
-  return (
-    <details className="group/t rounded-lg ring-1 ring-inset ring-line" data-testid="timeline">
-      <summary className="flex cursor-pointer select-none items-center gap-2 rounded-lg px-4 py-3 transition-colors hover:bg-canvas">
-        <ChevronRight aria-hidden className="size-4 text-fg-subtle transition-transform duration-150 group-open/t:rotate-90" strokeWidth={1.75} />
-        <span className="text-ui font-semibold text-fg">Execution details</span>
-        <span className="ml-auto text-xs tabular-nums text-fg-subtle">
-          {events.length} steps · {tools} tool calls{errors ? <span className="text-danger"> · {errors} error{errors === 1 ? "" : "s"}</span> : null} · {total >= 1000 ? `${(total / 1000).toFixed(1)} s` : `${total} ms`}
-        </span>
-      </summary>
-      <ol className="border-t border-line px-2 py-2">
-        {events.map((e) => <Step key={e.id} e={e} onCite={onCite} />)}
-      </ol>
-    </details>
-  );
+/** Every recorded audit event for the request, in order (the raw log behind Activity). */
+export function EventLog({ events, onCite }: { events: TimelineEvent[]; onCite: (id: string) => void }) {
+  return <ol className="py-1" data-testid="event-log">{events.map((e) => <Step key={e.id} e={e} onCite={onCite} />)}</ol>;
 }

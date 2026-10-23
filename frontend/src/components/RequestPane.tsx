@@ -1,10 +1,10 @@
 import { useState } from "react";
-import { Building2, Check, PanelRight, Pencil, Play, RefreshCw, RotateCcw, Ticket, X } from "lucide-react";
+import { Building2, Check, Copy, ExternalLink, LoaderCircle, PanelRight, Pencil, Play, RefreshCw, RotateCcw, Ticket, X } from "lucide-react";
 import type { RequestDetail } from "../api";
-import { categoryLabel, humanize } from "../labels";
+import { approvalCopy, categoryLabel, completedTitle, humanize, requestStatus } from "../labels";
+import { Activity, executionResult } from "./Activity";
 import { ProposalEditor } from "./ProposalEditor";
-import { AttentionList, NEXT_ACTION, TicketActionView, UsageLine, approvalConsequence, versionNote } from "./ProposalParts";
-import { Timeline } from "./Timeline";
+import { AttentionList, NEXT_ACTION, TicketActionView, ticketActionTitle, versionNote } from "./ProposalParts";
 import { Button, HelpTip, StateBadge, timeAgo } from "./ui";
 
 export { versionNote };
@@ -18,6 +18,54 @@ function Callout({ tone, title, children, testId, role = "status" }: {
       <p className="font-semibold">{title}</p>
       <div className="mt-1 space-y-1 text-fg-muted">{children}</div>
     </div>
+  );
+}
+
+const IN_FLIGHT = new Set(["classified", "context_resolved", "retrieved", "approved", "executing"]);
+
+/** Completed state: what happened, the ticket (with link when external), and what to do next. */
+function Completed({ d, onOpenDetails }: { d: RequestDetail; onOpenDetails?: () => void }) {
+  const [copied, setCopied] = useState<"idle" | "done" | "failed">("idle");
+  const ex = d.executions.at(-1);
+  const c = d.proposal?.version.content;
+  const approval = [...d.approvals].reverse().find((a) => a.decision === "approved" && a.status === "active");
+  const approvedVersion = d.proposal?.versions.find((v) => v.id === approval?.version_id)?.version;
+  const title = completedTitle(ex?.action_type, d.tickets, executionResult(d));
+  const clarify = c?.next_action === "clarify";
+  const copyReply = async () => {
+    try { await navigator.clipboard.writeText(c?.draft_reply ?? ""); setCopied("done"); } catch { setCopied("failed"); }
+  };
+  return (
+    <Callout tone="ok" title={title} testId="completed-banner">
+      <p>
+        {approval ? `Version ${approvedVersion ?? "?"} approved by ${approval.actor}` : "Approved"}
+        {ex ? ` and executed via ${ex.adapter === "github" ? "GitHub Issues" : "internal tickets"}` : ""}.
+        {" "}{ex?.action_type === "none" || !ex ? "No ticket was created or changed." : ""}
+      </p>
+      {d.tickets.length > 0 && (
+        <p className="flex flex-wrap items-center gap-x-3 gap-y-1">
+          {d.tickets.map((t) => t.external_url
+            ? <a key={t.id} href={t.external_url} target="_blank" rel="noopener noreferrer" data-testid="completed-ticket-link"
+                className="inline-flex items-center gap-1 font-medium text-accent-strong underline underline-offset-2 hover:text-accent">
+                GitHub issue #{t.external_number}<ExternalLink aria-hidden className="size-3" /><span className="sr-only"> (opens in a new tab)</span></a>
+            : <span key={t.id} data-testid="completed-ticket" className="text-fg">Ticket <span className="font-mono font-semibold">{t.number}</span> · {t.group} · {humanize(t.status)}</span>)}
+          {onOpenDetails && <button type="button" onClick={onOpenDetails} className="text-xs font-medium text-accent-strong underline underline-offset-2 lg:inline xl:hidden">View ticket</button>}
+        </p>
+      )}
+      <p className="text-fg" data-testid="completed-next">
+        <span className="font-medium">Next:</span>{" "}
+        {clarify ? "send the clarification reply from your helpdesk. When the customer answers, submit their reply as a new request."
+          : "send the approved reply from your helpdesk. ResolveOps does not send it."}
+      </p>
+      {c?.draft_reply && (
+        <div className="pt-1">
+          <Button size="sm" icon={copied === "done" ? Check : Copy} onClick={copyReply} data-testid="copy-reply">
+            {copied === "done" ? "Reply copied" : "Copy approved reply"}
+          </Button>
+          {copied === "failed" && <span className="ml-2 text-xs text-danger" role="alert">Copy failed. Select the text in the reply draft below.</span>}
+        </div>
+      )}
+    </Callout>
   );
 }
 
@@ -45,6 +93,8 @@ export function RequestPane(props: {
   const invalidated = d.approvals.filter((a) => a.status === "invalidated").length;
   const hasActions = !!p && !editing && (can.approve || can.edit || can.reject || can.retry || can.escalate_internal);
   const next = c ? NEXT_ACTION[c.next_action] : null;
+  const status = requestStatus(d);
+  const copy = c ? approvalCopy(c.ticket_action, p?.planned_adapter) : null;
   const meta = [d.category && categoryLabel(d.category), d.priority && `${humanize(d.priority)} priority`, d.resolution && `Outcome: ${humanize(d.resolution)}`].filter(Boolean);
 
   return (
@@ -54,7 +104,7 @@ export function RequestPane(props: {
           {/* 1. Title and essential status */}
           <header className="space-y-2">
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-              <StateBadge state={d.state} template={d.is_template} />
+              <StateBadge status={status} />
               {meta.length > 0 && <span className="text-xs text-fg-subtle">{meta.join(" · ")}</span>}
               {props.onOpenDetails && (
                 <span className="ml-auto hidden lg:block xl:hidden">
@@ -79,17 +129,24 @@ export function RequestPane(props: {
             <div className="whitespace-pre-wrap rounded-lg bg-canvas px-4 py-3 text-md text-fg [overflow-wrap:anywhere] ring-1 ring-inset ring-line">{d.body}</div>
           </section>
 
-          {d.is_template && (
-            <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg px-4 py-3 ring-1 ring-inset ring-accent-line">
-              <p className="text-ui text-fg-muted"><span className="font-medium text-fg">Seeded example.</span> Running the workflow makes your own copy; the shared example is unchanged.</p>
-              <Button variant="primary" icon={Play} onClick={props.onRun} loading={busyAction === "run"} disabled={busy} data-testid="run-workflow">Run workflow</Button>
+          {(d.is_template || (d.state === "received" && can.run)) && (
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg px-4 py-3 ring-1 ring-inset ring-accent-line" data-testid="ready-callout">
+              <p className="min-w-0 flex-1 basis-64 text-ui text-fg-muted">
+                <span className="font-medium text-fg">Ready to process.</span>{" "}
+                {d.is_template ? "This is a shared example request. Processing it makes your own copy; the example stays unchanged." : "Processing drafts a proposal for your review. Nothing changes until you approve."}
+              </p>
+              <Button variant="primary" icon={Play} onClick={props.onRun} loading={busyAction === "run"} disabled={busy} data-testid="run-workflow">Process request</Button>
             </div>
           )}
 
-          {d.state === "completed" && (
-            <Callout tone="ok" title={d.tickets.length ? `Completed · ticket ${d.tickets.map((t) => t.number).join(", ")} recorded` : "Completed · reply draft recorded, no ticket change"} testId="completed-banner">
-              <p>The approved version was executed{d.executions.at(-1) ? ` via the ${d.executions.at(-1)!.adapter} adapter` : ""}. The reply draft is recorded for sending by your team; nothing was sent automatically.</p>
+          {IN_FLIGHT.has(d.state) && (
+            <Callout tone="neutral" title="Processing" testId="processing-callout">
+              <p className="flex items-center gap-2"><LoaderCircle aria-hidden className="size-3.5 animate-spin" />{d.state === "executing" ? "The approved action is being executed." : "The workflow is still running for this request."} Reload the request to see the result.</p>
             </Callout>
+          )}
+
+          {d.state === "completed" && (
+            <Completed d={d} onOpenDetails={props.onOpenDetails} />
           )}
 
           {d.state === "stale" && (
@@ -101,11 +158,15 @@ export function RequestPane(props: {
           )}
 
           {d.state_reason && ["unsupported", "error", "failed", "rejected"].includes(d.state) && (
-            <Callout tone={d.state === "rejected" || d.state === "unsupported" ? "neutral" : "danger"}
-              title={d.state === "unsupported" ? "Not processed" : d.state === "rejected" ? "Rejected"
-                : d.state === "error" && d.ai_runs.at(-1)?.provider === "live" ? "Live provider error (no simulated output was used)" : "Problem"}>
-              <p>{d.state_reason}</p>
-              {!d.is_template && can.run && <Button className="mt-1.5" icon={RotateCcw} onClick={props.onRun} loading={busyAction === "run"} disabled={busy}>Reprocess</Button>}
+            <Callout tone={d.state === "rejected" || d.state === "unsupported" ? "neutral" : "danger"} testId="problem-callout"
+              role={d.state === "failed" || d.state === "error" ? "alert" : "status"}
+              title={d.state === "unsupported" ? "Not supported in demo mode" : d.state === "rejected" ? "Rejected: no ticket was changed"
+                : d.state === "failed" ? "Execution failed"
+                : d.ai_runs.at(-1)?.provider === "live" ? "Live provider error (no simulated output was used)" : "Processing error"}>
+              <p className="[overflow-wrap:anywhere]">{d.state === "rejected" ? `Reason: ${d.approvals.at(-1)?.reason ?? d.state_reason}` : d.state_reason}</p>
+              {d.state === "failed" && can.retry && <p>Retrying is safe: it reuses the same idempotency key, so the ticket can't be created twice.</p>}
+              {d.state === "rejected" && can.run && <p>You can reprocess it to draft a fresh proposal.</p>}
+              {!d.is_template && can.run && <Button className="mt-1.5" icon={RotateCcw} onClick={props.onRun} loading={busyAction === "run"} disabled={busy} data-testid="reprocess-request">Reprocess</Button>}
             </Callout>
           )}
 
@@ -119,14 +180,13 @@ export function RequestPane(props: {
                   </span>
                   <span className="text-xs font-medium text-fg-subtle">Proposed next step</span>
                   <span className="ml-auto flex items-center gap-2 text-xs text-fg-subtle">
-                    <span data-testid="proposal-version" className="tabular-nums">Version {p.version.version} of {p.versions.length}</span>
+                    <span data-testid="proposal-version" className="tabular-nums" title={`Approval applies to this exact version. Editing creates version ${p.versions.length + 1}.`}>Version {p.version.version} of {p.versions.length}</span>
                     <span className={`rounded-sm px-1.5 py-0.5 text-2xs font-semibold ${c.simulated ? "bg-fg text-white" : "bg-accent text-white"}`} data-testid="provider-label">{c.provider_label}</span>
                   </span>
                 </div>
                 <div className="space-y-2 px-4 py-3">
-                  <p className="text-md font-medium leading-snug text-fg">{c.summary}</p>
-                  <p className="text-ui text-fg-muted">{c.justification}</p>
-                  <UsageLine u={p.usage} />
+                  <p className="text-md font-medium leading-snug text-fg [overflow-wrap:anywhere]">{c.summary}</p>
+                  <p className="text-ui text-fg-muted [overflow-wrap:anywhere]">{c.justification}</p>
                 </div>
               </section>
 
@@ -140,8 +200,8 @@ export function RequestPane(props: {
                   {/* 4. Editable draft reply */}
                   <section aria-labelledby="draft-h">
                     <div className="flex items-center gap-2 pb-2">
-                      <h2 id="draft-h" className="text-ui font-semibold text-fg">Draft reply</h2>
-                      <HelpTip label="About the draft reply">The draft is never sent automatically. Approving records the reviewed draft; editing saves a new version that needs its own approval.</HelpTip>
+                      <h2 id="draft-h" className="text-ui font-semibold text-fg">Reply draft</h2>
+                      <HelpTip label="About the reply draft">ResolveOps never sends replies. Approving records the reviewed draft for your team to send; editing saves a new version that needs its own approval.</HelpTip>
                       {can.edit && <Button size="sm" variant="ghost" icon={Pencil} className="ml-auto" onClick={() => setEditing(true)} disabled={busy} data-testid="edit">Edit</Button>}
                     </div>
                     <div className="whitespace-pre-wrap rounded-lg px-4 py-3 text-md text-fg [overflow-wrap:anywhere] ring-1 ring-inset ring-line" data-testid="draft-reply">{c.draft_reply}</div>
@@ -164,9 +224,9 @@ export function RequestPane(props: {
                   <section aria-labelledby="ticket-h">
                     <div className="flex items-center gap-2 pb-2">
                       <Ticket aria-hidden className="size-4 text-fg-subtle" strokeWidth={1.75} />
-                      <h2 id="ticket-h" className="text-ui font-semibold text-fg">Ticket action</h2>
+                      <h2 id="ticket-h" className="text-ui font-semibold text-fg">{ticketActionTitle(c.ticket_action, p.planned_adapter)}</h2>
                     </div>
-                    <div className="rounded-lg px-4 py-3 ring-1 ring-inset ring-line"><TicketActionView ta={c.ticket_action} /></div>
+                    <div className="rounded-lg px-4 py-3 ring-1 ring-inset ring-line" data-testid="ticket-action"><TicketActionView ta={c.ticket_action} adapter={p.planned_adapter} /></div>
                   </section>
                 </>
               )}
@@ -177,8 +237,8 @@ export function RequestPane(props: {
             </article>
           )}
 
-          {/* 5. Execution details */}
-          {d.timeline.length > 0 && <Timeline events={d.timeline} onCite={props.onCite} />}
+          {/* 5. Execution evidence */}
+          <Activity detail={d} onCite={props.onCite} />
         </div>
       </div>
 
@@ -194,17 +254,20 @@ export function RequestPane(props: {
             </form>
           ) : (
             <div className="mx-auto flex max-w-[46rem] flex-wrap items-center gap-x-4 gap-y-2">
-              <p className="min-w-0 flex-1 basis-60 text-xs leading-snug text-fg-muted">
-                {can.approve ? <>{approvalConsequence(c.ticket_action)} <span className="text-fg-subtle">Nothing is sent to the customer.</span></>
-                  : can.retry ? "The ticket action did not complete. Retrying is safe: it reuses the same idempotency key."
-                  : "Review the proposal."}
-              </p>
+              <div className="min-w-0 flex-1 basis-60 text-xs leading-snug text-fg-muted" data-testid="approval-consequence">
+                {can.approve && copy ? <>
+                  <p>{copy.consequence}</p>
+                  <p className="mt-0.5 text-2xs text-fg-subtle">{copy.changesTicket ? "Changes a ticket" : "Records the draft only"} · applies to version {p.version.version}</p>
+                </> : can.retry ? <p>The ticket action did not complete. Retrying is safe: it reuses the same idempotency key, so nothing is created twice.</p>
+                  : <p>Review the proposal.</p>}
+              </div>
               <div className="flex flex-wrap items-center gap-2">
                 {can.reject && <Button variant="ghost" icon={X} onClick={() => setRejecting(true)} disabled={busy} className="text-danger hover:bg-danger-soft hover:text-danger">Reject</Button>}
                 {can.escalate_internal && <Button onClick={props.onEscalateInternal} loading={busyAction === "escalate"} disabled={busy} data-testid="escalate-internal"
                   title="Create an internal ticket instead. Refused if GitHub already has an issue for this execution.">Use internal ticket instead</Button>}
                 {can.retry && <Button variant="primary" icon={RotateCcw} onClick={props.onRetry} loading={busyAction === "retry"} disabled={busy} data-testid="retry">Retry execution</Button>}
-                {can.approve && <Button variant="primary" icon={Check} onClick={props.onApprove} loading={busyAction === "approve"} disabled={busy} data-testid="approve">Approve version {p.version.version}</Button>}
+                {can.approve && copy && <Button variant="primary" icon={Check} onClick={props.onApprove} loading={busyAction === "approve"} disabled={busy} data-testid="approve"
+                  aria-label={`${copy.approveLabel} (version ${p.version.version})`}>{copy.approveLabel}</Button>}
               </div>
             </div>
           )}

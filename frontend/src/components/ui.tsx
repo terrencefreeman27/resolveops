@@ -1,6 +1,6 @@
 import { type ButtonHTMLAttributes, type ReactNode, useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { ChevronRight, CircleHelp, LoaderCircle, type LucideIcon } from "lucide-react";
-import { STATE_LABEL, STATE_TONE, stateLabel, type Tone } from "../labels";
+import { STATE_LABEL, type RequestStatus, type Tone } from "../labels";
 
 export { STATE_LABEL };
 
@@ -16,23 +16,26 @@ const TONE_CHIP: Record<Tone, string> = {
 };
 
 /** A status as a coloured dot plus a word: the one status signal in rows and headers. */
-export function StatusLabel({ state, template, className = "" }: { state: string; template?: boolean; className?: string }) {
-  const tone: Tone = template ? "neutral" : STATE_TONE[state] ?? "neutral";
+export function StatusLabel({ status, className = "" }: { status: RequestStatus; className?: string }) {
+  const ready = status.key === "ready";
   return (
-    <span className={`inline-flex min-w-0 items-center gap-1.5 text-xs font-medium ${TONE_TEXT[tone]} ${className}`}>
-      <span aria-hidden className={`size-1.5 shrink-0 rounded-full ${template ? "bg-transparent ring-1 ring-fg-subtle" : TONE_DOT[tone]}`} />
-      <span className="truncate">{template ? "Seeded, not run" : stateLabel(state)}</span>
+    <span className={`inline-flex min-w-0 items-center gap-1.5 text-xs font-medium ${TONE_TEXT[status.tone]} ${className}`} data-status={status.key}>
+      <span aria-hidden className={`size-1.5 shrink-0 rounded-full ${ready ? "bg-transparent ring-1 ring-fg-subtle" : TONE_DOT[status.tone]}`} />
+      <span className="truncate">{status.label}</span>
     </span>
   );
 }
 
-/** Status as a soft chip, used once per request header. */
-export function StateBadge({ state, template }: { state: string; template?: boolean }) {
-  const tone: Tone = template ? "neutral" : STATE_TONE[state] ?? "neutral";
+/** Status as a soft chip, used once per request header; the detail ("Awaiting review") follows quietly. */
+export function StateBadge({ status }: { status: RequestStatus }) {
+  const ready = status.key === "ready";
   return (
-    <span className={`inline-flex shrink-0 items-center gap-1.5 rounded-sm px-1.5 py-0.5 text-xs font-medium ${TONE_CHIP[tone]}`}>
-      <span aria-hidden className={`size-1.5 rounded-full ${template ? "bg-transparent ring-1 ring-fg-subtle" : TONE_DOT[tone]}`} />
-      {template ? "Seeded, not run" : stateLabel(state)}
+    <span className="inline-flex shrink-0 items-center gap-2" data-testid="state-badge" data-status={status.key}>
+      <span className={`inline-flex items-center gap-1.5 rounded-sm px-1.5 py-0.5 text-xs font-medium ${TONE_CHIP[status.tone]}`}>
+        <span aria-hidden className={`size-1.5 rounded-full ${ready ? "bg-transparent ring-1 ring-fg-subtle" : TONE_DOT[status.tone]}`} />
+        {status.label}
+      </span>
+      {status.detail && <span className="text-xs text-fg-subtle">{status.detail}</span>}
     </span>
   );
 }

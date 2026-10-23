@@ -171,14 +171,31 @@ export function TopBar({ meta, ws, slug, onWorkspace, query, setQuery, showInbox
   );
 }
 
-export function FlashBar({ error, notice, onDismiss }: { error: string | null; notice: string | null; onDismiss: () => void }) {
-  if (!error && !notice) return null;
+export type Flash = { text: string; requestId?: string; subject?: string };
+
+/**
+ * Notifications. Request-specific ones always name their request; when that request isn't the one on
+ * screen, the bar says so and offers to open it. Errors stay until dismissed or resolved.
+ */
+export function FlashBar({ error, notice, currentId, onOpen, onDismiss }: {
+  error: Flash | null; notice: Flash | null; currentId: string | null; onOpen: (id: string) => void; onDismiss: () => void;
+}) {
+  const f = error ?? notice;
+  if (!f) return null;
+  const elsewhere = !!f.requestId && f.requestId !== currentId;
   return (
     <div className={`flex shrink-0 items-center gap-2.5 border-b px-4 py-1.5 text-ui ${error ? "border-danger-line bg-danger-soft text-danger" : "border-accent-line bg-accent-soft text-accent-strong"}`}
-      role={error ? "alert" : "status"} data-testid={error ? "error" : "notice"}>
+      role={error ? "alert" : "status"} data-testid={error ? "error" : "notice"} data-request-id={f.requestId ?? ""}>
       {error ? <CircleAlert aria-hidden className="size-4 shrink-0" strokeWidth={2} /> : <CircleCheck aria-hidden className="size-4 shrink-0" strokeWidth={2} />}
-      <span className="min-w-0 flex-1 [overflow-wrap:anywhere]">{error ?? notice}</span>
-      <IconButton icon={X} label="Dismiss" onClick={onDismiss} className="size-7 text-current hover:bg-white/60 hover:text-current" />
+      <span className="min-w-0 flex-1 [overflow-wrap:anywhere]">
+        {f.subject && <span className="font-semibold" data-testid="flash-subject">{elsewhere ? "Another request, " : ""}“{f.subject}”: </span>}
+        {f.text}
+      </span>
+      {elsewhere && f.requestId && (
+        <button type="button" onClick={() => onOpen(f.requestId!)} data-testid="flash-open"
+          className="shrink-0 rounded-md px-2 py-1 text-xs font-semibold underline underline-offset-2 hover:bg-white/60">Open request</button>
+      )}
+      <IconButton icon={X} label={error ? "Dismiss error" : "Dismiss notification"} onClick={onDismiss} className="size-7 text-current hover:bg-white/60 hover:text-current" />
     </div>
   );
 }

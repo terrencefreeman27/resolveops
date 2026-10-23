@@ -1,5 +1,5 @@
 import { ArrowUpRight, CircleAlert, MessageCircleQuestion, MessageSquareReply, type LucideIcon } from "lucide-react";
-import type { CitationVersion, ProposalContent, ProposalUsage, TicketAction } from "../api";
+import type { CitationVersion, ProposalContent, TicketAction } from "../api";
 import { humanize } from "../labels";
 import { Disclosure } from "./ui";
 
@@ -9,20 +9,21 @@ export const NEXT_ACTION: Record<ProposalContent["next_action"], { label: string
   escalate: { label: "Escalate", icon: ArrowUpRight, tone: "bg-danger-soft text-danger" },
 };
 
-/** One sentence describing what approval will do, shown next to the approve button. */
-export function approvalConsequence(ta: TicketAction): string {
-  if (ta.type === "create_ticket") return `Creates a ticket for ${ta.group ?? "the selected group"} (${humanize(ta.priority ?? "normal").toLowerCase()} priority) and records the reply draft.`;
-  if (ta.type === "add_note") return "Adds a note to the existing ticket and records the reply draft.";
-  return "Records the reviewed reply draft. No ticket is created or changed.";
+/** Heading for the ticket part of a proposal, named for what it would actually do. */
+export function ticketActionTitle(ta: TicketAction, adapter: string | null | undefined): string {
+  if (ta.type === "create_ticket") return adapter === "github" ? "New GitHub issue" : "New internal ticket";
+  if (ta.type === "add_note") return "Note on the existing ticket";
+  return "Ticket: no change";
 }
 
-export function TicketActionView({ ta }: { ta: TicketAction }) {
-  if (ta.type === "none") return <p className="text-ui text-fg-muted">No ticket change. Approval records the reviewed reply draft only.</p>;
-  if (ta.type === "add_note") return <p className="text-ui text-fg-muted">Add a note to the existing ticket: <span className="text-fg">{ta.body}</span></p>;
+export function TicketActionView({ ta, adapter }: { ta: TicketAction; adapter?: string | null }) {
+  if (ta.type === "none") return <p className="text-ui text-fg-muted">No ticket is created or changed. Approval records the reviewed reply draft only.</p>;
+  if (ta.type === "add_note") return <p className="text-ui text-fg-muted [overflow-wrap:anywhere]">Internal note added to the customer's existing ticket: <span className="text-fg">{ta.body}</span></p>;
   return (
     <div className="space-y-2">
       <p className="text-ui font-medium text-fg [overflow-wrap:anywhere]">{ta.subject}</p>
       <dl className="flex flex-wrap gap-x-5 gap-y-1 text-xs">
+        <div className="flex gap-1.5"><dt className="text-fg-subtle">Destination</dt><dd className="font-medium text-fg">{adapter === "github" ? "GitHub Issues" : "Internal tickets"}</dd></div>
         <div className="flex gap-1.5"><dt className="text-fg-subtle">Group</dt><dd className="font-medium text-fg">{ta.group}</dd></div>
         <div className="flex gap-1.5"><dt className="text-fg-subtle">Priority</dt><dd className="font-medium text-fg">{humanize(ta.priority)}</dd></div>
         <div className="flex gap-1.5"><dt className="text-fg-subtle">Status</dt><dd className="font-medium text-fg">{humanize(ta.status)}</dd></div>
@@ -36,18 +37,6 @@ export function versionNote(cv: CitationVersion | undefined, v: number) {
   if (!cv || cv.status === "active") return "";
   if (cv.document_status === "deleted") return ` · v${v}, deleted`;
   return cv.current_version ? ` · v${v}, superseded by v${cv.current_version}` : ` · v${v}, ${cv.status}`;
-}
-
-export function UsageLine({ u }: { u: ProposalUsage }) {
-  if (!u?.provider) return null;
-  const ms = u.latency_ms != null ? (u.latency_ms >= 1000 ? `${(u.latency_ms / 1000).toFixed(1)}s` : `${u.latency_ms}ms`) : "n/a";
-  return (
-    <p className="text-xs text-fg-subtle" data-testid="proposal-usage">
-      {u.provider === "live"
-        ? `Produced by ${u.model} · ${(u.input_tokens ?? 0).toLocaleString("en-US")} input / ${(u.output_tokens ?? 0).toLocaleString("en-US")} output tokens · ${u.tool_steps} tool call${u.tool_steps === 1 ? "" : "s"} · ${u.api_calls} model call${u.api_calls === 1 ? "" : "s"}${u.retries ? ` · ${u.retries} retr${u.retries === 1 ? "y" : "ies"}` : ""} · ${ms}`
-        : `Produced by simulated fixtures · no model tokens · ${ms}`}
-    </p>
-  );
 }
 
 /** Everything a reviewer must weigh before approving: evidence problems, risk flags, rules, missing info. */
