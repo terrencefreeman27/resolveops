@@ -45,14 +45,18 @@ def _runs(db: Session, actor: Actor) -> dict:
                  "errors": sum(r.status == "error" for r in rs),
                  "latency_ms_median": median(lat) if lat else None, "latency_ms_p95": _p95(lat)}
         if kind == "live":
-            tin, tout = sum(r.input_tokens for r in rs), sum(r.output_tokens for r in rs)
-            block |= {"input_tokens": tin, "output_tokens": tout,
-                      "cache_read_input_tokens": sum(r.cache_read_input_tokens for r in rs)}
-            cost = limits.cost_usd(tin, tout, s)
+            unc, tout = sum(r.input_tokens for r in rs), sum(r.output_tokens for r in rs)
+            cread = sum(r.cache_read_input_tokens for r in rs)
+            cwrite = sum(r.cache_creation_input_tokens for r in rs)
+            block |= {"input_tokens": unc + cread + cwrite, "uncached_input_tokens": unc, "output_tokens": tout,
+                      "cache_read_input_tokens": cread, "cache_creation_input_tokens": cwrite}
+            cost = limits.cost_usd(unc, tout, s, cache_read_tokens=cread, cache_write_tokens=cwrite)
             block["cost"] = ({"usd": round(cost, 4), "assumptions": {
                 "input_per_mtok_usd": s.live_price_input_per_mtok, "output_per_mtok_usd": s.live_price_output_per_mtok,
                 "source": "LIVE_PRICE_* environment variables (operator-configured)",
-                "excludes": "cache pricing differences, taxes, and anything not in the API usage fields"}}
+                "cache_read_multiplier": s.live_price_cache_read_multiplier,
+                "cache_write_multiplier": s.live_price_cache_write_multiplier,
+                "excludes": "long-prompt (>100K) tier pricing, taxes, and anything not in the API usage fields"}}
                 if cost is not None else {"usd": None, "note": "pricing not configured"})
         else:
             block["note"] = ("Pipeline time with the simulated provider (retrieval, tools, database). "

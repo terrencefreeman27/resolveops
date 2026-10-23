@@ -128,6 +128,8 @@ def summarize(cases: list[dict], results: dict, version: str) -> dict:
     runs = [results[i]["observed"].get("ai_run") for i in evaluated if results[i]["observed"].get("ai_run")]
     lat = [x["latency_ms"] for x in runs if x and x.get("latency_ms") is not None]
     tok_in = [x["input_tokens"] for x in runs if x]
+    tok_cr = [x.get("cache_read_input_tokens", 0) for x in runs if x]
+    tok_cw = [x.get("cache_creation_input_tokens", 0) for x in runs if x]
     tok_out = [x["output_tokens"] for x in runs if x]
 
     return {
@@ -166,5 +168,7 @@ def summarize(cases: list[dict], results: dict, version: str) -> dict:
         "per_case_type": {k: dict(v) for k, v in sorted(per_type.items())},
         "latency_tokens": {"runs": len(runs), "latency_ms_median": median(lat) if lat else None,
                            "latency_ms_max": max(lat) if lat else None,
-                           "input_tokens_total": sum(tok_in), "output_tokens_total": sum(tok_out)},
+                           "input_tokens_total": sum(tok_in) + sum(tok_cr) + sum(tok_cw),
+                           "uncached_input_tokens_total": sum(tok_in), "cache_read_input_tokens_total": sum(tok_cr),
+                           "cache_creation_input_tokens_total": sum(tok_cw), "output_tokens_total": sum(tok_out)},
     }

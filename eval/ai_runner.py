@@ -180,7 +180,9 @@ class Runner:
             if run is None:
                 return None
             return {"provider": run.provider, "model": run.model, "status": run.status, "latency_ms": run.latency_ms,
-                    "input_tokens": run.input_tokens, "output_tokens": run.output_tokens, "api_calls": run.api_calls,
+                    "input_tokens": run.input_tokens, "cache_read_input_tokens": run.cache_read_input_tokens,
+                    "cache_creation_input_tokens": run.cache_creation_input_tokens,
+                    "output_tokens": run.output_tokens, "api_calls": run.api_calls,
                     "tool_steps": run.tool_steps}
 
     # ---------------------------------------------------------------- retrieval probe (no model)

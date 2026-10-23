@@ -66,25 +66,39 @@ def month_start(now: datetime | None = None) -> datetime:
     return now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
 
 
-def cost_usd(input_tokens: int, output_tokens: int, settings: Settings | None = None) -> float | None:
+def cost_usd(input_tokens: int, output_tokens: int, settings: Settings | None = None, *,
+             cache_read_tokens: int = 0, cache_write_tokens: int = 0) -> float | None:
+    """Estimate from the configured prices only. Cache reads and writes are priced as multiples of the
+    input price (LIVE_PRICE_CACHE_*_MULTIPLIER). Tiered long-prompt pricing is not modelled."""
     s = settings or get_settings()
     if s.live_price_input_per_mtok is None or s.live_price_output_per_mtok is None:
         return None
-    return round(input_tokens / 1e6 * s.live_price_input_per_mtok + output_tokens / 1e6 * s.live_price_output_per_mtok, 4)
+    p_in = s.live_price_input_per_mtok / 1e6
+    return round(input_tokens * p_in
+                 + cache_read_tokens * p_in * s.live_price_cache_read_multiplier
+                 + cache_write_tokens * p_in * s.live_price_cache_write_multiplier
+                 + output_tokens / 1e6 * s.live_price_output_per_mtok, 4)
 
 
 def usage_this_month(db: Session) -> dict:
     since = month_start()
     out = {}
     for provider in ("live", "simulated"):
-        runs, inp, outp, errors = db.execute(select(
+        runs, inp, cread, cwrite, outp, errors = db.execute(select(
             func.count(AiRun.id), func.coalesce(func.sum(AiRun.input_tokens), 0),
+            func.coalesce(func.sum(AiRun.cache_read_input_tokens), 0),
+            func.coalesce(func.sum(AiRun.cache_creation_input_tokens), 0),
             func.coalesce(func.sum(AiRun.output_tokens), 0),
             func.count(AiRun.id).filter(AiRun.status == "error"),
         ).where(AiRun.provider == provider, AiRun.created_at >= since)).one()
-        out[provider] = {"runs": runs, "errors": errors, "input_tokens": int(inp), "output_tokens": int(outp),
-                         "total_tokens": int(inp) + int(outp)}
-    out["live"]["cost_usd"] = cost_usd(out["live"]["input_tokens"], out["live"]["output_tokens"])
+        total_in = int(inp) + int(cread) + int(cwrite)
+        out[provider] = {"runs": runs, "errors": errors, "input_tokens": total_in, "uncached_input_tokens": int(inp),
+                         "cache_read_input_tokens": int(cread), "cache_creation_input_tokens": int(cwrite),
+                         "output_tokens": int(outp), "total_tokens": total_in + int(outp)}
+    lv = out["live"]
+    lv["cost_usd"] = cost_usd(lv["uncached_input_tokens"], lv["output_tokens"],
+                              cache_read_tokens=lv["cache_read_input_tokens"],
+                              cache_write_tokens=lv["cache_creation_input_tokens"])
     out["since"] = since.isoformat()
     return out
 

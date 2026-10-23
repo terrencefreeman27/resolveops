@@ -9,6 +9,11 @@ _root, _ = _base.rsplit("/", 1)
 TEST_URL = f"{_root}/resolveops_test"
 os.environ["DATABASE_URL"] = TEST_URL
 os.environ["AI_MODE"] = "demo"
+# Deterministic tests must not depend on the operator's local .env (the api container loads it): drop
+# every LIVE_* / GITHUB_* override so code defaults apply. ANTHROPIC_API_KEY is kept only so the opt-in
+# `pytest -m live` smoke tests can run; every other test uses a fake client and never sends it.
+for _k in [k for k in os.environ if k.startswith(("LIVE_", "GITHUB_"))]:
+    del os.environ[_k]
 
 
 def _recreate_db() -> None:

@@ -115,3 +115,31 @@ def test_status_panel_shows_config_never_the_key(live, reviewer, visitor):
     assert body["usage_this_month"]["live"]["runs"] >= 1
     assert live.settings.anthropic_api_key not in s.text
     assert "sk-ant" not in json.dumps(visitor.get("/api/meta").json())
+
+
+def test_cached_tokens_count_toward_usage_budget_and_cost(live, reviewer, db):
+    # Regression (found in the first live eval): with prompt caching on, almost all input arrives as
+    # cache reads/writes, and `input_tokens` alone undercounted real usage by orders of magnitude.
+    from app.providers.base import Usage
+    u = Usage(input_tokens=8, output_tokens=1000, cache_read_input_tokens=9000, cache_creation_input_tokens=7000)
+    assert u.total_input_tokens == 16008 and u.total_tokens == 17008
+
+    live.script(steps())
+    assert run(reviewer).status_code == 200
+    db.expire_all()
+    r = db.scalars(select(AiRun).where(AiRun.provider == "live").order_by(AiRun.created_at.desc())).first()
+    r.cache_read_input_tokens, r.cache_creation_input_tokens = 900_000, 100_000
+    db.commit()
+    used = limits.usage_this_month(db)["live"]
+    assert used["cache_read_input_tokens"] >= 900_000 and used["cache_creation_input_tokens"] >= 100_000
+    assert used["input_tokens"] >= 1_000_000 and used["total_tokens"] >= 1_000_000
+
+    # Cost: Haiku 5.5 list prices; cache read 0.1x and write 1.25x of the input price.
+    live.set(live_price_input_per_mtok=0.10, live_price_output_per_mtok=0.50)
+    assert limits.cost_usd(1_000_000, 0, cache_read_tokens=1_000_000, cache_write_tokens=1_000_000) == 0.235
+
+    # The token budget now trips on cached usage.
+    live.set(live_monthly_token_budget=1_000_000)
+    live.script(steps())
+    resp = run(reviewer)
+    assert resp.status_code == 429 and resp.json()["limit"] == "budget_tokens"

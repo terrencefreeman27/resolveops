@@ -52,6 +52,11 @@ class Settings(BaseSettings):
     # Optional USD budget: only used when BOTH prices are set. Never assumed.
     live_price_input_per_mtok: float | None = None
     live_price_output_per_mtok: float | None = None
+    # Prompt-cache prices as multiples of the input price. Defaults match Claude Haiku 5.5's list prices
+    # (cache read $0.01 = 0.1x, 5-minute cache write $0.125 = 1.25x of $0.10). Other models differ
+    # (e.g. Opus 5.5 / Sonnet 5.5 cache reads are 5% of input); set these when changing LIVE_MODEL.
+    live_price_cache_read_multiplier: float = 0.1
+    live_price_cache_write_multiplier: float = 1.25
     live_monthly_usd_budget: float | None = None
     max_upload_bytes: int = 200_000  # per imported document (.md / .txt)
     max_documents_per_workspace: int = 40

@@ -48,8 +48,14 @@ class Usage:
     retries: int = 0
 
     @property
+    def total_input_tokens(self) -> int:
+        """All input the API processed: uncached + cache reads + cache writes. With prompt caching on,
+        `input_tokens` alone counts only the uncached tail and badly undercounts real usage."""
+        return self.input_tokens + self.cache_read_input_tokens + self.cache_creation_input_tokens
+
+    @property
     def total_tokens(self) -> int:
-        return self.input_tokens + self.output_tokens
+        return self.total_input_tokens + self.output_tokens
 
 
 @dataclass
