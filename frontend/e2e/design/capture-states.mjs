@@ -42,7 +42,7 @@ try {
     const ctx = await browser.newContext({ viewport: { width: w, height: h } });
     const page = await ctx.newPage();
     await page.goto(BASE);
-    await page.getByTestId("inbox").getByText("Seeded, not run").first().waitFor({ timeout: 20000 });
+    await page.getByTestId("inbox").getByText("Not processed").first().waitFor({ timeout: 20000 });
     await page.waitForTimeout(300);
     await shot(page, "01-empty-selection", w);
 
@@ -75,13 +75,13 @@ try {
     await page.keyboard.press("Escape");
 
     await runScenario(page, "connector_outage");
-    await page.getByTestId("timeline").locator("summary").first().click();
-    await page.getByTestId("timeline").locator("summary").first().evaluate((el) => el.scrollIntoView({ block: "start" }));
+    await page.getByTestId("activity").locator("summary").first().click();
+    await page.getByTestId("activity").locator("summary").first().evaluate((el) => el.scrollIntoView({ block: "start" }));
     await page.waitForTimeout(200);
     await shot(page, "05-escalation-timeline", w);
 
     // Completed: approve the escalation.
-    await page.getByTestId("timeline").locator("summary").first().click();
+    await page.getByTestId("activity").locator("summary").first().click();
     await page.getByTestId("approve").click();
     await page.getByTestId("notice").waitFor({ timeout: 20000 });
     await page.waitForTimeout(200);
@@ -122,7 +122,7 @@ try {
       await route.fulfill({ response: res, json: body });
     });
     await sp.goto(BASE);
-    await sp.getByTestId("inbox").getByText("Seeded, not run").first().waitFor({ timeout: 20000 });
+    await sp.getByTestId("inbox").getByText("Not processed").first().waitFor({ timeout: 20000 });
     await runScenario(sp, "access_reporting_after_upgrade");
     await sp.waitForTimeout(300);
     await shot(sp, "09-stress-long-content", w);

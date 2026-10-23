@@ -34,7 +34,7 @@ try {
     const ctx = await browser.newContext({ viewport: { width: w, height: h } });
     const p = await ctx.newPage();
     await p.goto(BASE);
-    await p.getByTestId("inbox").getByText("Seeded, not run").first().waitFor();
+    await p.getByTestId("inbox").getByText("Not processed").first().waitFor();
     await runScenario(p, "connector_outage");
     await p.getByTestId("proposal").waitFor();
     check(`${w}px: no horizontal overflow`, (await overflow(p)) <= 0, `${await overflow(p)}px`);
@@ -88,7 +88,7 @@ try {
   const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
   const p = await ctx.newPage();
   await p.goto(BASE);
-  await p.getByTestId("inbox").getByText("Seeded, not run").first().waitFor();
+  await p.getByTestId("inbox").getByText("Not processed").first().waitFor();
   await p.getByTestId("inbox-row").first().focus();
   await p.keyboard.press("ArrowDown");
   const second = await p.evaluate(() => document.activeElement === document.querySelectorAll("[data-testid=inbox-row]")[1]);
@@ -122,6 +122,7 @@ try {
   // C. Contrast of real rendered text (body ≥ 4.5:1).
   await runScenario(p, "access_reporting_after_upgrade");
   await p.getByTestId("proposal").waitFor();
+  await p.getByTestId("activity").locator("summary").first().click(); // usage line lives in Activity
   const pairs = {
     "draft reply body": await contrastOf(p, "[data-testid=draft-reply]"),
     "proposal usage (subtle)": await contrastOf(p, "[data-testid=proposal-usage]"),
@@ -136,7 +137,7 @@ try {
   // D. Empty inbox (fresh visitor, seeded examples collapsed) and a no-match search.
   const e = await (await browser.newContext({ viewport: { width: 1280, height: 800 } })).newPage();
   await e.goto(BASE);
-  await e.getByTestId("inbox").getByText("Seeded, not run").first().waitFor();
+  await e.getByTestId("inbox").getByText("Not processed").first().waitFor();
   await e.getByTestId("seeded-section").locator("summary").click();
   await e.waitForTimeout(150);
   check("empty session shows guidance", (await e.getByTestId("inbox").innerText()).includes("Nothing here yet"));

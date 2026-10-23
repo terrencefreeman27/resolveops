@@ -140,7 +140,7 @@ export async function m3({ visitor, apiCall, check, OUT, expectedHttp }) {
   await C.page.getByTestId("proposal").waitFor();
   const ns = (await apiCall(C.page, "GET", `/api/w/northstar/requests/${await latestId(C.page, "northstar")}`)).data;
   await C.page.getByTestId("workspace-switcher").selectOption("lumen");
-  await C.page.getByTestId("inbox").getByText("Seeded, not run").first().waitFor();
+  await C.page.getByTestId("inbox").getByText("Not processed").first().waitFor();
   await runScenario(C.page, "access_reporting_after_upgrade");
   await C.page.getByTestId("draft-reply").getByText("Scale").waitFor();
   const ll = (await apiCall(C.page, "GET", `/api/w/lumen/requests/${await latestId(C.page, "lumen")}`)).data;

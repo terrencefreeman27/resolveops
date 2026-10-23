@@ -180,7 +180,8 @@ export default function App() {
   const cite = async (id: string) => { try { setPassage(await api.passage(slug, id)); } catch (e) { setError((e as Error).message); } };
 
   const outcome = (d: RequestDetail) =>
-    d.state === "completed" ? `Approved. ${completedTitle(d.executions.at(-1)?.action_type, d.tickets, executionResult(d))}.`
+    d.state === "completed" ? (d.executions.at(-1)?.action_type === "none" ? "Reply draft approved; no ticket change."
+      : `Approved. ${completedTitle(d.executions.at(-1)?.action_type, d.tickets, executionResult(d))}.`)
     : d.state === "failed" ? "Execution failed. Details are under Activity; retrying is safe." : null;
 
   if (fatal) {

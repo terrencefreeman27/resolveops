@@ -28,7 +28,7 @@ async function visitor() {
   page.on("pageerror", (e) => consoleErrors.push(String(e)));
   page.on("response", (r) => { if (r.status() >= 400) consoleErrors.push(`HTTP ${r.status()} ${r.request().method()} ${new URL(r.url()).pathname}`); });
   await page.goto(BASE);
-  await page.getByTestId("inbox").getByText("Seeded, not run").first().waitFor();
+  await page.getByTestId("inbox").getByText("Not processed").first().waitFor();
   await page.getByTestId("mode-banner").getByText("Demo mode").waitFor();
   return { ctx, page };
 }
@@ -52,7 +52,7 @@ try {
   const A = await visitor();
   const banner = await A.page.getByTestId("mode-banner").innerText();
   check("mode banner shows demo mode", banner.includes("Demo mode") && banner.includes("Simulated AI"), banner);
-  const seeded = await A.page.getByTestId("inbox").getByText("Seeded, not run").count();
+  const seeded = await A.page.getByTestId("inbox").getByText("Not processed").count();
   check("seeded inbox loads (6 requests)", seeded === 6, `${seeded}`);
   await shot(A.page, "01-seeded-inbox");
 
@@ -72,8 +72,11 @@ try {
   await A.page.getByTestId("proposal").waitFor();
   const reply = await A.page.getByTestId("draft-reply").innerText();
   check("access reply uses account facts", reply.includes("Viewer") && reply.includes("Jordan Patel") && reply.includes("Analyst"));
+  // Usage details live in the collapsed Activity section (portfolio polish); open it to read them.
+  await A.page.getByTestId("activity").locator("summary").first().click();
   check("simulated label on proposal", (await A.page.getByTestId("provider-label").innerText()) === "Simulated AI — demo mode"
     && (await A.page.getByTestId("proposal-usage").innerText()).includes("simulated fixtures · no model tokens"));
+  await A.page.getByTestId("activity").locator("summary").first().click();
   await shot(A.page, "02-access-proposal");
   await A.page.getByTestId("citation").first().click();
   await A.page.getByTestId("passage-modal").waitFor();
@@ -124,8 +127,8 @@ try {
     again.status === 409 && d3.tickets.length === 1 && d3.tickets[0].group === "Engineering — Data Connectors",
     `ticket ${d3.tickets[0]?.number}`);
   check("audit records approval and execution", events.includes("approval.granted") && events.includes("execution.succeeded"));
-  await A.page.getByTestId("timeline").locator("summary").click();
-  await A.page.getByTestId("timeline").locator("summary").evaluate((el) => el.scrollIntoView({ block: "start" }));
+  await A.page.getByTestId("activity").locator("summary").first().click();
+  await A.page.getByTestId("activity").locator("summary").first().evaluate((el) => el.scrollIntoView({ block: "start" }));
   await shot(A.page, "06-escalation-timeline");
 
   // 6. Two visitor sessions are isolated.
