@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { ChevronRight, ExternalLink } from "lucide-react";
 import type { RequestDetail, TimelineEvent } from "../api";
-import { humanize } from "../labels";
+import { actorLabel, humanize } from "../labels";
 import { EventLog, brief, type Passage } from "./Timeline";
 import { Disclosure } from "./ui";
 
@@ -135,10 +135,10 @@ function SourcesSection({ events, cited, onCite }: { events: TimelineEvent[]; ci
 function ReviewSection({ d }: { d: RequestDetail }) {
   const p = d.proposal;
   const items: { at: string; node: ReactNode; tone?: "warn" | "danger" | "ok" }[] = [
-    ...(p?.versions ?? []).map((v) => ({ at: v.created_at, node: <>Proposal version {v.version} by {v.author}{v.edit_note ? ` (“${v.edit_note}”)` : ""}</> })),
+    ...(p?.versions ?? []).map((v) => ({ at: v.created_at, node: <>Proposal version {v.version} by {actorLabel(v.author)}{v.edit_note ? ` (“${v.edit_note}”)` : ""}</> })),
     ...d.approvals.map((a) => ({
       at: a.created_at, tone: a.status === "invalidated" ? ("warn" as const) : a.decision === "approved" ? ("ok" as const) : undefined,
-      node: <>{a.decision === "approved" ? "Approved" : "Rejected"} by {a.actor}{a.reason ? `: ${a.reason}` : ""}{a.status === "invalidated" ? ` · invalidated (${a.invalidated_reason})` : ""}</>,
+      node: <>{a.decision === "approved" ? "Approved" : "Rejected"} by {actorLabel(a.actor)}{a.reason ? `: ${a.reason}` : ""}{a.status === "invalidated" ? ` · invalidated (${a.invalidated_reason})` : ""}</>,
     })),
     ...d.executions.map((e) => {
       const t = d.tickets.find((x) => x.id === e.ticket_id);

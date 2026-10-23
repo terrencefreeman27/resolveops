@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Building2, Check, Copy, ExternalLink, LoaderCircle, PanelRight, Pencil, Play, RefreshCw, RotateCcw, Ticket, X } from "lucide-react";
 import type { RequestDetail } from "../api";
-import { approvalCopy, categoryLabel, completedTitle, humanize, requestStatus } from "../labels";
+import { actorLabel, approvalCopy, categoryLabel, completedTitle, humanize, requestStatus } from "../labels";
 import { Activity, executionResult } from "./Activity";
 import { ProposalEditor } from "./ProposalEditor";
 import { AttentionList, NEXT_ACTION, TicketActionView, ticketActionTitle, versionNote } from "./ProposalParts";
@@ -38,9 +38,8 @@ function Completed({ d, onOpenDetails }: { d: RequestDetail; onOpenDetails?: () 
   return (
     <Callout tone="ok" title={title} testId="completed-banner">
       <p>
-        {approval ? `Version ${approvedVersion ?? "?"} approved by ${approval.actor}` : "Approved"}
-        {ex ? ` and executed via ${ex.adapter === "github" ? "GitHub Issues" : "internal tickets"}` : ""}.
-        {" "}{ex?.action_type === "none" || !ex ? "No ticket was created or changed." : ""}
+        {approval ? `Version ${approvedVersion ?? "?"} approved by ${actorLabel(approval.actor)}` : "Approved"}
+        {ex && ex.action_type !== "none" ? `, then executed via ${ex.adapter === "github" ? "GitHub Issues" : "internal tickets"}.` : ". No ticket was created or changed."}
       </p>
       {d.tickets.length > 0 && (
         <p className="flex flex-wrap items-center gap-x-3 gap-y-1">

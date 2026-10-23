@@ -91,7 +91,7 @@ export function requestStatus(r: StatusInput): RequestStatus {
   switch (r.state) {
     case "received": return s("ready", "Ready to process", "neutral");
     case "awaiting_review": return clarify ? s("needs_info", "Needs information", "warn", "Awaiting review") : s("awaiting_review", "Awaiting review", "accent");
-    case "completed": return clarify ? s("needs_info", "Needs information", "warn", "Clarification approved") : s("completed", "Completed", "ok");
+    case "completed": return clarify ? s("needs_info", "Needs information", "warn", "Reply approved") : s("completed", "Completed", "ok");
     case "rejected": return s("rejected", "Rejected", "neutral");
     case "failed": return s("failed", "Execution failed", "danger", "Retry available");
     case "error": return s("error", "Processing error", "danger");
@@ -130,7 +130,7 @@ export function approvalCopy(ta: ActionInput, adapter: string | null | undefined
     return {
       reviewTitle: github ? "Review GitHub issue and reply draft" : "Review new ticket and reply draft",
       approveLabel: github ? "Approve and open GitHub issue" : "Approve and create ticket",
-      consequence: `Approving creates ${where}${ta.group ? ` for ${ta.group}` : ""}${attrs ? ` (${attrs})` : ""} and records the reply draft. Nothing is sent to the customer.`,
+      consequence: `Creates ${where}${ta.group ? ` for ${ta.group}` : ""}${attrs ? ` (${attrs})` : ""} and records the reply draft. Nothing is sent to the customer.`,
       changesTicket: true,
     };
   }
@@ -139,14 +139,14 @@ export function approvalCopy(ta: ActionInput, adapter: string | null | undefined
     return {
       reviewTitle: "Review ticket note and reply draft",
       approveLabel: "Approve and add note",
-      consequence: `Approving adds an internal note to ${t} and records the reply draft. Nothing is sent to the customer.`,
+      consequence: `Adds an internal note to ${t} and records the reply draft. Nothing is sent to the customer.`,
       changesTicket: true,
     };
   }
   return {
     reviewTitle: "Review reply draft",
     approveLabel: "Approve draft",
-    consequence: "Approving only records this reviewed draft for your team to send. No ticket is created or changed, and nothing is sent to the customer.",
+    consequence: "Only records this reviewed draft for your team to send. No ticket is created or changed, and nothing is sent to the customer.",
     changesTicket: false,
   };
 }
@@ -161,4 +161,13 @@ export function completedTitle(actionType: string | null | undefined, tickets: {
   if ((actionType === "add_note" || actionType === "create_ticket") && resultNote) return resultNote;
   if (actionType === "add_note" || actionType === "create_ticket") return "Ticket action completed";
   return "Reply draft approved";
+}
+
+/** Audit actor ids ("visitor:9ff04057", "reviewer@…") as people read them. */
+export function actorLabel(actor: string): string {
+  if (actor.startsWith("visitor:")) return "you (demo session)";
+  if (actor === "ai:simulated") return "simulated AI";
+  if (actor.startsWith("ai:")) return `the ${actor.slice(3)} model`;
+  if (actor === "system" || actor === "workflow") return "the workflow";
+  return actor;
 }

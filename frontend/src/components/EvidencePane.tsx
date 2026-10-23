@@ -1,7 +1,7 @@
 import { BookOpenText, ExternalLink, FileText, History, Ticket, UserRound } from "lucide-react";
 import type { ReactNode } from "react";
 import type { RequestDetail } from "../api";
-import { categoryLabel, humanize, humanizeInline, humanizeList } from "../labels";
+import { actorLabel, categoryLabel, humanize, humanizeInline, humanizeList } from "../labels";
 import { versionNote } from "./ProposalParts";
 import { Disclosure, HelpTip, timeAgo } from "./ui";
 
@@ -113,8 +113,8 @@ export function EvidencePane({ detail: d, onCite }: { detail: RequestDetail | nu
   const c = d.proposal?.version.content;
   type Entry = { at: string; text: string; detail?: string; tone: "neutral" | "warn" | "ok" | "danger"; link?: { href: string; label: string } };
   const history: Entry[] = [
-    ...(d.proposal?.versions ?? []).map((v) => ({ at: v.created_at, text: `Version ${v.version} by ${v.author}${v.edit_note ? ` (${v.edit_note})` : ""}`, tone: "neutral" as const })),
-    ...d.approvals.map((a) => ({ at: a.created_at, text: `${a.decision === "approved" ? "Approved" : "Rejected"} by ${a.actor}${a.status === "invalidated" ? `, invalidated: ${a.invalidated_reason}` : ""}${a.reason ? `: ${a.reason}` : ""}`, tone: a.status === "invalidated" ? ("warn" as const) : ("ok" as const) })),
+    ...(d.proposal?.versions ?? []).map((v) => ({ at: v.created_at, text: `Version ${v.version} by ${actorLabel(v.author)}${v.edit_note ? ` (${v.edit_note})` : ""}`, tone: "neutral" as const })),
+    ...d.approvals.map((a) => ({ at: a.created_at, text: `${a.decision === "approved" ? "Approved" : "Rejected"} by ${actorLabel(a.actor)}${a.status === "invalidated" ? `, invalidated: ${a.invalidated_reason}` : ""}${a.reason ? `: ${a.reason}` : ""}`, tone: a.status === "invalidated" ? ("warn" as const) : ("ok" as const) })),
     ...d.executions.map((e) => ({ at: e.created_at, text: `Execution ${e.status} via ${e.adapter} adapter after ${e.attempts} attempt(s)${e.last_error ? `: ${e.last_error}` : ""}`,
       detail: `key ${e.idempotency_key}`, tone: e.status === "failed" ? ("danger" as const) : ("neutral" as const),
       link: e.external_url ? { href: e.external_url, label: `GitHub issue #${e.external_number}` } : undefined })),

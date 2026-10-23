@@ -9,7 +9,7 @@ const check = (name, ok, detail = "") => { results.push(ok); console.log(`${ok ?
 const none = approvalCopy({ type: "none" }, null);
 check("none: review reply draft / approve draft, no ticket change",
   none.reviewTitle === "Review reply draft" && none.approveLabel === "Approve draft" && !none.changesTicket
-  && /only records/.test(none.consequence) && /No ticket is created or changed/.test(none.consequence), none.consequence);
+  && /Only records/.test(none.consequence) && /No ticket is created or changed/.test(none.consequence), none.consequence);
 const create = approvalCopy({ type: "create_ticket", group: "Support Tier 1", priority: "normal", status: "pending_customer" }, "internal");
 check("create_ticket (internal): names the internal ticket, group, priority and status",
   create.approveLabel === "Approve and create ticket" && create.changesTicket
@@ -21,7 +21,7 @@ check("create_ticket (github): names the GitHub issue",
   && gh.reviewTitle.includes("GitHub issue"), gh.consequence);
 const note = approvalCopy({ type: "add_note", ticket_id: "3f0e-uuid" }, "internal");
 check("add_note: describes adding a note to the existing ticket (no raw id)",
-  note.approveLabel === "Approve and add note" && note.changesTicket && note.consequence.includes("existing ticket")
+  note.approveLabel === "Approve and add note" && note.changesTicket && note.consequence.includes("Adds an internal note to the customer's existing ticket")
   && !note.consequence.includes("3f0e"), note.consequence);
 check("every copy says nothing is sent to the customer",
   [none, create, gh, note].every((c) => c.consequence.includes("nothing is sent to the customer") || c.consequence.includes("Nothing is sent to the customer")));
