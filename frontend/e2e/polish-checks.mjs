@@ -45,9 +45,17 @@ try {
     && (await A.page.getByTestId("inbox").getByText("Not processed").count()) === 6);
   await shot(A.page, "after-01-inbox");
 
-  // 2. Access scenario: resolve + new internal ticket; seats/permissions first.
+  // 2. Access scenario (held briefly to inspect the in-flight state): resolve + new internal ticket; seats first.
+  await A.page.route("**/scenarios/*/run", async (r) => { await new Promise((f) => setTimeout(f, 1200)); await r.continue(); });
   await runScenario(A.page, "access_reporting_after_upgrade");
+  await A.page.getByTestId("processing").waitFor();
+  const proc = await A.page.getByTestId("processing").innerText();
+  check("processing: honest in-flight view (no step list or percentages; scenario menu disabled)",
+    !/%/.test(proc) && (await A.page.getByTestId("processing").locator("li").count()) === 0
+    && await A.page.getByTestId("scenario-menu").isDisabled(), proc.split("\n")[0]);
+  await shot(A.page, "after-00-processing");
   await A.page.getByTestId("proposal").waitFor();
+  await A.page.unroute("**/scenarios/*/run");
   const access = await latest(A.page);
   check("access: approve button and consequence name the internal ticket",
     (await A.page.getByTestId("approve").innerText()) === "Approve and create ticket"
